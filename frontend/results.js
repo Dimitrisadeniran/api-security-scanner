@@ -1,4 +1,5 @@
-// results.js — Day 8: Tier Enforcement + Usage Bar
+// results.js — Shepherd AI Logic
+let lastScanData = null; // Global storage for PDF generator
 
 const METHOD_COLORS = {
   GET:    "bg-blue-950 text-blue-300",
@@ -9,7 +10,7 @@ const METHOD_COLORS = {
 };
 
 // ─────────────────────────────────────────────
-//  Load saved API key when page opens
+//  Initialize: Load saved key
 // ─────────────────────────────────────────────
 window.addEventListener("load", () => {
   const saved = sessionStorage.getItem("shepherd_api_key");
@@ -20,99 +21,70 @@ window.addEventListener("load", () => {
 });
 
 // ─────────────────────────────────────────────
-//  Risk Level — now takes isSecured into account
+//  Logic: Risk Assessment
 // ─────────────────────────────────────────────
 function getRisk(finding, isSecured) {
-  if (isSecured) return { label: "Safe",     cls: "bg-green-950 text-green-400" };
+  if (isSecured) return { label: "Safe", cls: "bg-green-950 text-green-400" };
   if (finding.is_critical) return { label: "Critical", cls: "bg-red-950 text-red-400" };
-  if (finding.compliance?.length || finding.pii_detected?.length)
-                       return { label: "Warning",  cls: "bg-yellow-950 text-yellow-400" };
-  return               { label: "Warning",  cls: "bg-yellow-950 text-yellow-400" };
+  return { label: "Warning", cls: "bg-yellow-950 text-yellow-400" };
 }
 
 // ─────────────────────────────────────────────
-//  Usage Bar — shows scans used vs limit
+//  UI: Usage Bar Update
 // ─────────────────────────────────────────────
 function updateUsageBar(usage) {
   if (!usage) return;
-
   const { scans_used, scans_limit, tier } = usage;
-  const isUnlimited = scans_limit >= 999999;
-  const pct = isUnlimited
-    ? 10
-    : Math.min((scans_used / scans_limit) * 100, 100);
+  const isUnlimited = scans_limit >= 9999;
+  const pct = isUnlimited ? 10 : Math.min((scans_used / scans_limit) * 100, 100);
 
-  // Show the bar container
   const bar = document.getElementById("usageBar");
   if (bar) bar.classList.remove("hidden");
 
-  // Update the label text
   const usageText = document.getElementById("usageText");
   if (usageText) {
-    usageText.textContent = isUnlimited
-      ? `${scans_used} scans used — ${tier.toUpperCase()} (unlimited)`
+    usageText.textContent = isUnlimited 
+      ? `${scans_used} scans used — ${tier.toUpperCase()}`
       : `${scans_used} of ${scans_limit} scans — ${tier.toUpperCase()}`;
   }
 
-  // Update the fill bar width + color
   const fill = document.getElementById("usageBarFill");
   if (fill) {
     fill.style.width = `${pct}%`;
-    if (pct >= 100) {
-      fill.className = "h-1.5 rounded-full bg-red-500 transition-all duration-500";
-    } else if (pct >= 70) {
-      fill.className = "h-1.5 rounded-full bg-yellow-500 transition-all duration-500";
-    } else {
-      fill.className = "h-1.5 rounded-full bg-emerald-500 transition-all duration-500";
-    }
+    fill.className = `h-1.5 rounded-full transition-all duration-500 ${pct >= 100 ? 'bg-red-500' : pct >= 70 ? 'bg-yellow-500' : 'bg-emerald-500'}`;
   }
 
-  // Show upgrade prompt if maxed out
   const prompt = document.getElementById("upgradePrompt");
-  if (prompt) {
-    if (pct >= 100) {
-      prompt.classList.remove("hidden");
-    } else {
-      prompt.classList.add("hidden");
-    }
-  }
+  if (prompt) prompt.classList.toggle("hidden", pct < 100);
 }
 
 // ─────────────────────────────────────────────
-//  Render Results Table
+//  UI: Table Rendering
 // ─────────────────────────────────────────────
 function renderTable(allRoutes, unsecuredRoutes, score, target) {
   const tbody = document.getElementById("resultsBody");
   tbody.innerHTML = "";
 
-  const unsecuredPaths = new Set(
-    unsecuredRoutes.map(r => `${r.method}:${r.route}`)
-  );
-
+  // Create a set for quick lookup of unsecured paths
+  const unsecuredPaths = new Set(unsecuredRoutes.map(r => `${r.method}:${r.route}`));
   const findingMap = {};
-  unsecuredRoutes.forEach(r => {
-    findingMap[`${r.method}:${r.route}`] = r;
-  });
+  unsecuredRoutes.forEach(r => { findingMap[`${r.method}:${r.route}`] = r; });
 
   allRoutes.forEach(r => {
-    const key        = `${r.method}:${r.route}`;
+    const key = `${r.method}:${r.route}`;
     const isUnsecured = unsecuredPaths.has(key);
-    const finding    = findingMap[key] || r;
-
-    // ← fixed: pass isSecured so Safe only shows on truly secured routes
-    const risk       = getRisk(finding, !isUnsecured);
+    const finding = findingMap[key] || r;
+    const risk = getRisk(finding, !isUnsecured);
 
     const tags = (finding.compliance || [])
-      .map(t => `<span class="mono text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded">${t}</span>`)
+      .map(t => `<span class="mono text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded">${t}</span>`)
       .join(" ");
 
-    const methodCls = METHOD_COLORS[r.method] || "bg-gray-800 text-gray-400";
-
     tbody.innerHTML += `
-      <tr class="hover:bg-gray-900 transition">
+      <tr class="hover:bg-gray-900/50 transition border-b border-gray-800/50">
         <td class="mono text-xs text-gray-300 px-4 py-3 truncate">${r.route}</td>
         <td class="px-4 py-3">
-          <span class="mono text-xs font-medium px-2 py-1 rounded ${methodCls}">
+          <span class="mono text-[10px] font-bold px-2 py-1 rounded ${METHOD_COLORS[r.method] || 'bg-gray-800'}">
             ${r.method}
           </span>
         </td>
@@ -123,123 +95,114 @@ function renderTable(allRoutes, unsecuredRoutes, score, target) {
           </span>
         </td>
         <td class="px-4 py-3">
-          <span class="mono text-xs px-2 py-1 rounded ${risk.cls}">${risk.label}</span>
+          <span class="mono text-[10px] px-2 py-1 rounded ${risk.cls}">${risk.label}</span>
         </td>
-        <td class="px-4 py-3">
-          <div class="flex gap-1 flex-wrap">
-            ${tags || '<span class="text-gray-700 text-xs">—</span>'}
-          </div>
-        </td>
+        <td class="px-4 py-3 text-gray-500">${tags || "—"}</td>
       </tr>`;
   });
 
-  // Update stat cards
+  // Update Statistics
   const sc = Math.round(score);
   const scoreEl = document.getElementById("statScore");
   if (scoreEl) {
     scoreEl.textContent = sc + "%";
-    scoreEl.className = `text-3xl font-bold ${
-      sc >= 80 ? "text-emerald-400" :
-      sc >= 50 ? "text-yellow-400"  :
-                 "text-red-400"
-    }`;
+    scoreEl.className = `text-3xl font-bold ${sc >= 80 ? "text-emerald-400" : sc >= 50 ? "text-yellow-400" : "text-red-400"}`;
   }
-
-  const totalEl = document.getElementById("statTotal");
-  if (totalEl) totalEl.textContent = allRoutes.length;
-
-  const unsecuredEl = document.getElementById("statUnsecured");
-  if (unsecuredEl) unsecuredEl.textContent = unsecuredRoutes.length;
-
+  document.getElementById("statTotal").textContent = allRoutes.length;
+  document.getElementById("statUnsecured").textContent = unsecuredRoutes.length;
   document.getElementById("resultsSection").classList.remove("hidden");
+
+  // Show Download Section
+  const dlRow = document.getElementById("downloadRow");
+  if (dlRow) {
+    dlRow.classList.remove("hidden");
+    document.getElementById("downloadTarget").textContent = target;
+  }
 }
 
 // ─────────────────────────────────────────────
-//  Main Scan Function
+//  Action: Run Analysis
 // ─────────────────────────────────────────────
 async function runScan() {
-  const url    = document.getElementById("urlInput").value.trim();
-  const keyEl  = document.getElementById("apiKeyInput");
-  const apiKey = keyEl ? keyEl.value.trim() : "your-free-key";
-  const btn    = document.getElementById("scanBtn");
-  const spinner = document.getElementById("spinner");
-  const label  = document.getElementById("btnLabel");
+  const url = document.getElementById("urlInput").value.trim();
+  const apiKey = document.getElementById("apiKeyInput").value.trim();
+  const btn = document.getElementById("scanBtn");
   const errMsg = document.getElementById("errorMsg");
 
+  if (!url || !apiKey) {
+    errMsg.textContent = "URL and API Key are required.";
+    errMsg.classList.remove("hidden");
+    return;
+  }
+
   errMsg.classList.add("hidden");
-
-  // Validate URL
-  if (!url) {
-    errMsg.textContent = "Please enter a FastAPI URL to scan.";
-    errMsg.classList.remove("hidden");
-    return;
-  }
-
-  // Validate API key
-  if (!apiKey || apiKey === "your-free-key") {
-    errMsg.textContent = "Please enter your API key from /auth/register.";
-    errMsg.classList.remove("hidden");
-    return;
-  }
-
-  // Save key for this session so user doesn't retype
   sessionStorage.setItem("shepherd_api_key", apiKey);
-
+  
   btn.disabled = true;
-  spinner.classList.remove("hidden");
-  label.textContent = "Scanning...";
+  document.getElementById("spinner").classList.remove("hidden");
+  document.getElementById("btnLabel").textContent = "Analyzing...";
 
   try {
     const res = await fetch("http://127.0.0.1:8000/scan", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey
-      },
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
       body: JSON.stringify({ target_url: url })
     });
 
     const data = await res.json();
 
-    // ── Tier limit hit ──
-    if (res.status === 429) {
-      errMsg.textContent = "⚠️ " + data.detail;
-      errMsg.classList.remove("hidden");
-      updateUsageBar({ scans_used: 1, scans_limit: 1, tier: "free" });
-      return;
-    }
-
-    // ── Auth error ──
-    if (res.status === 401) {
-      errMsg.textContent = "Invalid API key. Register at /auth/register.";
-      errMsg.classList.remove("hidden");
-      return;
-    }
-
-    // ── Other errors ──
     if (!res.ok) {
-      errMsg.textContent = "Error: " + (data.detail || "Scan failed.");
+      errMsg.textContent = data.detail || "Scan failed.";
       errMsg.classList.remove("hidden");
       return;
     }
 
-    // ── Success ──
-    renderTable(
-      data.findings,
-      data.findings,
-      data.score,
-      data.target
-    );
-
-    // Update usage bar with real data from backend
+    lastScanData = data;
+    renderTable(data.findings, data.findings, data.score, data.target);
     updateUsageBar(data.usage);
-
   } catch (err) {
-    errMsg.textContent = "Error: " + err.message;
+    errMsg.textContent = "Connection Error: " + err.message;
     errMsg.classList.remove("hidden");
   } finally {
     btn.disabled = false;
-    spinner.classList.add("hidden");
-    label.textContent = "Run scan";
+    document.getElementById("spinner").classList.add("hidden");
+    document.getElementById("btnLabel").textContent = "Run scan";
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Action: Download PDF Report
+// ─────────────────────────────────────────────
+async function downloadPDF() {
+  if (!lastScanData) return;
+  const apiKey = document.getElementById("apiKeyInput").value.trim();
+  const btn = document.getElementById("downloadBtn");
+  
+  btn.disabled = true;
+  btn.textContent = "Generating...";
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/report/download", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      body: JSON.stringify({
+        target_url: lastScanData.target,
+        score: lastScanData.score,
+        findings: lastScanData.findings
+      })
+    });
+
+    if (!res.ok) throw new Error("PDF generation failed or unauthorized.");
+
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `Shepherd-Report-${new Date().getTime()}.pdf`;
+    link.click();
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Download PDF Report";
   }
 }
