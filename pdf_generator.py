@@ -115,12 +115,20 @@ def generate_pdf_report(
         Paragraph(f"{company_name}", header_style),
         Paragraph(f"HIPAA Compliance Report", sub_style),
     ]]
-    title_table = Table(title_data, colWidths=[120*mm, 50*mm])
+
+    # 1. Added rowHeights to ensure the dark box is tall enough for the font
+    title_table = Table(title_data, colWidths=[120*mm, 50*mm], rowHeights=18*mm)
+
     title_table.setStyle(TableStyle([
         ("BACKGROUND",  (0, 0), (-1, -1), DARK_BG),
-        ("PADDING",     (0, 0), (-1, -1), 12),
+        # 2. Replaced general PADDING with specific values to prevent clipping
+        ("LEFTPADDING", (0, 0), (-1, -1), 12),
+        ("RIGHTPADDING",(0, 0), (-1, -1), 12),
+        ("TOPPADDING",  (0, 0), (-1, -1), 15), # Pushes "Shepherd AI" down
+        ("BOTTOMPADDING",(0, 0), (-1, -1), 10),
         ("VALIGN",      (0, 0), (-1, -1), "MIDDLE"),
     ]))
+
     story.append(title_table)
     story.append(Spacer(1, 8*mm))
 

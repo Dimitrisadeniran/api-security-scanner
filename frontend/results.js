@@ -1,5 +1,6 @@
 // results.js — Shepherd AI Logic
-let lastScanData = null; // Global storage for PDF generator
+console.log("🚀 Shepherd Logic File Loaded!");
+let lastScanData = null; 
 
 const METHOD_COLORS = {
   GET:    "bg-blue-950 text-blue-300",
@@ -53,39 +54,29 @@ function updateUsageBar(usage) {
     fill.style.width = `${pct}%`;
     fill.className = `h-1.5 rounded-full transition-all duration-500 ${pct >= 100 ? 'bg-red-500' : pct >= 70 ? 'bg-yellow-500' : 'bg-emerald-500'}`;
   }
-
-  const prompt = document.getElementById("upgradePrompt");
-  if (prompt) prompt.classList.toggle("hidden", pct < 100);
 }
 
 // ─────────────────────────────────────────────
 //  UI: Table Rendering
 // ─────────────────────────────────────────────
-function renderTable(allRoutes, unsecuredRoutes, score, target) {
+function renderTable(allFindings, score, target) {
   const tbody = document.getElementById("resultsBody");
   tbody.innerHTML = "";
 
-  // Create a set for quick lookup of unsecured paths
-  const unsecuredPaths = new Set(unsecuredRoutes.map(r => `${r.method}:${r.route}`));
-  const findingMap = {};
-  unsecuredRoutes.forEach(r => { findingMap[`${r.method}:${r.route}`] = r; });
+  allFindings.forEach(f => {
+    const isUnsecured = f.is_unsecured !== false; // Assuming your engine flags these
+    const risk = getRisk(f, !isUnsecured);
 
-  allRoutes.forEach(r => {
-    const key = `${r.method}:${r.route}`;
-    const isUnsecured = unsecuredPaths.has(key);
-    const finding = findingMap[key] || r;
-    const risk = getRisk(finding, !isUnsecured);
-
-    const tags = (finding.compliance || [])
+    const tags = (f.compliance || [])
       .map(t => `<span class="mono text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded">${t}</span>`)
       .join(" ");
 
     tbody.innerHTML += `
       <tr class="hover:bg-gray-900/50 transition border-b border-gray-800/50">
-        <td class="mono text-xs text-gray-300 px-4 py-3 truncate">${r.route}</td>
+        <td class="mono text-xs text-gray-300 px-4 py-3 truncate">${f.route}</td>
         <td class="px-4 py-3">
-          <span class="mono text-[10px] font-bold px-2 py-1 rounded ${METHOD_COLORS[r.method] || 'bg-gray-800'}">
-            ${r.method}
+          <span class="mono text-[10px] font-bold px-2 py-1 rounded ${METHOD_COLORS[f.method] || 'bg-gray-800'}">
+            ${f.method}
           </span>
         </td>
         <td class="px-4 py-3">
@@ -101,15 +92,15 @@ function renderTable(allRoutes, unsecuredRoutes, score, target) {
       </tr>`;
   });
 
-  // Update Statistics
+  // Update Stats
   const sc = Math.round(score);
   const scoreEl = document.getElementById("statScore");
   if (scoreEl) {
     scoreEl.textContent = sc + "%";
     scoreEl.className = `text-3xl font-bold ${sc >= 80 ? "text-emerald-400" : sc >= 50 ? "text-yellow-400" : "text-red-400"}`;
   }
-  document.getElementById("statTotal").textContent = allRoutes.length;
-  document.getElementById("statUnsecured").textContent = unsecuredRoutes.length;
+  
+  document.getElementById("statTotal").textContent = allFindings.length;
   document.getElementById("resultsSection").classList.remove("hidden");
 
   // Show Download Section
@@ -145,28 +136,98 @@ async function runScan() {
   try {
     const res = await fetch("http://127.0.0.1:8000/scan", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
       body: JSON.stringify({ target_url: url })
     });
 
     const data = await res.json();
-
-    if (!res.ok) {
-      errMsg.textContent = data.detail || "Scan failed.";
-      errMsg.classList.remove("hidden");
-      return;
-    }
+    if (!res.ok) throw new Error(data.detail || "Scan failed.");
 
     lastScanData = data;
-    renderTable(data.findings, data.findings, data.score, data.target);
+    renderTable(data.findings, data.score, data.target);
     updateUsageBar(data.usage);
   } catch (err) {
-    errMsg.textContent = "Connection Error: " + err.message;
+    errMsg.textContent = err.message;
     errMsg.classList.remove("hidden");
   } finally {
     btn.disabled = false;
     document.getElementById("spinner").classList.add("hidden");
     document.getElementById("btnLabel").textContent = "Run scan";
+  }
+}
+// Show alerts config row
+const alertsRow = document.getElementById("alertsRow");
+if (alertsRow) alertsRow.classList.remove("hidden");
+
+// ─────────────────────────────────────────────
+//  Action: Prepare Manual Email
+// ─────────────────────────────────────────────
+async function prepareManualEmail() {
+  if (!lastScanData) return;
+  const apiKey = sessionStorage.getItem("shepherd_api_key");
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/alerts/prepare-manual", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      body: JSON.stringify({
+        target_url: lastScanData.target,
+        score: lastScanData.score,
+        findings: lastScanData.findings
+      })
+    });
+
+    const draft = await res.json();
+    if (draft.mailto_link) {
+      window.location.href = draft.mailto_link;
+    }
+  } catch (err) {
+    console.error("Drafting failed", err);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Action: Configure Email Alerts
+// ─────────────────────────────────────────────
+async function configureAlerts() {
+  const apiKey = document.getElementById("apiKeyInput").value.trim();
+  const alertEmail = document.getElementById("alertEmailInput")?.value.trim();
+  const errMsg = document.getElementById("errorMsg");
+  const btn = document.getElementById("alertBtn");
+
+  if (!apiKey) {
+    errMsg.textContent = "API key required.";
+    errMsg.classList.remove("hidden");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Saving...";
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/alerts/configure", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      body: JSON.stringify({
+        email_alerts: true,
+        alert_email: alertEmail || ""
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Failed to save.");
+
+    const status = document.getElementById("alertStatus");
+    if (status) {
+      status.textContent = `✅ Alerts enabled for ${data.alert_email}`;
+      status.classList.remove("hidden");
+    }
+  } catch (err) {
+    errMsg.textContent = err.message;
+    errMsg.classList.remove("hidden");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Enable Alerts";
   }
 }
 
@@ -192,7 +253,7 @@ async function downloadPDF() {
       })
     });
 
-    if (!res.ok) throw new Error("PDF generation failed or unauthorized.");
+    if (!res.ok) throw new Error("PDF generation failed.");
 
     const blob = await res.blob();
     const link = document.createElement("a");
@@ -204,5 +265,59 @@ async function downloadPDF() {
   } finally {
     btn.disabled = false;
     btn.textContent = "Download PDF Report";
+  }
+}
+// ─────────────────────────────────────────────
+//  Action: Fetch and View History
+// ─────────────────────────────────────────────
+async function loadHistory() {
+  const apiKey = document.getElementById("apiKeyInput").value.trim();
+  const historySection = document.getElementById("historySection");
+  const historyBody = document.getElementById("historyBody");
+
+  if (!apiKey) return alert("Please enter your API Key first.");
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/history", {
+      method: "GET",
+      headers: { "X-API-Key": apiKey }
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Failed to load history.");
+
+    if (data.history && data.history.length > 0) {
+      // 1. Show the History Section
+      historySection.classList.remove("hidden");
+
+      // 2. Clear the history table body
+      historyBody.innerHTML = ""; 
+
+      // 3. Build the history rows
+      data.history.forEach(item => {
+        const row = document.createElement("tr");
+        row.className = "hover:bg-gray-900/50 transition";
+        
+        // Formating the date for the "Date" column
+        const scanDate = new Date().toLocaleDateString(); 
+
+        row.innerHTML = `
+          <td class="px-4 py-4 text-gray-400 mono text-xs">${scanDate}</td>
+          <td class="px-4 py-4 font-mono text-gray-300 truncate">${item.target || "http://127.0.0.1:8000"}</td>
+          <td class="px-4 py-4 font-bold ${item.score >= 80 ? 'text-emerald-500' : 'text-red-500'}">${item.score || 0}%</td>
+          <td class="px-4 py-4">
+            <span class="px-2 py-1 bg-gray-800 text-gray-400 rounded text-[10px] font-bold uppercase">Stored</span>
+          </td>
+        `;
+        historyBody.appendChild(row);
+      });
+
+      console.log("History table populated successfully.");
+    } else {
+      alert("No previous scan history found.");
+    }
+  } catch (err) {
+    console.error("History Error:", err);
+    alert("Error: " + err.message);
   }
 }
