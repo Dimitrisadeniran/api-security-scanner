@@ -18,23 +18,99 @@ def get_connection():
     return conn
 
 def init_db():
-    """Creates tables and ensures all columns exist."""
     conn = get_connection()
     cursor = conn.cursor()
 
-    # 1. Updated Users Table with Alert Columns
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            email        TEXT UNIQUE NOT NULL,
-            password     TEXT NOT NULL,
-            tier         TEXT DEFAULT 'free',
-            email_alerts INTEGER DEFAULT 0,
-            alert_email  TEXT,
-            created_at   TEXT DEFAULT CURRENT_TIMESTAMP
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            email           TEXT UNIQUE NOT NULL,
+            password        TEXT NOT NULL,
+            tier            TEXT DEFAULT 'free',
+            email_alerts    INTEGER DEFAULT 0,
+            alert_email     TEXT,
+            slack_webhook   TEXT,
+            slack_alerts    INTEGER DEFAULT 0,
+            company_name    TEXT DEFAULT 'Shepherd AI',
+            logo_url        TEXT,
+            custom_keywords TEXT DEFAULT '',
+            created_at      TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS api_keys (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id    INTEGER NOT NULL,
+            api_key    TEXT UNIQUE NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS scan_usage (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id    INTEGER NOT NULL,
+            scanned_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            target_url TEXT,
+            score      REAL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+    print("✅ Database initialized.")
+
+# ── Day 12: Slack Settings ──────────────────
+def save_slack_settings(user_id: int, webhook_url: str, slack_alerts: bool):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET slack_webhook = ?, slack_alerts = ? WHERE id = ?",
+        (webhook_url, 1 if slack_alerts else 0, user_id)
+    )
+    conn.commit()
+    conn.close()
+
+def get_slack_settings(user_id: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT slack_webhook, slack_alerts FROM users WHERE id = ?", (user_id,)
+    )
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+# ── Day 13: White-label + Custom Keywords ───
+def save_enterprise_settings(
+    user_id: int,
+    company_name: str,
+    logo_url: str,
+    custom_keywords: str
+):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE users
+        SET company_name = ?, logo_url = ?, custom_keywords = ?
+        WHERE id = ?
+    """, (company_name, logo_url, custom_keywords, user_id))
+    conn.commit()
+    conn.close()
+
+def get_enterprise_settings(user_id: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT company_name, logo_url, custom_keywords FROM users WHERE id = ?",
+        (user_id,)
+    )
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else {}
     # 2. API Keys Table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS api_keys (
@@ -188,3 +264,18 @@ def get_scan_history(user_id: int, limit: int = 20) -> list:
     rows = cursor.fetchall()
     conn.close()
     return [dict(r) for r in rows]
+# --- Wrapper Functions for main.py (API Key access) ---
+
+def get_slack_settings_by_key(api_key: str):
+    """Bridge function to fetch slack settings using an API key"""
+    user = get_user_by_api_key(api_key)
+    if not user:
+        return None
+    return get_slack_settings(user["id"])
+
+def get_enterprise_settings_by_key(api_key: str):
+    """Bridge function to fetch enterprise settings using an API key"""
+    user = get_user_by_api_key(api_key)
+    if not user:
+        return {}
+    return get_enterprise_settings(user["id"])

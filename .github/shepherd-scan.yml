@@ -1,0 +1,47 @@
+# .github/workflows/shepherd-scan.yml
+# Shepherd AI — Automatic HIPAA Compliance Scan on every Pull Request
+#
+# Setup:
+# 1. Go to your GitHub repo → Settings → Secrets → Actions
+# 2. Add these two secrets:
+#    SHEPHERD_API_KEY  → your Shepherd AI API key
+#    SHEPHERD_API_URL  → https://your-deployed-api.com  (or your ngrok URL for testing)
+
+name: Shepherd AI HIPAA Scan
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  hipaa-scan:
+    name: HIPAA Compliance Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install httpx
+
+      - name: Run Shepherd AI Compliance Scan
+        env:
+          SHEPHERD_API_KEY: ${{ secrets.SHEPHERD_API_KEY }}
+          SHEPHERD_API_URL: ${{ secrets.SHEPHERD_API_URL }}
+          TARGET_URL:       ${{ secrets.TARGET_URL }}
+        run: python .github/scripts/shepherd_scan.py
+
+      - name: Upload Scan Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: shepherd-compliance-report
+          path: shepherd_report.json

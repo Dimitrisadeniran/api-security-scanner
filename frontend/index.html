@@ -18,7 +18,6 @@
 <body class="min-h-screen flex flex-col">
 
   <section class="flex flex-col items-center justify-center px-6 py-24 text-center">
-
     <div class="mono text-xs text-emerald-400 border border-emerald-800 bg-emerald-950 px-4 py-1.5 rounded-full mb-6 flex items-center gap-2">
       <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
       Shepherd AI — HIPAA Compliance Scanner
@@ -70,24 +69,17 @@
         <span class="mono text-xs text-gray-500">Scans used this month</span>
         <span id="usageText" class="mono text-xs text-emerald-400"></span>
       </div>
-
       <div class="w-full bg-gray-800 rounded-full h-1.5">
-        <div id="usageBarFill"
-             class="h-1.5 rounded-full bg-emerald-500 transition-all duration-500"
-             style="width: 0%">
-        </div>
+        <div id="usageBarFill" class="h-1.5 rounded-full bg-emerald-500 transition-all duration-500" style="width: 0%"></div>
       </div>
-
       <p id="upgradePrompt" class="hidden mt-3 text-xs text-center mono text-yellow-400">
-        ⚠️ Scan limit reached —
-        <a href="#" class="underline text-yellow-300">Upgrade your plan</a>
-        to continue scanning.
+        ⚠️ Scan limit reached — <a href="#" class="underline text-yellow-300">Upgrade your plan</a> to continue scanning.
       </p>
     </div>
   </section>
 
   <section id="resultsSection" class="hidden px-6 pb-20 max-w-6xl mx-auto w-full fade-in">
-
+    
     <div class="grid grid-cols-3 gap-4 mb-6">
       <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
         <p class="mono text-xs text-gray-500 mb-1">Security score</p>
@@ -105,49 +97,48 @@
 
     <div id="downloadRow" class="hidden flex justify-between items-center mb-4">
       <p class="mono text-xs text-gray-500">
-        Scan complete — 
-        <span id="downloadTarget" class="text-gray-300"></span>
+        Scan complete — <span id="downloadTarget" class="text-gray-300"></span>
       </p>
-      <button
-        id="downloadBtn"
-        onclick="downloadPDF()"
-        class="mono text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
-      >
+      <button id="downloadBtn" onclick="downloadPDF()" class="mono text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
         </svg>
         Download PDF Report
       </button>
     </div>
-    <!-- Email Alerts Configuration -->
-<div id="alertsRow" class="hidden mt-4 bg-gray-900 border border-gray-800 rounded-xl p-5">
-  <p class="mono text-xs text-emerald-400 mb-3">
-    📧 Email Alerts — Get notified when new unprotected routes are detected
-  </p>
-  <div class="flex gap-3 items-center">
-    <input
-      id="alertEmailInput"
-      type="email"
-      placeholder="alert@yourcompany.com (leave blank to use account email)"
-      onclick="this.select()"
-      class="mono flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition"
-    />
-    <button
-      id="alertBtn"
-      onclick="configureAlerts()"
-      class="mono text-xs bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg transition whitespace-nowrap"
-    >
-      Enable Alerts
-    </button>
-  </div>
-  <p id="alertStatus" class="hidden mono text-xs text-emerald-400 mt-2"></p>
-  <p class="mono text-xs text-gray-600 mt-2">
-    ⚠️ Available on Starter ($49/mo) and above.
-  </p>
-</div>
 
-    <div class="border border-gray-800 rounded-xl overflow-hidden">
+    <div id="alertsRow" class="hidden mt-4 bg-gray-900 border border-gray-800 rounded-xl p-5">
+      <p class="mono text-xs text-emerald-400 mb-3">📧 Email Alerts — Get notified when new unprotected routes are detected</p>
+      <div class="flex gap-3 items-center">
+        <input id="alertEmailInput" type="email" placeholder="alert@yourcompany.com" class="mono flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition" />
+        <button onclick="configureAlerts()" id="alertBtn" class="mono text-xs bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg transition whitespace-nowrap">Enable Alerts</button>
+      </div>
+      <p id="alertStatus" class="hidden mono text-xs text-emerald-400 mt-2"></p>
+      <p class="mono text-xs text-gray-600 mt-2">⚠️ Available on Starter ($49/mo) and above.</p>
+    </div>
+
+    <div id="slackRow" class="hidden mt-4 bg-gray-900 border border-gray-800 rounded-xl p-5">
+      <p class="mono text-xs text-emerald-400 mb-3">💬 Slack Alerts — Post scan results directly to your engineering channel</p>
+      <div class="flex gap-3 items-center">
+        <input id="slackWebhookInput" type="text" placeholder="https://hooks.slack.com/services/..." class="mono flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition" />
+        <button onclick="configureSlack()" id="slackBtn" class="mono text-xs bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg transition whitespace-nowrap">Connect Slack</button>
+      </div>
+      <p id="slackStatus" class="hidden mono text-xs text-emerald-400 mt-2"></p>
+      <p class="mono text-xs text-gray-600 mt-2">⚠️ Available on Pro ($149/mo). <a href="https://api.slack.com/messaging/webhooks" target="_blank" class="text-gray-500 underline">Webhook URL →</a></p>
+    </div>
+
+    <div id="enterpriseRow" class="hidden mt-4 bg-gray-900 border border-gray-800 rounded-xl p-5">
+      <p class="mono text-xs text-emerald-400 mb-3">🏢 Enterprise Settings — White-label reports + custom PHI keywords</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input id="companyNameInput" type="text" placeholder="Company Name" class="mono bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 transition" />
+        <input id="logoUrlInput" type="text" placeholder="Logo URL (https://...)" class="mono bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 transition" />
+        <input id="customKeywordsInput" type="text" placeholder="Custom keywords (genomics, mental-health...)" class="mono md:col-span-2 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 transition" />
+      </div>
+      <button onclick="saveEnterpriseSettings()" id="enterpriseBtn" class="mt-3 mono text-xs bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg transition">Save Settings</button>
+      <p id="enterpriseStatus" class="hidden mono text-xs text-emerald-400 mt-2"></p>
+    </div>
+
+    <div class="mt-8 border border-gray-800 rounded-xl overflow-hidden">
       <table class="w-full text-sm" style="table-layout:fixed;">
         <thead class="bg-gray-900 border-b border-gray-800">
           <tr>
@@ -162,50 +153,38 @@
       </table>
     </div>
   </section>
-  <!-- ── DAY 11: Audit History ── -->
-<section class="px-6 pb-20 max-w-6xl mx-auto w-full">
 
-  <!-- History Toggle Button -->
-  <div class="flex justify-center mb-6">
-    <button
-      id="historyBtn"
-      onclick="loadHistory()"
-      class="mono text-xs border border-gray-700 hover:border-emerald-500 text-gray-400 hover:text-emerald-400 px-5 py-2.5 rounded-lg transition flex items-center gap-2"
-    >
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-      </svg>
-      View Audit History
-    </button>
-  </div>
-
-  <!-- History Table -->
-  <div id="historySection" class="hidden fade-in">
-    <div class="flex items-center justify-between mb-4">
-      <p class="mono text-xs text-gray-500 uppercase tracking-widest">Audit History</p>
-      <span class="mono text-xs text-gray-600">Last 20 scans</span>
+  <section class="px-6 pb-20 max-w-6xl mx-auto w-full">
+    <div class="flex justify-center mb-6">
+      <button id="historyBtn" onclick="loadHistory()" class="mono text-xs border border-gray-700 hover:border-emerald-500 text-gray-400 hover:text-emerald-400 px-5 py-2.5 rounded-lg transition flex items-center gap-2">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        View Audit History
+      </button>
     </div>
 
-    <div class="border border-gray-800 rounded-xl overflow-hidden">
-      <table class="w-full text-sm" style="table-layout:fixed;">
-        <thead class="bg-gray-900 border-b border-gray-800">
-          <tr>
-            <th class="mono text-left text-xs text-gray-500 px-4 py-3 w-1/4">Date</th>
-            <th class="mono text-left text-xs text-gray-500 px-4 py-3 w-2/5">Target URL</th>
-            <th class="mono text-left text-xs text-gray-500 px-4 py-3 w-1/6">Score</th>
-            <th class="mono text-left text-xs text-gray-500 px-4 py-3">Status</th>
-          </tr>
-        </thead>
-        <tbody id="historyBody" class="divide-y divide-gray-800 bg-black"></tbody>
-      </table>
+    <div id="historySection" class="hidden fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <p class="mono text-xs text-gray-500 uppercase tracking-widest">Audit History</p>
+        <span class="mono text-xs text-gray-600">Last 20 scans</span>
+      </div>
+      <div class="border border-gray-800 rounded-xl overflow-hidden">
+        <table class="w-full text-sm" style="table-layout:fixed;">
+          <thead class="bg-gray-900 border-b border-gray-800">
+            <tr>
+              <th class="mono text-left text-xs text-gray-500 px-4 py-3 w-1/4">Date</th>
+              <th class="mono text-left text-xs text-gray-500 px-4 py-3 w-2/5">Target URL</th>
+              <th class="mono text-left text-xs text-gray-500 px-4 py-3 w-1/6">Score</th>
+              <th class="mono text-left text-xs text-gray-500 px-4 py-3">Status</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody" class="divide-y divide-gray-800 bg-black"></tbody>
+        </table>
+      </div>
+      <p class="mono text-xs text-gray-600 mt-3 text-center">⚠️ Full history on Starter ($49/mo) and above.</p>
     </div>
-
-    <p class="mono text-xs text-gray-600 mt-3 text-center">
-      ⚠️ Full audit history available on Starter ($49/mo) and above.
-    </p>
-  </div>
-</section>
+  </section>
 
   <script src="results.js"></script>
 </body>

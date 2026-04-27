@@ -24,33 +24,58 @@ SENSITIVE_KEYWORDS = {
 HTTP_METHODS = {"get", "post", "put", "delete", "patch"}
 
 # ─────────────────────────────────────────────
+#  Logic: Fetch OpenAPI Schema
+# ─────────────────────────────────────────────
+async def fetch_openapi_schema(url: str):
+    """
+    Fetches the openapi.json from the target FastAPI URL.
+    Handles URL cleaning (adding /openapi.json if missing).
+    """
+    target = url.strip()
+    # Ensure protocol exists
+    if not target.startswith(("http://", "https://")):
+        target = "https://" + target
+    
+    # Ensure it points to the JSON spec
+    if not target.endswith("openapi.json"):
+        target = target.rstrip("/") + "/openapi.json"
+
+    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+        response = await client.get(target)
+        if response.status_code != 200:
+            raise Exception(f"Schema not found at {target} (Status {response.status_code})")
+        return response.json()
+
+# ─────────────────────────────────────────────
 #  Logic: Find Unsecured Routes
 # ─────────────────────────────────────────────
-def find_unsecured_routes(schema: dict):
+def find_unsecured_routes(schema: dict, custom_keywords: list = []):
     unsecured = []
     total_routes = 0
     protected_count = 0
     paths = schema.get("paths", {})
 
+    # Merge custom keywords for enterprise users
+    active_keywords = {**SENSITIVE_KEYWORDS}
+    if custom_keywords:
+        active_keywords["CUSTOM"] = custom_keywords
+
     for route, path_item in paths.items():
         if not isinstance(path_item, dict):
             continue
-            
+
         for method, details in path_item.items():
             if method.lower() not in HTTP_METHODS:
                 continue
-                
+
             total_routes += 1
-            
-            # Check for security schemes
             route_security = details.get("security")
             is_unsecured = route_security is None or route_security == []
-            
+
             if not is_unsecured:
                 protected_count += 1
                 continue
 
-            # Analyze text for sensitivity
             searchable_text = (
                 f"{route} "
                 f"{details.get('summary', '')} "
@@ -58,7 +83,7 @@ def find_unsecured_routes(schema: dict):
             ).lower()
 
             found_tags = []
-            for tag, words in SENSITIVE_KEYWORDS.items():
+            for tag, words in active_keywords.items():
                 if any(re.search(rf"\b{w}\b", searchable_text, re.I) for w in words):
                     found_tags.append(tag)
 
@@ -67,42 +92,16 @@ def find_unsecured_routes(schema: dict):
                 if re.search(pat, searchable_text)
             ]
 
-            # Critical if it's sensitive AND unprotected
             is_critical = bool(found_tags) or bool(patterns_found) or "phi" in route.lower()
 
             unsecured.append({
-                "route": route,
-                "method": method.upper(),
-                "summary": details.get("summary", "N/A"),
-                "compliance": found_tags,
+                "route":        route,
+                "method":       method.upper(),
+                "summary":      details.get("summary", "N/A"),
+                "compliance":   found_tags,
                 "pii_detected": patterns_found,
-                "is_critical": is_critical,
+                "is_critical":  is_critical,
             })
 
     score = (protected_count / total_routes * 100) if total_routes > 0 else 100.0
     return unsecured, score
-
-# ─────────────────────────────────────────────
-#  Logic: Async Schema Fetching
-# ─────────────────────────────────────────────
-async def fetch_openapi_schema(base_url: str):
-    """
-    Asynchronously fetches the OpenAPI schema. 
-    Checks multiple common paths if the first one fails.
-    """
-    base_url = base_url.rstrip("/")
-    # Common paths for FastAPI/Swagger
-    potential_paths = ["/openapi.json", "/docs/openapi.json", "/v1/openapi.json"]
-    
-    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-        for path in potential_paths:
-            try:
-                target = f"{base_url}{path}"
-                response = await client.get(target)
-                if response.status_code == 200:
-                    return response.json()
-            except Exception as e:
-                print(f"DEBUG: Failed to fetch from {path}: {e}")
-                continue
-    
-    return None
