@@ -1,0 +1,10 @@
+fastapi==0.136.1
+httpx==0.28.1
+pydantic==2.13.3
+reportlab==4.4.10
+Requests==2.33.1
+slowapi==0.1.9
+# requirements.txt (Add this line manually to the end)
+
+# Day 15 infrastructure: Production process manager
+gunicorn==21.2.0
