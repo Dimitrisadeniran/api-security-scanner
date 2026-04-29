@@ -6,11 +6,18 @@ import hashlib   # Dependency for Paystack webhook security
 import hmac      # Dependency for Paystack webhook security
 import requests  # Dependency for talking to Paystack
 from datetime import datetime
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 
 # Day 14 Imports - Ensure config.py and database.py are ready
 from config import PAYSTACK_SECRET_KEY, PAYSTACK_BASE_URL, TIER_PRICES
 import database
 
+# main.py (Top Imports)
+
+# --- ADD THIS IMPORT ---
+
+# ... other imports ...
 from fastapi import FastAPI, HTTPException, Header, Request, Depends, Body # Added Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse # Added JSONResponse
@@ -32,11 +39,20 @@ logger = logging.getLogger("ShepherdAI")
 limiter = Limiter(key_func=get_remote_address)
 
 # 2. Define the app
-app = FastAPI(
-    title="Shepherd AI - Scanner API",
-    description="HIPAA Compliance Scanner for Health Tech APIs",
-    version="0.6"
-)
+# main.py (App Initialization)
+
+app = FastAPI(title="Shepherd AI - Public MVP Launch")
+
+# ... other app configurations ...
+
+# --- DAY 15 COMMERCIAL UNIFICATION: Serve branded content at shepherdai.co/scanner ---
+# This mounts the entire 'scanner' folder to the '/scanner' route.
+# We set html=True so that visiting shepherdai.co/scanner/ automatically finds index.html.
+app.mount("/scanner", StaticFiles(directory="scanner", html=True), name="scanner")
+
+# ... rest of your API endpoints ...    description="HIPAA Compliance Scanner for Health Tech APIs" 
+version="0.6"
+
 
 # 3. Attach configurations to 'app'
 app.state.limiter = limiter
