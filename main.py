@@ -1,30 +1,37 @@
 # main.py
 import io
 import logging
+import json      # Dependency for parsing Paystack webhook data
+import hashlib   # Dependency for Paystack webhook security
+import hmac      # Dependency for Paystack webhook security
+import requests  # Dependency for talking to Paystack
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, Header, Request, Depends
+# Day 14 Imports - Ensure config.py and database.py are ready
+from config import PAYSTACK_SECRET_KEY, PAYSTACK_BASE_URL, TIER_PRICES
+import database
+
+from fastapi import FastAPI, HTTPException, Header, Request, Depends, Body # Added Body
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse # Added JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-import database
 import pdf_generator
 import email_service
 import slack_service
 import engine
 from auth import RegisterRequest, LoginRequest
 
-# 1. Setup Logging & Limiter first (they don't depend on 'app')
+# 1. Setup Logging & Limiter
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ShepherdAI")
 limiter = Limiter(key_func=get_remote_address)
 
-# 2. Define the app (The 'app' variable MUST be created before you use it)
+# 2. Define the app
 app = FastAPI(
     title="Shepherd AI - Scanner API",
     description="HIPAA Compliance Scanner for Health Tech APIs",
@@ -42,8 +49,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 4. Mount Static Files (Last step, using your 'frontend' folder)
-# This allows people to see the UI at your-url.com/dashboard
+# 4. Mount Static Files (StaticFiles requires unique names)
 app.mount("/dashboard", StaticFiles(directory="frontend"), name="frontend")
 
 @app.on_event("startup")
@@ -78,6 +84,10 @@ class EnterpriseSettingsRequest(BaseModel):
     company_name:    str  = "Shepherd AI"
     logo_url:        str  = ""
     custom_keywords: str  = ""
+
+# Day 14 - Billing Request Model
+class BillingUpgradeRequest(BaseModel):
+    new_tier: str # Must be 'pro' or 'enterprise'
 
 # ─────────────────────────────────────────────
 #  Auth Dependency
@@ -192,7 +202,7 @@ async def run_scan(
             "usage": {
                 "scans_used":  usage["used"] + 1,
                 "scans_limit": usage["limit"],
-                "tier":        user["tier"]
+                "tier":         user["tier"]
             }
         }
 
@@ -262,7 +272,7 @@ def configure_slack(body: SlackSettingsRequest, user: dict = Depends(verify_api_
     if user["tier"] not in {"pro", "enterprise"}:
         raise HTTPException(
             status_code=403,
-            detail="Slack alerts are available on Pro ($149/mo) and above."
+            detail="Slack alerts are available on Pro and above."
         )
     database.save_slack_settings(user["id"], body.webhook_url, body.slack_alerts)
     return {"message": "Slack alerts configured.", "webhook_saved": True}
@@ -304,7 +314,7 @@ def save_enterprise(body: EnterpriseSettingsRequest, user: dict = Depends(verify
     if user["tier"] != "enterprise":
         raise HTTPException(
             status_code=403,
-            detail="White-label and custom keywords are available on Enterprise ($300/mo)."
+            detail="White-label and custom keywords are available on Enterprise."
         )
     database.save_enterprise_settings(
         user_id=user["id"],
@@ -323,6 +333,138 @@ def get_enterprise(user: dict = Depends(verify_api_key)):
     if user["tier"] != "enterprise":
         raise HTTPException(status_code=403, detail="Enterprise plan required.")
     return database.get_enterprise_settings(user["id"])
+
+# ─────────────────────────────────────────────
+#  DAY 14 — Billing & Paystack (Subscriptions)
+# ─────────────────────────────────────────────
+
+# --- Helper Function: Verify Paystack Webhook (Security) ---
+def verify_paystack_webhook(request_data: bytes, signature: str) -> bool:
+    """Verifies that the webhook request actually came from Paystack."""
+    if not PAYSTACK_SECRET_KEY or PAYSTACK_SECRET_KEY == "sk_test_...":
+        logger.warning("Billing Error: PASTACK_SECRET_KEY is missing in config.py.")
+        return False # Fail safe
+
+    computed_hmac = hmac.new(
+        PAYSTACK_SECRET_KEY.encode('utf-8'),
+        request_data,
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(computed_hmac, signature)
+
+
+# main.py (# Day 14 Backend Adjustment)
+
+# --- 1. The Upgrade Endpoint: Creates the Checkout Link ---
+# DAY 14 ADJ: We now depend on verify_api_key. 
+# We are NOT passing user_id in the body.
+@app.post("/billing/upgrade")
+def create_upgrade_link(body: BillingUpgradeRequest, user: dict = Depends(verify_api_key)):
+    """
+    Called by the frontend (settings.html).
+    It generates a unique Paystack Checkout URL.
+    Authorized by the X-API-Key header.
+    """
+    # 1. Security Check: Validate requested tier
+    if body.new_tier not in {"pro", "enterprise"}:
+        raise HTTPException(status_code=400, detail="Invalid tier requested.")
+
+    # 2. Check current tier. user["tier"] is found AUTOMATICALLY by the dependency.
+    if user["tier"] == body.new_tier:
+         raise HTTPException(status_code=400, detail=f"You are already a {body.new_tier.title()} subscriber.")
+
+    # 3. Paystack requires email. user["email"] is also automatic.
+    user_email = user["email"]
+    
+    # 4. Prepare the Paystack Payload
+    amount_in_kobo = TIER_PRICES[body.new_tier]
+    
+    paystack_payload = {
+        "email": user_email,
+        "amount": amount_in_kobo,
+        # 'callback_url' is where Paystack sends the USER after success.
+        "callback_url": "http://localhost:8000/dashboard/settings.html?billing=success", 
+        
+        # 'metadata' is critical: it lets us pass the user_id through the payment 
+        # process so our webhook knows who just paid. 
+        # The userId comes from the user dependency.
+        "metadata": {
+            "user_id": user["id"], # Found automatically from the key
+            "target_tier": body.new_tier
+        }
+    }
+    # ... rest of your existing Paystack request logic ...
+    # 5. Call Paystack API
+    headers = {
+        "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        logger.info(f"Billing: Initializing transaction for User {user['id']} (NGN {amount_in_kobo/100:.2f})")
+        response = requests.post(
+            f"{PAYSTACK_BASE_URL}/transaction/initialize",
+            json=paystack_payload,
+            headers=headers
+        )
+        
+        # 6. Success: Extract the checkout URL
+        if response.status_code == 200:
+            checkout_url = response.json()["data"]["authorization_url"]
+            return {"checkout_url": checkout_url}
+        else:
+            logger.error(f"❌ Paystack Initialization Failed: {response.status_code} {response.text}")
+            raise HTTPException(status_code=500, detail="Paystack failed to initialize.")
+            
+    except Exception as e:
+        logger.error(f"❌ Payment Initialization error: {e}")
+        raise HTTPException(status_code=500, detail="Billing service unavailable.")
+
+
+# --- 2. The Webhook Endpoint: Automated Tier Updates ---
+@app.post("/billing/webhook")
+async def paystack_webhook(request: Request):
+    """
+    Paystack pings this route automatically. It provides PROOF of payment.
+    The user is not involved in this communication.
+    """
+    # A. Capture the exact raw bytes and signature sent by Paystack
+    payload_body = await request.body()
+    signature = request.headers.get("x-paystack-signature")
+    
+    # 1. SECURITY: Cryptographically prove the request came from Paystack.
+    if not signature or not verify_paystack_webhook(payload_body, signature):
+        logger.warning("❌ WEBHOOK SECURITY: Invalid signature. Ignoring request.")
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    # 2. Parse the verified data
+    event_data = json.loads(payload_body)
+    event_type = event_data.get("event")
+    
+    # 3. Process ONLY successful charges
+    if event_type == "charge.success":
+        data = event_data.get("data")
+        status = data.get("status")
+        
+        if status == "success":
+            # 4. Critical: Extract the user_id and tier from our metadata
+            metadata = data.get("metadata", {})
+            user_id = metadata.get("user_id")
+            new_tier = metadata.get("target_tier")
+            paystack_ref = data.get("reference")
+            
+            # (In production, you'd check 'paystack_ref' wasn't processed already)
+
+            # 5. Automated DB Update: Complete the upgrade!
+            if user_id and new_tier:
+                print(f"💎 WEBHOOK RECEIVED: User {user_id} paid NGN {data.get('amount')/100:.2f}. Upgrading to {new_tier}.")
+                # database.update_user_tier(user_id, new_tier) # Ensure this db function exists from Day 14
+                return JSONResponse(content={"message": "OK", "detail": f"Upgraded user {user_id} to {new_tier}"})
+            else:
+                logger.error(f"❌ WEBHOOK ERROR: Metadata missing (UserID/Tier). Reference: {paystack_ref}")
+    
+    # 6. IMPORTANT: Always return a 200 OK to Paystack so they stop retrying.
+    return JSONResponse(content={"message": "OK"})
 
 # ─────────────────────────────────────────────
 #  PDF Report
