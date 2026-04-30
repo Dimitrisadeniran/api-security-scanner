@@ -11,7 +11,7 @@ const METHOD_COLORS = {
   PATCH:  "bg-pink-950 text-pink-300",
 };
 
-const BASE_URL = "https://api-security-scanner-qksl.onrender.com";
+const API_BASE = "https://api-security-scanner-qksl.onrender.com";
 
 // ─────────────────────────────────────────────
 //  Helpers

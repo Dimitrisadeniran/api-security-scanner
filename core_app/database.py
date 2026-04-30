@@ -279,3 +279,14 @@ def get_enterprise_settings_by_key(api_key: str):
     if not user:
         return {}
     return get_enterprise_settings(user["id"])
+def update_user_tier(user_id: int, new_tier: str):
+    """Upgrades a user's tier after successful payment."""
+    conn   = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET tier = ? WHERE id = ?",
+        (new_tier, user_id)
+    )
+    conn.commit()
+    conn.close()
+    print(f"✅ User {user_id} upgraded to {new_tier}")
