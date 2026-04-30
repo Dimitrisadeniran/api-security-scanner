@@ -1,14 +1,12 @@
 fastapi==0.136.1
 httpx==0.28.1
 pydantic==2.13.3
+pydantic[email]
 reportlab==4.4.10
-Requests==2.33.1
+requests==2.33.1
 slowapi==0.1.9
-# requirements.txt (Add this line manually to the end)
-
-# Day 15 infrastructure: Production process manager
 gunicorn==21.2.0
-# requirements.txt - Final infrastructure cleanup
-
-# These are necessary for production hosting on Render
 uvicorn==0.27.0
+python-multipart
+resend
+email-validator
