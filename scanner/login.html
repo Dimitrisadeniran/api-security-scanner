@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Shepherd AI — Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-family: 'Syne', sans-serif; background: #0a0a0a; color: #f0f0f0; }
+    .mono { font-family: 'DM Mono', monospace; }
+
+    .fade-in { animation: fadeIn 0.5s ease forwards; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+    .pulse-dot { animation: pulse 1.8s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .spinner { animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .tab-active {
+      color: #10b981;
+      border-bottom: 2px solid #10b981;
+    }
+    .tab-inactive {
+      color: #6b7280;
+      border-bottom: 2px solid transparent;
+    }
+    .tab-inactive:hover { color: #d1d5db; }
+
+    .input-field {
+      width: 100%;
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 0.5rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      color: #f9fafb;
+      font-family: 'DM Mono', monospace;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .input-field:focus { border-color: #10b981; }
+    .input-field::placeholder { color: #4b5563; }
+
+    /* Subtle grid background */
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(16,185,129,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16,185,129,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col grid-bg">
+
+  <!-- Nav -->
+  <nav class="border-b border-gray-800 bg-black/80 backdrop-blur px-6 py-4 flex items-center justify-between">
+    <div class="mono text-lg font-bold text-emerald-400">SHEPHERD AI</div>
+    <div class="mono text-xs text-gray-600">HIPAA Compliance Scanner</div>
+  </nav>
+
+  <!-- Main -->
+  <main class="flex-1 flex items-center justify-center px-6 py-16">
+    <div class="w-full max-w-md fade-in">
+
+      <!-- Badge -->
+      <div class="flex justify-center mb-8">
+        <div class="mono text-xs text-emerald-400 border border-emerald-800 bg-emerald-950 px-4 py-1.5 rounded-full flex items-center gap-2">
+          <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full pulse-dot"></span>
+          Secure Access Portal
+        </div>
+      </div>
+
+      <!-- Headline -->
+      <h1 class="text-3xl font-bold text-center mb-2 tracking-tight">
+        Welcome to <span class="text-emerald-400">Shepherd AI</span>
+      </h1>
+      <p class="text-gray-500 text-sm text-center mb-8" style="font-family:sans-serif;">
+        Sign in to your account or create one to start scanning
+      </p>
+
+      <!-- Card -->
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+
+        <!-- Tabs -->
+        <div class="flex border-b border-gray-800">
+          <button
+            id="loginTab"
+            onclick="switchTab('login')"
+            class="flex-1 mono text-xs py-4 transition tab-active"
+          >
+            Sign In
+          </button>
+          <button
+            id="registerTab"
+            onclick="switchTab('register')"
+            class="flex-1 mono text-xs py-4 transition tab-inactive"
+          >
+            Create Account
+          </button>
+        </div>
+
+        <!-- Login Form -->
+        <div id="loginForm" class="p-8">
+          <div class="space-y-4">
+            <div>
+              <label class="mono text-xs text-gray-500 block mb-1.5">Email</label>
+              <input
+                id="loginEmail"
+                type="email"
+                placeholder="you@healthtech.com"
+                class="input-field"
+                onkeydown="if(event.key==='Enter') handleLogin()"
+              />
+            </div>
+            <div>
+              <label class="mono text-xs text-gray-500 block mb-1.5">Password</label>
+              <input
+                id="loginPassword"
+                type="password"
+                placeholder="••••••••"
+                class="input-field"
+                onkeydown="if(event.key==='Enter') handleLogin()"
+              />
+            </div>
+
+            <p id="loginError" class="mono text-xs text-red-400 hidden"></p>
+
+            <button
+              id="loginBtn"
+              onclick="handleLogin()"
+              class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mt-2"
+            >
+              <svg id="loginSpinner" class="spinner hidden w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+              <span id="loginBtnLabel">Sign In →</span>
+            </button>
+          </div>
+
+          <p class="mono text-xs text-gray-600 text-center mt-6">
+            No account yet?
+            <button onclick="switchTab('register')" class="text-emerald-500 hover:text-emerald-400 transition">
+              Create one free
+            </button>
+          </p>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerForm" class="p-8 hidden">
+          <div class="space-y-4">
+            <div>
+              <label class="mono text-xs text-gray-500 block mb-1.5">Email</label>
+              <input
+                id="registerEmail"
+                type="email"
+                placeholder="you@healthtech.com"
+                class="input-field"
+              />
+            </div>
+            <div>
+              <label class="mono text-xs text-gray-500 block mb-1.5">Password</label>
+              <input
+                id="registerPassword"
+                type="password"
+                placeholder="Choose a strong password"
+                class="input-field"
+              />
+            </div>
+            <div>
+              <label class="mono text-xs text-gray-500 block mb-1.5">Plan</label>
+              <select id="registerTier" class="input-field" style="cursor:pointer;">
+                <option value="free">Free — 10 scans/month</option>
+                <option value="starter">Starter — NGN 68,000/mo · 50 scans</option>
+                <option value="pro">Pro — NGN 205,000/mo · 200 scans</option>
+                <option value="enterprise">Enterprise — NGN 412,000/mo · Unlimited</option>
+              </select>
+            </div>
+
+            <p id="registerError" class="mono text-xs text-red-400 hidden"></p>
+            <p id="registerSuccess" class="mono text-xs text-emerald-400 hidden"></p>
+
+            <button
+              id="registerBtn"
+              onclick="handleRegister()"
+              class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mt-2"
+            >
+              <svg id="registerSpinner" class="spinner hidden w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+              <span id="registerBtnLabel">Create Account →</span>
+            </button>
+          </div>
+
+          <p class="mono text-xs text-gray-600 text-center mt-6">
+            Already have an account?
+            <button onclick="switchTab('login')" class="text-emerald-500 hover:text-emerald-400 transition">
+              Sign in
+            </button>
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Footer note -->
+      <p class="mono text-xs text-gray-700 text-center mt-6">
+        Your API key is generated automatically on registration.<br/>
+        Keep it safe — it authenticates every scan.
+      </p>
+
+    </div>
+  </main>
+
+  <script>
+    const API_BASE = "https://api-security-scanner-qksl.onrender.com";
+
+    // ─────────────────────────────────────────────
+    //  Tab Switching
+    // ─────────────────────────────────────────────
+    function switchTab(tab) {
+      const loginForm    = document.getElementById("loginForm");
+      const registerForm = document.getElementById("registerForm");
+      const loginTab     = document.getElementById("loginTab");
+      const registerTab  = document.getElementById("registerTab");
+
+      if (tab === "login") {
+        loginForm.classList.remove("hidden");
+        registerForm.classList.add("hidden");
+        loginTab.className    = "flex-1 mono text-xs py-4 transition tab-active";
+        registerTab.className = "flex-1 mono text-xs py-4 transition tab-inactive";
+      } else {
+        registerForm.classList.remove("hidden");
+        loginForm.classList.add("hidden");
+        registerTab.className = "flex-1 mono text-xs py-4 transition tab-active";
+        loginTab.className    = "flex-1 mono text-xs py-4 transition tab-inactive";
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    //  Check if already logged in
+    // ─────────────────────────────────────────────
+    window.addEventListener("load", () => {
+      const key = sessionStorage.getItem("shepherd_api_key");
+      if (key) {
+        window.location.href = "/scanner/index.html";
+      }
+    });
+
+    // ─────────────────────────────────────────────
+    //  Login
+    // ─────────────────────────────────────────────
+    async function handleLogin() {
+      const email    = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value.trim();
+      const errEl    = document.getElementById("loginError");
+      const btn      = document.getElementById("loginBtn");
+      const spinner  = document.getElementById("loginSpinner");
+      const label    = document.getElementById("loginBtnLabel");
+
+      errEl.classList.add("hidden");
+
+      if (!email || !password) {
+        errEl.textContent = "Email and password are required.";
+        errEl.classList.remove("hidden");
+        return;
+      }
+
+      btn.disabled  = true;
+      spinner.classList.remove("hidden");
+      label.textContent = "Signing in...";
+
+      try {
+        const res  = await fetch(`${API_BASE}/auth/login`, {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          errEl.textContent = data.detail || "Invalid email or password.";
+          errEl.classList.remove("hidden");
+          return;
+        }
+
+        // Save API key and user info
+        sessionStorage.setItem("shepherd_api_key", data.api_key);
+        sessionStorage.setItem("shepherd_email",   data.email);
+        sessionStorage.setItem("shepherd_tier",    data.tier);
+
+        // Redirect to scanner
+        label.textContent = "Success! Redirecting...";
+        setTimeout(() => {
+          window.location.href = "/scanner/index.html";
+        }, 600);
+
+      } catch (err) {
+        errEl.textContent = "Connection error. Is the server running?";
+        errEl.classList.remove("hidden");
+      } finally {
+        btn.disabled = false;
+        spinner.classList.add("hidden");
+        if (label.textContent === "Signing in...") {
+          label.textContent = "Sign In →";
+        }
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    //  Register
+    // ─────────────────────────────────────────────
+    async function handleRegister() {
+      const email    = document.getElementById("registerEmail").value.trim();
+      const password = document.getElementById("registerPassword").value.trim();
+      const tier     = document.getElementById("registerTier").value;
+      const errEl    = document.getElementById("registerError");
+      const succEl   = document.getElementById("registerSuccess");
+      const btn      = document.getElementById("registerBtn");
+      const spinner  = document.getElementById("registerSpinner");
+      const label    = document.getElementById("registerBtnLabel");
+
+      errEl.classList.add("hidden");
+      succEl.classList.add("hidden");
+
+      if (!email || !password) {
+        errEl.textContent = "Email and password are required.";
+        errEl.classList.remove("hidden");
+        return;
+      }
+
+      if (password.length < 6) {
+        errEl.textContent = "Password must be at least 6 characters.";
+        errEl.classList.remove("hidden");
+        return;
+      }
+
+      btn.disabled = true;
+      spinner.classList.remove("hidden");
+      label.textContent = "Creating account...";
+
+      try {
+        const res  = await fetch(`${API_BASE}/auth/register`, {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ email, password, tier })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          errEl.textContent = data.detail || "Registration failed.";
+          errEl.classList.remove("hidden");
+          return;
+        }
+
+        // Save session
+        sessionStorage.setItem("shepherd_api_key", data.api_key);
+        sessionStorage.setItem("shepherd_email",   email);
+        sessionStorage.setItem("shepherd_tier",    tier);
+
+        succEl.textContent = `✅ Account created! API key saved. Redirecting...`;
+        succEl.classList.remove("hidden");
+
+        setTimeout(() => {
+          window.location.href = "/scanner/index.html";
+        }, 1200);
+
+      } catch (err) {
+        errEl.textContent = "Connection error. Is the server running?";
+        errEl.classList.remove("hidden");
+      } finally {
+        btn.disabled = false;
+        spinner.classList.add("hidden");
+        if (label.textContent === "Creating account...") {
+          label.textContent = "Create Account →";
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>
