@@ -16,13 +16,18 @@
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
-
+<script>
+  (function() {
+    const key = localStorage.getItem("shepherd_api_key");
+    if (!key) window.location.href = "/scanner/login.html";
+  })();
+</script>
     <nav class="border-b border-gray-800 bg-black px-6 py-4 flex items-center justify-between">
         <div class="mono text-lg font-bold text-emerald-400">SHEPHERD AI</div>
         <div class="flex gap-5 items-center">
-            <a href="index.html" class="mono text-xs text-gray-400 hover:text-emerald-400 transition">Scanner</a>
+            <a href="/scanner/index.html" class="mono text-xs text-gray-400 hover:text-emerald-400 transition">Scanner</a>
             <a href="#" class="mono text-xs text-emerald-400 font-bold px-3 py-1 bg-gray-900 rounded-full">Settings</a>
-            <a href="index.html" class="mono text-xs text-gray-400 hover:text-red-400 transition">Log Out</a>
+            <a href="#" onclick="localStorage.clear(); window.location.href='/scanner/login.html'" class="mono text-xs text-gray-400 hover:text-red-400 transition">Log Out</a>
         </div>
     </nav>
     

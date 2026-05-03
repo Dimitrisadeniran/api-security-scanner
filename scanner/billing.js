@@ -1,126 +1,246 @@
-// billing.js (DAY 14 Connection Update for Key-First Auth)
+// billing.js — Shepherd AI Settings & Billing
+"use strict";
 
-const BASE_URL = "http://localhost:8000"; // Your backend URL
+const API_BASE = "https://api-security-scanner-qksl.onrender.com";
 
-// Function to fetch the current user's usage and tier display
+// ─────────────────────────────────────────────
+//  Auth helper
+// ─────────────────────────────────────────────
+function getApiKey() {
+  return localStorage.getItem("shepherd_api_key") || "";
+}
+
+function apiHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "x-api-key": getApiKey()
+  };
+}
+
+// ─────────────────────────────────────────────
+//  Load user settings on page load
+// ─────────────────────────────────────────────
 async function loadUserSettings() {
-    // 1. Get the authenticated API Key from local storage.
-    // We expect the user to have pasted this into index.html
-    // and your other JS (results.js) to have saved it.
-    const apiKey = localStorage.getItem("shepherd_api_key");
+  const apiKey = getApiKey();
 
-    // DAY 14 ADJ: We are NO LONGER checking for 'userId' on the frontend.
-    if (!apiKey) {
-        console.warn("User not authorized. No API Key found in localStorage.");
-        // Non-authed users can stay on this page but CTAs will fail.
-        return;
+  if (!apiKey) {
+    window.location.href = "/scanner/login.html";
+    return;
+  }
+
+  // Fill API key input
+  const apiKeyInput = document.getElementById("api-key-input");
+  if (apiKeyInput) apiKeyInput.value = apiKey;
+
+  // Fill email and tier from localStorage
+  const email = localStorage.getItem("shepherd_email") || "";
+  const tier  = localStorage.getItem("shepherd_tier")  || "free";
+
+  const tierDisplay = document.getElementById("current-tier-display");
+  if (tierDisplay) {
+    tierDisplay.textContent = tier.toUpperCase();
+    const colors = {
+      free:       "text-gray-400",
+      starter:    "text-blue-400",
+      pro:        "text-purple-400",
+      enterprise: "text-emerald-400",
+    };
+    tierDisplay.className = `font-bold ${colors[tier] || "text-gray-400"}`;
+  }
+
+  try {
+    const res  = await fetch(`${API_BASE}/usage`, {
+      headers: apiHeaders()
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      // Update scan usage display
+      const usedEl  = document.getElementById("scans-used");
+      const limitEl = document.getElementById("scans-limit");
+      if (usedEl)  usedEl.textContent  = data.scans_used;
+      if (limitEl) limitEl.textContent = data.scans_limit >= 999999
+        ? "∞"
+        : data.scans_limit;
+
+      // Update tier display with live data from backend
+      if (tierDisplay) tierDisplay.textContent = data.tier.toUpperCase();
+
+      // Save fresh tier to localStorage
+      localStorage.setItem("shepherd_tier", data.tier);
+
+      // Highlight the user's current active plan card
+      highlightActivePlan(data.tier);
+
+    } else {
+      console.error("Failed to load usage:", data.detail);
     }
 
-    // Populate API key input
-    const apiKeyInput = document.getElementById("api-key-input");
-    if (apiKeyInput) {
-        apiKeyInput.value = apiKey;
-    }
-
-    try {
-        // 2. Fetch current usage and tier
-        // authorized by HEADER, the B2B way.
-        const response = await fetch(`${BASE_URL}/usage`, {
-            method: "GET",
-            headers: { "X-API-Key": apiKey } // Use our auth dependency
-        });
-        
-        const usageData = await response.json();
-        
-        // 3. Update the Tailwind UI based on backend data
-        if (response.status === 200) {
-            document.getElementById("current-tier-display").innerText = usageData.tier.toUpperCase();
-            document.getElementById("scans-used").innerText = usageData.scans_used;
-            document.getElementById("scans-limit").innerText = usageData.scans_limit;
-            
-            // Subtle UI hint: If they are Pro, highlight the Pro card border
-            if (usageData.tier === 'pro') {
-                const proCard = document.querySelector('.tier-card.pro');
-                if (proCard) proCard.classList.add('featured-card', 'border-emerald-500', 'border-2');
-            }
-        } else {
-            console.error("Failed to load usage data:", usageData);
-        }
-
-    } catch (error) {
-        console.error("Network error loading user settings:", error);
-        document.getElementById("current-tier-display").innerText = "ERROR";
-        document.getElementById("current-tier-display").style.color = "red";
-    }
+  } catch (err) {
+    console.error("Network error loading settings:", err);
+    showStatus("Could not connect to server. Please try again.", "red");
+  }
 }
 
-// Function to call the backend to get a Paystack Checkout Link
+// ─────────────────────────────────────────────
+//  Highlight the active plan card
+// ─────────────────────────────────────────────
+function highlightActivePlan(tier) {
+  // Remove all active styles first
+  document.querySelectorAll(".tier-card").forEach(card => {
+    card.classList.remove("featured-card", "border-emerald-500", "border-2");
+  });
+
+  // Map tier to card class
+  const map = {
+    starter:    ".tier-card.starter",
+    pro:        ".tier-card.pro",
+    enterprise: ".tier-card.enterprise",
+  };
+
+  const selector = map[tier];
+  if (selector) {
+    const card = document.querySelector(selector);
+    if (card) {
+      card.classList.add("featured-card", "border-emerald-500", "border-2");
+
+      // Add "Current Plan" badge
+      const existingBadge = card.querySelector(".current-plan-badge");
+      if (!existingBadge) {
+        const badge = document.createElement("div");
+        badge.className = "current-plan-badge mono text-xs bg-emerald-500 text-black font-bold px-3 py-1 rounded-full absolute top-4 right-4";
+        badge.textContent = "Current Plan";
+        card.style.position = "relative";
+        card.appendChild(badge);
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Show status message
+// ─────────────────────────────────────────────
+function showStatus(message, color = "white") {
+  const el = document.getElementById("status-message");
+  if (!el) return;
+  el.textContent = message;
+  el.classList.remove("hidden");
+  el.style.color = color;
+}
+
+// ─────────────────────────────────────────────
+//  Handle upgrade button click
+// ─────────────────────────────────────────────
 async function handleUpgrade(requestedTier) {
-    const apiKey = localStorage.getItem("shepherd_api_key");
-    const statusMessage = document.getElementById("status-message");
+  const apiKey = getApiKey();
 
-    // Show a loading message in the standard UI alert spot
-    statusMessage.innerText = `Preparing your ${requestedTier.toUpperCase()} subscription... Please wait.`;
-    statusMessage.classList.remove('hidden');
-    statusMessage.style.color = "cyan";
+  if (!apiKey) {
+    showStatus("Please log in first.", "red");
+    return;
+  }
 
-    try {
-        // DAY 14 ADJ: We are authorized by Header (apiKey).
-        // We are NO LONGER passing the 'userId' in the body.
-        // The backend will automatically find the userId from the key.
-        const response = await fetch(`${BASE_URL}/billing/upgrade`, {
-            method: "POST",
-            headers: {
-                "X-API-Key": apiKey, // Auth Dependency
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                new_tier: requestedTier // ONLY 'pro' or 'enterprise'
-            })
-        });
+  // Map button tier names to backend tier names
+  const tierMap = {
+    "pro":        "starter",    // your "pro" card = backend "starter"
+    "enterprise": "pro",        // your "enterprise" card = backend "pro"
+    "starter":    "starter",
+  };
 
-        const responseData = await response.json();
+  const backendTier = tierMap[requestedTier] || requestedTier;
 
-        // 4. IF SUCCESSFUL: Redirect the user to the unique Paystack URL
-        if (response.status === 200 && responseData.checkout_url) {
-            statusMessage.innerText = "Connecting to Secure Paystack Checkout...";
-            statusMessage.style.color = "white";
-            
-            // THIS LINE LAUNCHES THE PAYMENT WINDOW
-            window.location.href = responseData.checkout_url;
-            
-        } else {
-            // Handle expected failures (already Pro, invalid tier, etc.)
-            statusMessage.innerText = `Upgrade Failed: ${responseData.detail || "Payment gateway error"}`;
-            statusMessage.style.color = "red";
-        }
-    } catch (error) {
-        console.error("❌ Critical Network error during payment:", error);
-        statusMessage.innerText = "Internal Server Error. Please contact sales@shepherdai.co.";
-        statusMessage.style.color = "red";
+  showStatus(`Preparing your ${requestedTier.toUpperCase()} subscription...`, "cyan");
+
+  // Disable all upgrade buttons
+  document.querySelectorAll("[id$='-btn']").forEach(btn => {
+    btn.disabled = true;
+    btn.classList.add("opacity-50", "cursor-not-allowed");
+  });
+
+  try {
+    const res  = await fetch(`${API_BASE}/billing/upgrade`, {
+      method:  "POST",
+      headers: apiHeaders(),
+      body:    JSON.stringify({ new_tier: backendTier })
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.checkout_url) {
+      showStatus("Connecting to Paystack checkout...", "white");
+      window.location.href = data.checkout_url;
+    } else {
+      showStatus(`❌ ${data.detail || "Payment gateway error."}`, "red");
+      // Re-enable buttons
+      document.querySelectorAll("[id$='-btn']").forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove("opacity-50", "cursor-not-allowed");
+      });
     }
+
+  } catch (err) {
+    console.error("Payment error:", err);
+    showStatus("Connection error. Please try again or contact support.", "red");
+    document.querySelectorAll("[id$='-btn']").forEach(btn => {
+      btn.disabled = false;
+      btn.classList.remove("opacity-50", "cursor-not-allowed");
+    });
+  }
 }
 
-// Function to check if the user just returned from a successful payment
-// Our FastAPI backend appended 'billing=success' to the callback_url.
+// ─────────────────────────────────────────────
+//  Check if returning from Paystack payment
+// ─────────────────────────────────────────────
 function checkPaymentStatus() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const statusMessage = document.getElementById("status-message");
-
-    if (urlParams.has('billing') && urlParams.get('billing') === 'success') {
-        statusMessage.innerText = "✅ Upgrade successful! Thank you for subscribing to Shepherd AI.";
-        statusMessage.classList.remove('hidden');
-        statusMessage.style.color = "green";
-        statusMessage.style.fontWeight = "bold";
-        
-        // Refresh the tier display to show the new subscription
-        loadUserSettings();
-    }
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("billing") === "success") {
+    showStatus("✅ Payment successful! Your plan has been upgraded. Refreshing...", "green");
+    // Reload usage after 2 seconds to show new tier
+    setTimeout(() => {
+      loadUserSettings();
+      // Clean the URL
+      window.history.replaceState({}, "", "/scanner/settings.html");
+    }, 2000);
+  }
 }
 
+// ─────────────────────────────────────────────
+//  Toggle API key visibility
+// ─────────────────────────────────────────────
+function toggleApiKey() {
+  const input = document.getElementById("api-key-input");
+  const btn   = document.getElementById("show-api-key");
+  if (!input) return;
 
-// --- Execute everything on Page Load ---
-window.onload = function() {
-    checkPaymentStatus();
-    loadUserSettings();
-};
+  if (input.type === "password") {
+    input.type      = "text";
+    btn.textContent = "Hide";
+    btn.classList.add("bg-emerald-600");
+    btn.classList.remove("bg-gray-800");
+  } else {
+    input.type      = "password";
+    btn.textContent = "Show";
+    btn.classList.remove("bg-emerald-600");
+    btn.classList.add("bg-gray-800");
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Copy API key
+// ─────────────────────────────────────────────
+function copyApiKey() {
+  const key = getApiKey();
+  navigator.clipboard.writeText(key).then(() => {
+    showStatus("✅ API key copied to clipboard.", "green");
+    setTimeout(() => {
+      document.getElementById("status-message")?.classList.add("hidden");
+    }, 2000);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  Page load
+// ─────────────────────────────────────────────
+window.addEventListener("load", () => {
+  checkPaymentStatus();
+  loadUserSettings();
+});
