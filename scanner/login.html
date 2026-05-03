@@ -9,42 +9,23 @@
   <style>
     body { font-family: 'Syne', sans-serif; background: #0a0a0a; color: #f0f0f0; }
     .mono { font-family: 'DM Mono', monospace; }
-
     .fade-in { animation: fadeIn 0.5s ease forwards; }
     @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-
     .pulse-dot { animation: pulse 1.8s ease-in-out infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
     .spinner { animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    .tab-active {
-      color: #10b981;
-      border-bottom: 2px solid #10b981;
-    }
-    .tab-inactive {
-      color: #6b7280;
-      border-bottom: 2px solid transparent;
-    }
+    .tab-active { color: #10b981; border-bottom: 2px solid #10b981; }
+    .tab-inactive { color: #6b7280; border-bottom: 2px solid transparent; }
     .tab-inactive:hover { color: #d1d5db; }
-
     .input-field {
-      width: 100%;
-      background: #111827;
-      border: 1px solid #374151;
-      border-radius: 0.5rem;
-      padding: 0.75rem 1rem;
-      font-size: 0.875rem;
-      color: #f9fafb;
-      font-family: 'DM Mono', monospace;
-      outline: none;
+      width: 100%; background: #111827; border: 1px solid #374151;
+      border-radius: 0.5rem; padding: 0.75rem 1rem; font-size: 0.875rem;
+      color: #f9fafb; font-family: 'DM Mono', monospace; outline: none;
       transition: border-color 0.15s;
     }
     .input-field:focus { border-color: #10b981; }
     .input-field::placeholder { color: #4b5563; }
-
-    /* Subtle grid background */
     .grid-bg {
       background-image:
         linear-gradient(rgba(16,185,129,0.03) 1px, transparent 1px),
@@ -54,6 +35,55 @@
   </style>
 </head>
 <body class="min-h-screen flex flex-col grid-bg">
+
+  <!-- API Key Popup -->
+  <div id="apiKeyPopup" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center px-6">
+    <div class="bg-gray-900 border border-emerald-800 rounded-2xl p-8 w-full max-w-md fade-in">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 bg-emerald-950 rounded-full flex items-center justify-center">
+          <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="font-bold text-lg">Your API Key is Ready 🎉</h3>
+          <p class="mono text-xs text-gray-500">Save this — it authenticates every scan</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 mb-4">
+        <span class="mono text-xs text-gray-500">Plan:</span>
+        <span id="popupTierBadge" class="mono text-xs px-3 py-1 rounded-full font-bold"></span>
+      </div>
+
+      <div class="bg-gray-950 border border-gray-700 rounded-xl p-4 mb-4">
+        <p class="mono text-xs text-gray-500 mb-2">API Key</p>
+        <div class="flex items-center gap-2">
+          <p id="popupApiKey" class="mono text-sm text-emerald-400 flex-1 break-all"></p>
+          <button onclick="copyPopupKey()" id="copyPopupBtn"
+            class="mono text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-emerald-400 px-3 py-1.5 rounded-lg transition whitespace-nowrap">
+            Copy
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-yellow-950/50 border border-yellow-900 rounded-xl p-3 mb-4">
+        <p class="mono text-xs text-yellow-400">
+          ⚠️ Copy and save this key before continuing. You can always find it in Settings.
+        </p>
+      </div>
+
+      <div id="popupLimitsInfo" class="bg-gray-800 rounded-xl p-3 mb-6">
+        <p class="mono text-xs text-gray-400"></p>
+      </div>
+
+      <button onclick="closePopupAndLogin()"
+        class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition">
+        Continue to Scanner →
+      </button>
+    </div>
+  </div>
 
   <!-- Nav -->
   <nav class="border-b border-gray-800 bg-black/80 backdrop-blur px-6 py-4 flex items-center justify-between">
@@ -65,7 +95,6 @@
   <main class="flex-1 flex items-center justify-center px-6 py-16">
     <div class="w-full max-w-md fade-in">
 
-      <!-- Badge -->
       <div class="flex justify-center mb-8">
         <div class="mono text-xs text-emerald-400 border border-emerald-800 bg-emerald-950 px-4 py-1.5 rounded-full flex items-center gap-2">
           <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full pulse-dot"></span>
@@ -73,7 +102,6 @@
         </div>
       </div>
 
-      <!-- Headline -->
       <h1 class="text-3xl font-bold text-center mb-2 tracking-tight">
         Welcome to <span class="text-emerald-400">Shepherd AI</span>
       </h1>
@@ -81,23 +109,16 @@
         Sign in to your account or create one to start scanning
       </p>
 
-      <!-- Card -->
       <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
 
         <!-- Tabs -->
         <div class="flex border-b border-gray-800">
-          <button
-            id="loginTab"
-            onclick="switchTab('login')"
-            class="flex-1 mono text-xs py-4 transition tab-active"
-          >
+          <button id="loginTab" onclick="switchTab('login')"
+            class="flex-1 mono text-xs py-4 transition tab-active">
             Sign In
           </button>
-          <button
-            id="registerTab"
-            onclick="switchTab('register')"
-            class="flex-1 mono text-xs py-4 transition tab-inactive"
-          >
+          <button id="registerTab" onclick="switchTab('register')"
+            class="flex-1 mono text-xs py-4 transition tab-inactive">
             Create Account
           </button>
         </div>
@@ -107,32 +128,17 @@
           <div class="space-y-4">
             <div>
               <label class="mono text-xs text-gray-500 block mb-1.5">Email</label>
-              <input
-                id="loginEmail"
-                type="email"
-                placeholder="you@healthtech.com"
-                class="input-field"
-                onkeydown="if(event.key==='Enter') handleLogin()"
-              />
+              <input id="loginEmail" type="email" placeholder="you@healthtech.com"
+                class="input-field" onkeydown="if(event.key==='Enter') handleLogin()"/>
             </div>
             <div>
               <label class="mono text-xs text-gray-500 block mb-1.5">Password</label>
-              <input
-                id="loginPassword"
-                type="password"
-                placeholder="••••••••"
-                class="input-field"
-                onkeydown="if(event.key==='Enter') handleLogin()"
-              />
+              <input id="loginPassword" type="password" placeholder="••••••••"
+                class="input-field" onkeydown="if(event.key==='Enter') handleLogin()"/>
             </div>
-
             <p id="loginError" class="mono text-xs text-red-400 hidden"></p>
-
-            <button
-              id="loginBtn"
-              onclick="handleLogin()"
-              class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mt-2"
-            >
+            <button id="loginBtn" onclick="handleLogin()"
+              class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mt-2">
               <svg id="loginSpinner" class="spinner hidden w-4 h-4" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -140,7 +146,6 @@
               <span id="loginBtnLabel">Sign In →</span>
             </button>
           </div>
-
           <p class="mono text-xs text-gray-600 text-center mt-6">
             No account yet?
             <button onclick="switchTab('register')" class="text-emerald-500 hover:text-emerald-400 transition">
@@ -154,40 +159,25 @@
           <div class="space-y-4">
             <div>
               <label class="mono text-xs text-gray-500 block mb-1.5">Email</label>
-              <input
-                id="registerEmail"
-                type="email"
-                placeholder="you@healthtech.com"
-                class="input-field"
-              />
+              <input id="registerEmail" type="email" placeholder="you@healthtech.com" class="input-field"/>
             </div>
             <div>
               <label class="mono text-xs text-gray-500 block mb-1.5">Password</label>
-              <input
-                id="registerPassword"
-                type="password"
-                placeholder="Choose a strong password"
-                class="input-field"
-              />
+              <input id="registerPassword" type="password" placeholder="Choose a strong password" class="input-field"/>
             </div>
             <div>
               <label class="mono text-xs text-gray-500 block mb-1.5">Plan</label>
               <select id="registerTier" class="input-field" style="cursor:pointer;">
                 <option value="free">Free — 10 scans/month</option>
-                <option value="starter">Starter — NGN 68,000/mo · 50 scans</option>
-                <option value="pro">Pro — NGN 205,000/mo · 200 scans</option>
-                <option value="enterprise">Enterprise — NGN 412,000/mo · Unlimited</option>
+                <option value="starter">Starter — USD 220/year · 50 scans</option>
+                <option value="pro">Pro — USD 500/year · 200 scans</option>
+                <option value="enterprise">Enterprise — USD 1,400/year · Unlimited</option>
               </select>
             </div>
-
             <p id="registerError" class="mono text-xs text-red-400 hidden"></p>
             <p id="registerSuccess" class="mono text-xs text-emerald-400 hidden"></p>
-
-            <button
-              id="registerBtn"
-              onclick="handleRegister()"
-              class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mt-2"
-            >
+            <button id="registerBtn" onclick="handleRegister()"
+              class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mt-2">
               <svg id="registerSpinner" class="spinner hidden w-4 h-4" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -195,7 +185,6 @@
               <span id="registerBtnLabel">Create Account →</span>
             </button>
           </div>
-
           <p class="mono text-xs text-gray-600 text-center mt-6">
             Already have an account?
             <button onclick="switchTab('login')" class="text-emerald-500 hover:text-emerald-400 transition">
@@ -206,7 +195,6 @@
 
       </div>
 
-      <!-- Footer note -->
       <p class="mono text-xs text-gray-700 text-center mt-6">
         Your API key is generated automatically on registration.<br/>
         Keep it safe — it authenticates every scan.
@@ -216,11 +204,39 @@
   </main>
 
   <script>
+    "use strict";
     const API_BASE = "https://api-security-scanner-qksl.onrender.com";
 
-    // ─────────────────────────────────────────────
-    //  Tab Switching
-    // ─────────────────────────────────────────────
+    const TIER_COLORS = {
+      free:       "bg-gray-800 text-gray-400",
+      starter:    "bg-blue-950 text-blue-400",
+      pro:        "bg-purple-950 text-purple-400",
+      enterprise: "bg-emerald-950 text-emerald-400",
+    };
+
+    const TIER_LIMITS = {
+      free:       "10 scans / month",
+      starter:    "50 scans / month · PDF reports · Email alerts",
+      pro:        "200 scans / month · Slack alerts · Audit history",
+      enterprise: "Unlimited scans · White-label · Custom keywords",
+    };
+
+    // ── Check if already logged in ──────────────
+    window.addEventListener("load", () => {
+      const key = localStorage.getItem("shepherd_api_key");
+      if (key) {
+        window.location.href = "/scanner/index.html";
+        return;
+      }
+      // Auto-fill email for returning users
+      const savedEmail = localStorage.getItem("shepherd_email");
+      if (savedEmail) {
+        const loginEmailEl = document.getElementById("loginEmail");
+        if (loginEmailEl) loginEmailEl.value = savedEmail;
+      }
+    });
+
+    // ── Tab Switching ────────────────────────────
     function switchTab(tab) {
       const loginForm    = document.getElementById("loginForm");
       const registerForm = document.getElementById("registerForm");
@@ -240,28 +256,7 @@
       }
     }
 
-    // ─────────────────────────────────────────────
-    //  Check if already logged in
-    // ─────────────────────────────────────────────
-    window.addEventListener("load", () => {
-  // If already logged in redirect to scanner
-  const key = localStorage.getItem("shepherd_api_key");
-  if (key) {
-    window.location.href = "/scanner/index.html";
-    return;
-  }
-
-  // Auto-fill email if they registered before
-  const savedEmail = localStorage.getItem("shepherd_email");
-  if (savedEmail) {
-    const loginEmail = document.getElementById("loginEmail");
-    if (loginEmail) loginEmail.value = savedEmail;
-  }
-  });
-
-    // ─────────────────────────────────────────────
-    //  Login
-    // ─────────────────────────────────────────────
+    // ── Login ────────────────────────────────────
     async function handleLogin() {
       const email    = document.getElementById("loginEmail").value.trim();
       const password = document.getElementById("loginPassword").value.trim();
@@ -278,7 +273,7 @@
         return;
       }
 
-      btn.disabled  = true;
+      btn.disabled = true;
       spinner.classList.remove("hidden");
       label.textContent = "Signing in...";
 
@@ -297,27 +292,18 @@
           return;
         }
 
-        
-        // Save to localStorage
+        // ✅ localStorage persists across browser restarts
         localStorage.setItem("shepherd_api_key", data.api_key);
-        localStorage.setItem("shepherd_email",   email);
-        localStorage.setItem("shepherd_tier",    tier);
+        localStorage.setItem("shepherd_email",   data.email);
+        localStorage.setItem("shepherd_tier",    data.tier);
 
-// Show the API key popup instead of redirecting immediately
-showApiKeyPopup(data.api_key, tier);
-        // Redirect to scanner
-        // Save to localStorage
-localStorage.setItem("shepherd_api_key", data.api_key);
-localStorage.setItem("shepherd_email",   data.email);
-localStorage.setItem("shepherd_tier",    data.tier);
-
-label.textContent = "Success! Redirecting...";
-setTimeout(() => {
-  window.location.href = "/scanner/index.html";
-}, 600);
+        label.textContent = "Success! Redirecting...";
+        setTimeout(() => {
+          window.location.href = "/scanner/index.html";
+        }, 600);
 
       } catch (err) {
-        errEl.textContent = "Connection error. Is the server running?";
+        errEl.textContent = "Connection error. Please try again.";
         errEl.classList.remove("hidden");
       } finally {
         btn.disabled = false;
@@ -328,9 +314,7 @@ setTimeout(() => {
       }
     }
 
-    // ─────────────────────────────────────────────
-    //  Register
-    // ─────────────────────────────────────────────
+    // ── Register ─────────────────────────────────
     async function handleRegister() {
       const email    = document.getElementById("registerEmail").value.trim();
       const password = document.getElementById("registerPassword").value.trim();
@@ -375,20 +359,16 @@ setTimeout(() => {
           return;
         }
 
-        // Save session
-        sessionStorage.setItem("shepherd_api_key", data.api_key);
-        sessionStorage.setItem("shepherd_email",   email);
-        sessionStorage.setItem("shepherd_tier",    tier);
+        // ✅ localStorage persists across browser restarts
+        localStorage.setItem("shepherd_api_key", data.api_key);
+        localStorage.setItem("shepherd_email",   email);
+        localStorage.setItem("shepherd_tier",    tier);
 
-        succEl.textContent = `✅ Account created! API key saved. Redirecting...`;
-        succEl.classList.remove("hidden");
-
-        setTimeout(() => {
-          window.location.href = "/scanner/index.html";
-        }, 1200);
+        // Show API key popup
+        showApiKeyPopup(data.api_key, tier);
 
       } catch (err) {
-        errEl.textContent = "Connection error. Is the server running?";
+        errEl.textContent = "Connection error. Please try again.";
         errEl.classList.remove("hidden");
       } finally {
         btn.disabled = false;
@@ -397,77 +377,51 @@ setTimeout(() => {
           label.textContent = "Create Account →";
         }
       }
-    }// ─────────────────────────────────────────────
-//  Tier display helpers
-// ─────────────────────────────────────────────
-const TIER_COLORS = {
-  free:       "bg-gray-800 text-gray-400",
-  starter:    "bg-blue-950 text-blue-400",
-  pro:        "bg-purple-950 text-purple-400",
-  enterprise: "bg-emerald-950 text-emerald-400",
-};
+    }
 
-const TIER_LIMITS = {
-  free:       "10 scans / month",
-  starter:    "50 scans / month · PDF reports · Email alerts",
-  pro:        "200 scans / month · Slack alerts · Audit history",
-  enterprise: "Unlimited scans · White-label · Custom keywords",
-};
+    // ── API Key Popup ─────────────────────────────
+    function showApiKeyPopup(apiKey, tier) {
+      const badge = document.getElementById("popupTierBadge");
+      if (badge) {
+        badge.textContent = tier.toUpperCase();
+        badge.className   = `mono text-xs px-3 py-1 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
+      }
 
-// ─────────────────────────────────────────────
-//  Show API Key Popup after registration
-// ─────────────────────────────────────────────
-function showApiKeyPopup(apiKey, tier) {
-  // Populate popup content
-  const badge = document.getElementById("popupTierBadge");
-  if (badge) {
-    badge.textContent = tier.toUpperCase();
-    badge.className   = `mono text-xs px-3 py-1 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
-  }
+      const keyEl = document.getElementById("popupApiKey");
+      if (keyEl) keyEl.textContent = apiKey;
 
-  const keyEl = document.getElementById("popupApiKey");
-  if (keyEl) keyEl.textContent = apiKey;
+      const limitsEl = document.getElementById("popupLimitsInfo");
+      if (limitsEl) {
+        limitsEl.querySelector("p").textContent = `✅ ${TIER_LIMITS[tier] || TIER_LIMITS.free}`;
+      }
 
-  const limitsEl = document.getElementById("popupLimitsInfo");
-  if (limitsEl) {
-    limitsEl.querySelector("p").textContent = `✅ ${TIER_LIMITS[tier] || TIER_LIMITS.free}`;
-  }
+      document.getElementById("apiKeyPopup").classList.remove("hidden");
+    }
 
-  // Show the popup
-  document.getElementById("apiKeyPopup").classList.remove("hidden");
-}
+    function copyPopupKey() {
+      const keyEl = document.getElementById("popupApiKey");
+      const btn   = document.getElementById("copyPopupBtn");
+      if (!keyEl) return;
 
-// ─────────────────────────────────────────────
-//  Copy API Key from Popup
-// ─────────────────────────────────────────────
-function copyPopupKey() {
-  const keyEl = document.getElementById("popupApiKey");
-  const btn   = document.getElementById("copyPopupBtn");
-  if (!keyEl) return;
+      navigator.clipboard.writeText(keyEl.textContent).then(() => {
+        btn.textContent = "Copied ✅";
+        setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+      }).catch(() => {
+        const temp = document.createElement("textarea");
+        temp.value = keyEl.textContent;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        document.body.removeChild(temp);
+        btn.textContent = "Copied ✅";
+        setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+      });
+    }
 
-  navigator.clipboard.writeText(keyEl.textContent).then(() => {
-    btn.textContent = "Copied ✅";
-    setTimeout(() => { btn.textContent = "Copy"; }, 2000);
-  }).catch(() => {
-    // Fallback
-    const temp = document.createElement("textarea");
-    temp.value = keyEl.textContent;
-    document.body.appendChild(temp);
-    temp.select();
-    document.execCommand("copy");
-    document.body.removeChild(temp);
-    btn.textContent = "Copied ✅";
-    setTimeout(() => { btn.textContent = "Copy"; }, 2000);
-  });
-}
-
-// ─────────────────────────────────────────────
-//  Close Popup and go to Scanner
-// ─────────────────────────────────────────────
-function closePopupAndLogin() {
-  document.getElementById("apiKeyPopup").classList.add("hidden");
-  window.location.href = "/scanner/index.html";
-}
+    function closePopupAndLogin() {
+      document.getElementById("apiKeyPopup").classList.add("hidden");
+      window.location.href = "/scanner/index.html";
+    }
   </script>
 
 </body>
