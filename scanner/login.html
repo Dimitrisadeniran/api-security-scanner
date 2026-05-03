@@ -244,11 +244,20 @@
     //  Check if already logged in
     // ─────────────────────────────────────────────
     window.addEventListener("load", () => {
-      const key = sessionStorage.getItem("shepherd_api_key");
-      if (key) {
-        window.location.href = "/scanner/index.html";
-      }
-    });
+  // If already logged in redirect to scanner
+  const key = localStorage.getItem("shepherd_api_key");
+  if (key) {
+    window.location.href = "/scanner/index.html";
+    return;
+  }
+
+  // Auto-fill email if they registered before
+  const savedEmail = localStorage.getItem("shepherd_email");
+  if (savedEmail) {
+    const loginEmail = document.getElementById("loginEmail");
+    if (loginEmail) loginEmail.value = savedEmail;
+  }
+  });
 
     // ─────────────────────────────────────────────
     //  Login
@@ -288,16 +297,24 @@
           return;
         }
 
-        // Save API key and user info
-        sessionStorage.setItem("shepherd_api_key", data.api_key);
-        sessionStorage.setItem("shepherd_email",   data.email);
-        sessionStorage.setItem("shepherd_tier",    data.tier);
+        
+        // Save to localStorage
+        localStorage.setItem("shepherd_api_key", data.api_key);
+        localStorage.setItem("shepherd_email",   email);
+        localStorage.setItem("shepherd_tier",    tier);
 
+// Show the API key popup instead of redirecting immediately
+showApiKeyPopup(data.api_key, tier);
         // Redirect to scanner
-        label.textContent = "Success! Redirecting...";
-        setTimeout(() => {
-          window.location.href = "/scanner/index.html";
-        }, 600);
+        // Save to localStorage
+localStorage.setItem("shepherd_api_key", data.api_key);
+localStorage.setItem("shepherd_email",   data.email);
+localStorage.setItem("shepherd_tier",    data.tier);
+
+label.textContent = "Success! Redirecting...";
+setTimeout(() => {
+  window.location.href = "/scanner/index.html";
+}, 600);
 
       } catch (err) {
         errEl.textContent = "Connection error. Is the server running?";
@@ -380,7 +397,77 @@
           label.textContent = "Create Account →";
         }
       }
-    }
+    }// ─────────────────────────────────────────────
+//  Tier display helpers
+// ─────────────────────────────────────────────
+const TIER_COLORS = {
+  free:       "bg-gray-800 text-gray-400",
+  starter:    "bg-blue-950 text-blue-400",
+  pro:        "bg-purple-950 text-purple-400",
+  enterprise: "bg-emerald-950 text-emerald-400",
+};
+
+const TIER_LIMITS = {
+  free:       "10 scans / month",
+  starter:    "50 scans / month · PDF reports · Email alerts",
+  pro:        "200 scans / month · Slack alerts · Audit history",
+  enterprise: "Unlimited scans · White-label · Custom keywords",
+};
+
+// ─────────────────────────────────────────────
+//  Show API Key Popup after registration
+// ─────────────────────────────────────────────
+function showApiKeyPopup(apiKey, tier) {
+  // Populate popup content
+  const badge = document.getElementById("popupTierBadge");
+  if (badge) {
+    badge.textContent = tier.toUpperCase();
+    badge.className   = `mono text-xs px-3 py-1 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
+  }
+
+  const keyEl = document.getElementById("popupApiKey");
+  if (keyEl) keyEl.textContent = apiKey;
+
+  const limitsEl = document.getElementById("popupLimitsInfo");
+  if (limitsEl) {
+    limitsEl.querySelector("p").textContent = `✅ ${TIER_LIMITS[tier] || TIER_LIMITS.free}`;
+  }
+
+  // Show the popup
+  document.getElementById("apiKeyPopup").classList.remove("hidden");
+}
+
+// ─────────────────────────────────────────────
+//  Copy API Key from Popup
+// ─────────────────────────────────────────────
+function copyPopupKey() {
+  const keyEl = document.getElementById("popupApiKey");
+  const btn   = document.getElementById("copyPopupBtn");
+  if (!keyEl) return;
+
+  navigator.clipboard.writeText(keyEl.textContent).then(() => {
+    btn.textContent = "Copied ✅";
+    setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+  }).catch(() => {
+    // Fallback
+    const temp = document.createElement("textarea");
+    temp.value = keyEl.textContent;
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand("copy");
+    document.body.removeChild(temp);
+    btn.textContent = "Copied ✅";
+    setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  Close Popup and go to Scanner
+// ─────────────────────────────────────────────
+function closePopupAndLogin() {
+  document.getElementById("apiKeyPopup").classList.add("hidden");
+  window.location.href = "/scanner/index.html";
+}
   </script>
 
 </body>

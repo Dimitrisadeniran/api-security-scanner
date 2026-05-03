@@ -16,6 +16,66 @@
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
+  <!-- API Key Success Popup -->
+<div id="apiKeyPopup" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center px-6">
+  <div class="bg-gray-900 border border-emerald-800 rounded-2xl p-8 w-full max-w-md fade-in">
+    
+    <!-- Header -->
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-10 h-10 bg-emerald-950 rounded-full flex items-center justify-center">
+        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="font-bold text-lg">Your API Key is Ready 🎉</h3>
+        <p class="mono text-xs text-gray-500">Save this key — it authenticates every scan</p>
+      </div>
+    </div>
+
+    <!-- Tier Badge -->
+    <div class="flex items-center gap-2 mb-4">
+      <span class="mono text-xs text-gray-500">Plan:</span>
+      <span id="popupTierBadge" class="mono text-xs px-3 py-1 rounded-full font-bold"></span>
+    </div>
+
+    <!-- API Key Display -->
+    <div class="bg-gray-950 border border-gray-700 rounded-xl p-4 mb-4">
+      <p class="mono text-xs text-gray-500 mb-2">API Key</p>
+      <div class="flex items-center gap-2">
+        <p id="popupApiKey" class="mono text-sm text-emerald-400 flex-1 break-all"></p>
+        <button
+          onclick="copyPopupKey()"
+          id="copyPopupBtn"
+          class="mono text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-emerald-400 px-3 py-1.5 rounded-lg transition whitespace-nowrap"
+        >
+          Copy
+        </button>
+      </div>
+    </div>
+
+    <!-- Warning -->
+    <div class="bg-yellow-950/50 border border-yellow-900 rounded-xl p-3 mb-6">
+      <p class="mono text-xs text-yellow-400">
+        ⚠️ This key will not be shown again. Copy it and store it safely before continuing.
+      </p>
+    </div>
+
+    <!-- Limits Info -->
+    <div id="popupLimitsInfo" class="bg-gray-800 rounded-xl p-3 mb-6">
+      <p class="mono text-xs text-gray-400"></p>
+    </div>
+
+    <!-- CTA Button -->
+    <button
+      onclick="closePopupAndLogin()"
+      class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition"
+    >
+      Continue to Scanner →
+    </button>
+
+  </div>
+</div>
     <script>
      (function() {
        const key = sessionStorage.getItem("shepherd_api_key");
