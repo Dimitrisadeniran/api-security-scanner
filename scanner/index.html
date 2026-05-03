@@ -73,14 +73,47 @@
     <p id="errorMsg" class="mono text-red-400 text-xs mt-3 hidden"></p>
 
     <div class="mt-4 w-full max-w-xl mx-auto">
-      <input
-        id="apiKeyInput"
-        type="text"
-        placeholder="Paste your API key (get one free at /auth/register)"
-        onclick="this.select()"
-        class="mono w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition"
-      />
+
+  <!-- API Key Card — shown when logged in -->
+  <div id="apiKeyCard" class="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-3">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2">
+        <span class="mono text-xs text-gray-500">Your API Key</span>
+        <span id="tierBadge" class="mono text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 font-bold"></span>
+      </div>
+      <div class="flex gap-2">
+        <button
+          onclick="toggleKeyVisibility()"
+          id="toggleKeyBtn"
+          class="mono text-[10px] text-gray-500 hover:text-gray-300 transition px-2 py-1 bg-gray-800 rounded"
+        >
+          Show
+        </button>
+        <button
+          onclick="copyApiKey()"
+          id="copyKeyBtn"
+          class="mono text-[10px] text-gray-500 hover:text-emerald-400 transition px-2 py-1 bg-gray-800 rounded"
+        >
+          Copy
+        </button>
+      </div>
     </div>
+    <input
+      id="apiKeyInput"
+      type="password"
+      readonly
+      onclick="this.select()"
+      class="mono w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-gray-400 focus:outline-none focus:border-emerald-500 transition cursor-pointer"
+    />
+    <div class="flex items-center justify-between mt-2">
+      <p id="userEmailDisplay" class="mono text-[10px] text-gray-600"></p>
+      <a href="/scanner/settings.html" class="mono text-[10px] text-emerald-600 hover:text-emerald-400 transition">
+        Upgrade plan →
+      </a>
+    </div>
+  </div>
+
+</div>
 
     <div id="usageBar" class="hidden mt-5 w-full max-w-xl mx-auto">
       <div class="flex justify-between items-center mb-1.5">

@@ -17,9 +17,9 @@ const API_BASE = "https://api-security-scanner-qksl.onrender.com";
 //  Helpers
 // ─────────────────────────────────────────────
 function getApiKey() {
-  return document.getElementById("apiKeyInput")?.value.trim() || "";
+  const inputVal = document.getElementById("apiKeyInput")?.value.trim();
+  return inputVal || localStorage.getItem("shepherd_api_key") || "";
 }
-
 function showError(msg) {
   const el = document.getElementById("errorMsg");
   if (el) { el.textContent = msg; el.classList.remove("hidden"); }
@@ -38,13 +38,71 @@ function apiHeaders() {
 //  Initialize
 // ─────────────────────────────────────────────
 window.addEventListener("load", () => {
-  const saved = sessionStorage.getItem("shepherd_api_key");
-  if (saved) {
+  const key   = localStorage.getItem("shepherd_api_key");
+  const email = localStorage.getItem("shepherd_email");
+  const tier  = localStorage.getItem("shepherd_tier") || "free";
+
+  if (key) {
+    // Fill the hidden input so scans work
     const keyInput = document.getElementById("apiKeyInput");
-    if (keyInput) keyInput.value = saved;
+    if (keyInput) keyInput.value = key;
+
+    // Show tier badge
+    const tierBadge = document.getElementById("tierBadge");
+    if (tierBadge) {
+      const tierColors = {
+        free:       "bg-gray-800 text-gray-400",
+        starter:    "bg-blue-950 text-blue-400",
+        pro:        "bg-purple-950 text-purple-400",
+        enterprise: "bg-emerald-950 text-emerald-400",
+      };
+      tierBadge.textContent  = tier.toUpperCase();
+      tierBadge.className    = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${tierColors[tier] || tierColors.free}`;
+    }
+
+    // Show email
+    const emailEl = document.getElementById("userEmailDisplay");
+    if (emailEl && email) emailEl.textContent = email;
   }
 });
+// ─────────────────────────────────────────────
+//  API Key Card — Toggle Visibility
+// ─────────────────────────────────────────────
+function toggleKeyVisibility() {
+  const input = document.getElementById("apiKeyInput");
+  const btn   = document.getElementById("toggleKeyBtn");
+  if (!input) return;
 
+  if (input.type === "password") {
+    input.type    = "text";
+    btn.textContent = "Hide";
+  } else {
+    input.type    = "password";
+    btn.textContent = "Show";
+  }
+}
+
+// ─────────────────────────────────────────────
+//  API Key Card — Copy to Clipboard
+// ─────────────────────────────────────────────
+function copyApiKey() {
+  const input = document.getElementById("apiKeyInput");
+  const btn   = document.getElementById("copyKeyBtn");
+  if (!input) return;
+
+  navigator.clipboard.writeText(input.value).then(() => {
+    btn.textContent = "Copied ✅";
+    setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+  }).catch(() => {
+    // Fallback for older browsers
+    input.type = "text";
+    input.select();
+    document.execCommand("copy");
+    input.type = "password";
+    btn.textContent = "Copied ✅";
+    setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+  });
+}
 // ─────────────────────────────────────────────
 //  Risk Assessment
 // ─────────────────────────────────────────────
