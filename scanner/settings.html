@@ -45,10 +45,18 @@
                     </p>
                 </div>
                 <div class="flex gap-2">
-                    <button id="show-api-key" onclick="toggleApiKey()" class="mono text-xs bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition">Show</button>
-                    <button class="mono text-xs border border-red-900 text-red-500 hover:bg-red-950 px-4 py-2 rounded-lg transition opacity-50 cursor-not-allowed" title="Revoke logic is future-scope.">Revoke</button>
+                    <button id="show-api-key" onclick="toggleApiKey()" 
+                      class="mono text-xs bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition">
+                      Show
+                    </button>
+                    <button onclick="copyApiKey()" 
+                      class="mono text-xs bg-gray-800 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition">
+                      Copy
+                    </button>
+                    <button class="mono text-xs border border-red-900 text-red-500 hover:bg-red-950 px-4 py-2 rounded-lg transition opacity-50 cursor-not-allowed">
+                      Revoke
+                    </button>
                 </div>
-            </div>
             
             <input 
                 type="password" 
@@ -80,7 +88,7 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 
-                <div class="tier-card pro bg-gray-900 border border-gray-800 rounded-3xl p-10 flex flex-col hover:border-emerald-700 transition relative">
+                <div class="tier-card starter bg-gray-900 border border-gray-800 rounded-3xl p-10 flex flex-col hover:border-emerald-700 transition relative">
                     <div class="flex justify-between items-start mb-8">
                         <div>
                             <h3 class="text-3xl font-bold tracking-tight mb-1">Starter</h3>
