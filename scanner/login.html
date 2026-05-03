@@ -216,19 +216,23 @@
 
     const TIER_LIMITS = {
       free:       "10 scans / month",
-      starter:    "50 scans / month · PDF reports · Email alerts",
-      pro:        "200 scans / month · Slack alerts · Audit history",
-      enterprise: "Unlimited scans · White-label · Custom keywords",
+      starter:    "50 scans / month · PDF reports",
+      pro:        "200 scans / month · Audit history",
+      enterprise: "Unlimited scans · Custom keywords",
     };
 
-    // ── Check if already logged in ──────────────
+    // ── 1. IMPROVED ROUTE GUARD (Stops Infinite Reloading) ──
     window.addEventListener("load", () => {
       const key = localStorage.getItem("shepherd_api_key");
-      if (key) {
-        window.location.href = "/scanner/index.html";
-        return;
+      const path = window.location.pathname;
+
+      // Only redirect if we have a key AND we are actually on the login/root page
+      if (key && (path.endsWith("login.html") || path === "/" || path.endsWith("login"))) {
+        console.log("Session active. Accessing scanner...");
+        // Use a relative path to ensure it works on Render subdirectories
+        window.location.href = "scanner/index.html"; 
       }
-      // Auto-fill email for returning users
+
       const savedEmail = localStorage.getItem("shepherd_email");
       if (savedEmail) {
         const loginEmailEl = document.getElementById("loginEmail");
@@ -236,49 +240,52 @@
       }
     });
 
-    // ── Tab Switching ────────────────────────────
+    // ── Tab Switching ──
     function switchTab(tab) {
       const loginForm    = document.getElementById("loginForm");
       const registerForm = document.getElementById("registerForm");
       const loginTab     = document.getElementById("loginTab");
       const registerTab  = document.getElementById("registerTab");
 
+      const isActive = "flex-1 mono text-xs py-4 transition tab-active";
+      const isInactive = "flex-1 mono text-xs py-4 transition tab-inactive";
+
       if (tab === "login") {
         loginForm.classList.remove("hidden");
         registerForm.classList.add("hidden");
-        loginTab.className    = "flex-1 mono text-xs py-4 transition tab-active";
-        registerTab.className = "flex-1 mono text-xs py-4 transition tab-inactive";
+        loginTab.className = isActive;
+        registerTab.className = isInactive;
       } else {
         registerForm.classList.remove("hidden");
         loginForm.classList.add("hidden");
-        registerTab.className = "flex-1 mono text-xs py-4 transition tab-active";
-        loginTab.className    = "flex-1 mono text-xs py-4 transition tab-inactive";
+        registerTab.className = isActive;
+        loginTab.className = isInactive;
       }
     }
 
-    // ── Login ────────────────────────────────────
+    // ── Login Logic ──
     async function handleLogin() {
       const email    = document.getElementById("loginEmail").value.trim();
       const password = document.getElementById("loginPassword").value.trim();
       const errEl    = document.getElementById("loginError");
       const btn      = document.getElementById("loginBtn");
-      const spinner  = document.getElementById("loginSpinner");
       const label    = document.getElementById("loginBtnLabel");
+      const spinner  = document.getElementById("loginSpinner");
 
       errEl.classList.add("hidden");
 
       if (!email || !password) {
-        errEl.textContent = "Email and password are required.";
+        errEl.textContent = "Credentials required.";
         errEl.classList.remove("hidden");
         return;
       }
 
       btn.disabled = true;
       spinner.classList.remove("hidden");
-      label.textContent = "Signing in...";
+      label.textContent = "Authenticating...";
 
       try {
-        const res  = await fetch(`${API_BASE}/auth/login`, {
+        const res = await fetch(`${API_BASE}/auth/login`, {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
           body:    JSON.stringify({ email, password })
@@ -287,65 +294,50 @@
         const data = await res.json();
 
         if (!res.ok) {
-          errEl.textContent = data.detail || "Invalid email or password.";
-          errEl.classList.remove("hidden");
-          return;
+          throw new Error(data.detail || "Login failed");
         }
 
-        // ✅ localStorage persists across browser restarts
         localStorage.setItem("shepherd_api_key", data.api_key);
         localStorage.setItem("shepherd_email",   data.email);
         localStorage.setItem("shepherd_tier",    data.tier);
 
-        label.textContent = "Success! Redirecting...";
-        setTimeout(() => {
-          window.location.href = "/scanner/index.html";
-        }, 600);
+        label.textContent = "Verified. Entering...";
+        setTimeout(() => { window.location.href = "scanner/index.html"; }, 800);
 
       } catch (err) {
-        errEl.textContent = "Connection error. Please try again.";
+        errEl.textContent = err.message;
         errEl.classList.remove("hidden");
+        label.textContent = "Sign In →";
       } finally {
         btn.disabled = false;
         spinner.classList.add("hidden");
-        if (label.textContent === "Signing in...") {
-          label.textContent = "Sign In →";
-        }
       }
     }
 
-    // ── Register ─────────────────────────────────
+    // ── Registration Logic ──
     async function handleRegister() {
       const email    = document.getElementById("registerEmail").value.trim();
       const password = document.getElementById("registerPassword").value.trim();
       const tier     = document.getElementById("registerTier").value;
       const errEl    = document.getElementById("registerError");
-      const succEl   = document.getElementById("registerSuccess");
       const btn      = document.getElementById("registerBtn");
-      const spinner  = document.getElementById("registerSpinner");
       const label    = document.getElementById("registerBtnLabel");
+      const spinner  = document.getElementById("registerSpinner");
 
       errEl.classList.add("hidden");
-      succEl.classList.add("hidden");
 
-      if (!email || !password) {
-        errEl.textContent = "Email and password are required.";
-        errEl.classList.remove("hidden");
-        return;
-      }
-
-      if (password.length < 6) {
-        errEl.textContent = "Password must be at least 6 characters.";
+      if (!email || password.length < 6) {
+        errEl.textContent = "Valid email and 6+ char password required.";
         errEl.classList.remove("hidden");
         return;
       }
 
       btn.disabled = true;
       spinner.classList.remove("hidden");
-      label.textContent = "Creating account...";
+      label.textContent = "Provisioning Account...";
 
       try {
-        const res  = await fetch(`${API_BASE}/auth/register`, {
+        const res = await fetch(`${API_BASE}/auth/register`, {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
           body:    JSON.stringify({ email, password, tier })
@@ -353,74 +345,43 @@
 
         const data = await res.json();
 
-        if (!res.ok) {
-          errEl.textContent = data.detail || "Registration failed.";
-          errEl.classList.remove("hidden");
-          return;
-        }
+        if (!res.ok) throw new Error(data.detail || "Registration failed");
 
-        // ✅ localStorage persists across browser restarts
         localStorage.setItem("shepherd_api_key", data.api_key);
         localStorage.setItem("shepherd_email",   email);
         localStorage.setItem("shepherd_tier",    tier);
 
-        // Show API key popup
         showApiKeyPopup(data.api_key, tier);
 
       } catch (err) {
-        errEl.textContent = "Connection error. Please try again.";
+        errEl.textContent = err.message;
         errEl.classList.remove("hidden");
+        label.textContent = "Create Account →";
       } finally {
         btn.disabled = false;
         spinner.classList.add("hidden");
-        if (label.textContent === "Creating account...") {
-          label.textContent = "Create Account →";
-        }
       }
     }
 
-    // ── API Key Popup ─────────────────────────────
     function showApiKeyPopup(apiKey, tier) {
-      const badge = document.getElementById("popupTierBadge");
-      if (badge) {
-        badge.textContent = tier.toUpperCase();
-        badge.className   = `mono text-xs px-3 py-1 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
-      }
-
-      const keyEl = document.getElementById("popupApiKey");
-      if (keyEl) keyEl.textContent = apiKey;
-
-      const limitsEl = document.getElementById("popupLimitsInfo");
-      if (limitsEl) {
-        limitsEl.querySelector("p").textContent = `✅ ${TIER_LIMITS[tier] || TIER_LIMITS.free}`;
-      }
-
+      document.getElementById("popupTierBadge").textContent = tier.toUpperCase();
+      document.getElementById("popupTierBadge").className = `mono text-xs px-3 py-1 rounded-full font-bold ${TIER_COLORS[tier]}`;
+      document.getElementById("popupApiKey").textContent = apiKey;
+      document.getElementById("popupLimitsInfo").querySelector("p").textContent = `✅ ${TIER_LIMITS[tier]}`;
       document.getElementById("apiKeyPopup").classList.remove("hidden");
     }
 
     function copyPopupKey() {
-      const keyEl = document.getElementById("popupApiKey");
-      const btn   = document.getElementById("copyPopupBtn");
-      if (!keyEl) return;
-
-      navigator.clipboard.writeText(keyEl.textContent).then(() => {
-        btn.textContent = "Copied ✅";
-        setTimeout(() => { btn.textContent = "Copy"; }, 2000);
-      }).catch(() => {
-        const temp = document.createElement("textarea");
-        temp.value = keyEl.textContent;
-        document.body.appendChild(temp);
-        temp.select();
-        document.execCommand("copy");
-        document.body.removeChild(temp);
-        btn.textContent = "Copied ✅";
-        setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+      const key = document.getElementById("popupApiKey").textContent;
+      navigator.clipboard.writeText(key).then(() => {
+        const btn = document.getElementById("copyPopupBtn");
+        btn.textContent = "Copied! ✅";
+        setTimeout(() => btn.textContent = "Copy", 2000);
       });
     }
 
     function closePopupAndLogin() {
-      document.getElementById("apiKeyPopup").classList.add("hidden");
-      window.location.href = "/scanner/index.html";
+      window.location.href = "scanner/index.html";
     }
   </script>
 

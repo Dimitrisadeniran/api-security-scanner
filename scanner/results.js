@@ -42,28 +42,36 @@ window.addEventListener("load", () => {
   const email = localStorage.getItem("shepherd_email");
   const tier  = localStorage.getItem("shepherd_tier") || "free";
 
-  if (key) {
-    // Fill the hidden input so scans work
-    const keyInput = document.getElementById("apiKeyInput");
-    if (keyInput) keyInput.value = key;
-
-    // Show tier badge
-    const tierBadge = document.getElementById("tierBadge");
-    if (tierBadge) {
-      const tierColors = {
-        free:       "bg-gray-800 text-gray-400",
-        starter:    "bg-blue-950 text-blue-400",
-        pro:        "bg-purple-950 text-purple-400",
-        enterprise: "bg-emerald-950 text-emerald-400",
-      };
-      tierBadge.textContent  = tier.toUpperCase();
-      tierBadge.className    = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${tierColors[tier] || tierColors.free}`;
-    }
-
-    // Show email
-    const emailEl = document.getElementById("userEmailDisplay");
-    if (emailEl && email) emailEl.textContent = email;
+  // 1. SECURITY CHECK: If no key exists, redirect to login immediately
+  if (!key) {
+    console.warn("No API key found. Redirecting to login...");
+    window.location.href = "../login.html";
+    return; // Stop further execution
   }
+
+  // 2. INITIALIZE DASHBOARD: If key exists, proceed with setup
+  console.log("Session verified for:", email);
+
+  // Fill the hidden input so scans work
+  const keyInput = document.getElementById("apiKeyInput");
+  if (keyInput) keyInput.value = key;
+
+  // Show tier badge
+  const tierBadge = document.getElementById("tierBadge");
+  if (tierBadge) {
+    const tierColors = {
+      free:       "bg-gray-800 text-gray-400",
+      starter:    "bg-blue-950 text-blue-400",
+      pro:        "bg-purple-950 text-purple-400",
+      enterprise: "bg-emerald-950 text-emerald-400",
+    };
+    tierBadge.textContent = tier.toUpperCase();
+    tierBadge.className   = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${tierColors[tier] || tierColors.free}`;
+  }
+
+  // Show email
+  const emailEl = document.getElementById("userEmailDisplay");
+  if (emailEl && email) emailEl.textContent = email;
 });
 // ─────────────────────────────────────────────
 //  API Key Card — Toggle Visibility
@@ -238,7 +246,7 @@ async function runScan() {
     return;
   }
 
-  sessionStorage.setItem("shepherd_api_key", apiKey);
+  localStorage.setItem("shepherd_api_key", apiKey);
   btn.disabled = true;
   document.getElementById("spinner")?.classList.remove("hidden");
   document.getElementById("btnLabel").textContent = "Analyzing...";
