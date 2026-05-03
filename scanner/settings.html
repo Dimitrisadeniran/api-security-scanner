@@ -18,8 +18,11 @@
 <body class="min-h-screen flex flex-col">
 <script>
   (function() {
-    const key = localStorage.getItem("shepherd_api_key");
-    if (!key) window.location.href = "/scanner/login.html";
+    const key = localStorage.getItem("shepherd_api_key") || 
+                sessionStorage.getItem("shepherd_api_key");
+    if (!key) {
+      window.location.href = "/scanner/login.html";
+    }
   })();
 </script>
     <nav class="border-b border-gray-800 bg-black px-6 py-4 flex items-center justify-between">
