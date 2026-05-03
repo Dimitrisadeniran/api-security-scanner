@@ -235,43 +235,74 @@ function renderTable(findings, score, target, usage) {
 //  Run Scan
 // ─────────────────────────────────────────────
 async function runScan() {
-  const url    = document.getElementById("urlInput")?.value.trim();
-  const apiKey = getApiKey();
-  const btn    = document.getElementById("scanBtn");
+  const urlInput = document.getElementById("urlInput");
+  const url      = urlInput?.value.trim();
+  const apiKey   = getApiKey();
+  const btn      = document.getElementById("scanBtn");
+  const label    = document.getElementById("btnLabel");
+  const spinner  = document.getElementById("spinner");
 
   hideError();
 
-  if (!url || !apiKey) {
-    showError("URL and API Key are both required.");
+  // 1. Pre-flight Validation
+  if (!url) {
+    showError("Please enter a target URL to scan.");
+    urlInput?.focus();
+    return;
+  }
+  
+  if (!apiKey) {
+    showError("API Key is missing. Please re-login.");
     return;
   }
 
-  localStorage.setItem("shepherd_api_key", apiKey);
+  // 2. UI State: Loading
   btn.disabled = true;
-  document.getElementById("spinner")?.classList.remove("hidden");
-  document.getElementById("btnLabel").textContent = "Analyzing...";
+  spinner?.classList.remove("hidden");
+  if (label) label.textContent = "Analyzing Endpoints...";
 
   try {
-    const res  = await fetch(`${API_BASE}/scan`, {
-      method: "POST", headers: apiHeaders(),
+    // 3. API Request
+    // Note: Ensure API_BASE does not have a trailing slash (e.g., "...render.com")
+    const res = await fetch(`${API_BASE}/scan`, {
+      method: "POST", 
+      headers: apiHeaders(),
       body: JSON.stringify({ target_url: url })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Scan failed.");
 
+    const data = await res.json();
+
+    // 4. Handle HTTP Errors (e.g., 404, 401, 429)
+    if (!res.ok) {
+      // Specifically handle the "Not Found" error to give a better hint
+      if (res.status === 404) {
+        throw new Error("Endpoint not found (404). Check your API_BASE URL and backend routes.");
+      }
+      throw new Error(data.detail || `Scan failed with status ${res.status}`);
+    }
+
+    // 5. Success Logic
     lastScanData = data;
-    renderTable(data.findings, data.score, data.target);
+    
+    // FIX: Pass data.usage so renderTable can handle Enterprise/Tier logic
+    renderTable(data.findings, data.score, data.target, data.usage);
+    
+    // Update the progress bar and limits
     updateUsageBar(data.usage);
 
+    // Scroll to results for better UX
+    document.getElementById("resultsSection")?.scrollIntoView({ behavior: 'smooth' });
+
   } catch (err) {
+    console.error("Scan Error:", err);
     showError(err.message);
   } finally {
+    // 6. UI State: Reset
     btn.disabled = false;
-    document.getElementById("spinner")?.classList.add("hidden");
-    document.getElementById("btnLabel").textContent = "Run scan";
+    spinner?.classList.add("hidden");
+    if (label) label.textContent = "Run scan";
   }
 }
-
 // ─────────────────────────────────────────────
 //  Email Alerts
 // ─────────────────────────────────────────────
