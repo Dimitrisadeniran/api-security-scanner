@@ -264,7 +264,7 @@ async function runScan() {
   try {
     // 3. API Request
     // Note: Ensure API_BASE does not have a trailing slash (e.g., "...render.com")
-    const res = await fetch(`${API_BASE}/scan`, {
+    const res = await fetch(`${API_BASE}/api/scan`, {
       method: "POST", 
       headers: apiHeaders(),
       body: JSON.stringify({ target_url: url })
@@ -314,7 +314,7 @@ async function configureAlerts() {
   btn.disabled = true; btn.textContent = "Saving...";
 
   try {
-    const res  = await fetch(`${API_BASE}/alerts/configure`, {
+    const res  = await fetch(`${API_BASE}/api/alerts/configure`, {
       method: "POST", headers: apiHeaders(),
       body: JSON.stringify({ email_alerts: true, alert_email: alertEmail || "" })
     });
@@ -349,7 +349,7 @@ async function configureSlack() {
   btn.disabled = true; btn.textContent = "Saving...";
 
   try {
-    const res  = await fetch(`${API_BASE}/slack/configure`, {
+    const res  = await fetch(`${API_BASE}/api/slack/configure`, {
       method: "POST", headers: apiHeaders(),
       body: JSON.stringify({ webhook_url: webhookUrl, slack_alerts: true })
     });
@@ -374,7 +374,7 @@ async function configureSlack() {
 
 async function testSlack() {
   try {
-    const res  = await fetch(`${API_BASE}/slack/test`, {
+    const res  = await fetch(`${API_BASE}/api/slack/test`, {
       method: "POST", headers: apiHeaders()
     });
     const data = await res.json();
@@ -398,7 +398,7 @@ async function saveEnterpriseSettings() {
   btn.disabled = true; btn.textContent = "Saving...";
 
   try {
-    const res  = await fetch(`${API_BASE}/enterprise/settings`, {
+    const res  = await fetch(`${API_BASE}/api/enterprise/settings`, {
       method: "POST", headers: apiHeaders(),
       body: JSON.stringify({
         company_name:    companyName    || "Shepherd AI",
@@ -432,7 +432,7 @@ async function downloadPDF() {
   btn.disabled = true; btn.textContent = "Generating...";
 
   try {
-    const res = await fetch(`${API_BASE}/report/download`, {
+    const res = await fetch(`${API_BASE}/api/report/download`, {
       method: "POST", headers: apiHeaders(),
       body: JSON.stringify({
         target_url: lastScanData.target,
@@ -474,7 +474,7 @@ async function loadHistory() {
   btn.disabled = true; btn.textContent = "Loading...";
 
   try {
-    const res  = await fetch(`${API_BASE}/history`, { headers: apiHeaders() });
+    const res  = await fetch(`${API_BASE}/api/history`, { headers: apiHeaders() });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Failed to load history.");
 
