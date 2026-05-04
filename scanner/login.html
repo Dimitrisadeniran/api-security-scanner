@@ -230,7 +230,7 @@
       if (key && (path.endsWith("login.html") || path === "/" || path.endsWith("login"))) {
         console.log("Session active. Accessing scanner...");
         // Use a relative path to ensure it works on Render subdirectories
-        window.location.href = "scanner/index.html"; 
+        window.location.href = "/scanner/"; 
       }
 
       const savedEmail = localStorage.getItem("shepherd_email");
@@ -302,7 +302,7 @@
         localStorage.setItem("shepherd_tier",    data.tier);
 
         label.textContent = "Verified. Entering...";
-        setTimeout(() => { window.location.href = "scanner/index.html"; }, 800);
+        setTimeout(() => { window.location.href = "/scanner/"; }, 800);
 
       } catch (err) {
         errEl.textContent = err.message;
@@ -381,7 +381,7 @@
     }
 
     function closePopupAndLogin() {
-      window.location.href = "scanner/index.html";
+      window.location.href = "/scanner/";
     }
   </script>
 
