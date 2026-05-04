@@ -205,7 +205,8 @@
 
   <script>
     "use strict";
-    const API_BASE = "https://api-security-scanner-qksl.onrender.com";
+    // 1. FIXED: Added /api prefix to the base URL
+    const API_BASE = "https://api-security-scanner-qksl.onrender.com/api";
 
     const TIER_COLORS = {
       free:       "bg-gray-800 text-gray-400",
@@ -221,16 +222,15 @@
       enterprise: "Unlimited scans · Custom keywords",
     };
 
-    // ── 1. IMPROVED ROUTE GUARD (Stops Infinite Reloading) ──
+    // ── 1. ROUTE GUARD ──
     window.addEventListener("load", () => {
       const key = localStorage.getItem("shepherd_api_key");
       const path = window.location.pathname;
 
-      // Only redirect if we have a key AND we are actually on the login/root page
+      // 2. FIXED: Changed to "index.html" to prevent folder nesting
       if (key && (path.endsWith("login.html") || path === "/" || path.endsWith("login"))) {
         console.log("Session active. Accessing scanner...");
-        // Use a relative path to ensure it works on Render subdirectories
-        window.location.href = "scanner/index.html";
+        window.location.href = "index.html"; 
       }
 
       const savedEmail = localStorage.getItem("shepherd_email");
@@ -285,7 +285,8 @@
       label.textContent = "Authenticating...";
 
       try {
-        const res = await fetch(`${API_BASE}api/auth/login`, {
+        // 3. FIXED: Fetching from ${API_BASE}/auth/login (Total path: .../api/auth/login)
+        const res = await fetch(`${API_BASE}/auth/login`, {
           method:  "POST",
           headers: { 
             "Content-Type": "application/json",
@@ -305,7 +306,8 @@
         localStorage.setItem("shepherd_tier",    data.tier);
 
         label.textContent = "Verified. Entering...";
-        setTimeout(() => { window.location.href = "scanner/index.html"; }, 800);
+        // 4. FIXED: Direct redirect
+        setTimeout(() => { window.location.href = "index.html"; }, 800);
 
       } catch (err) {
         errEl.textContent = err.message;
@@ -342,7 +344,10 @@
       try {
         const res = await fetch(`${API_BASE}/auth/register`, {
           method:  "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
           body:    JSON.stringify({ email, password, tier })
         });
 
@@ -384,9 +389,10 @@
     }
 
     function closePopupAndLogin() {
-      window.location.href = "scanner/index.html";
+      // 5. FIXED: Direct redirect
+      window.location.href = "index.html";
     }
-  </script>
+</script>
 
 </body>
 </html>
