@@ -1,3 +1,6 @@
+Index · HTML
+Copy
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,99 +19,46 @@
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
-  <!-- API Key Success Popup -->
-<div id="apiKeyPopup" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center px-6">
-  <div class="bg-gray-900 border border-emerald-800 rounded-2xl p-8 w-full max-w-md fade-in">
-    
-    <!-- Header -->
-    <div class="flex items-center gap-3 mb-6">
-      <div class="w-10 h-10 bg-emerald-950 rounded-full flex items-center justify-center">
-        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-        </svg>
-      </div>
-      <div>
-        <h3 class="font-bold text-lg">Your API Key is Ready 🎉</h3>
-        <p class="mono text-xs text-gray-500">Save this key — it authenticates every scan</p>
-      </div>
+ 
+  <!--
+    FIX 1: Removed the duplicate apiKeyPopup block that belonged only on login.html.
+    FIX 2: Old inline guard used sessionStorage — changed to localStorage to match
+            what login.html actually writes. Wrapped in DOMContentLoaded to prevent
+            the race condition that caused the flicker.
+  -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const key = localStorage.getItem("shepherd_api_key");
+      if (!key) {
+        window.location.replace("login.html");
+      }
+    });
+  </script>
+ 
+  <nav class="border-b border-gray-800 bg-black px-6 py-4 flex items-center justify-between">
+    <div class="mono text-lg font-bold text-emerald-400">SHEPHERD AI</div>
+    <div class="flex gap-5 items-center">
+      <a href="index.html" class="mono text-xs text-emerald-400 font-bold px-3 py-1 bg-gray-900 rounded-full">Scanner</a>
+      <a href="settings.html" class="mono text-xs text-gray-400 hover:text-emerald-400 transition">Settings</a>
+      <!-- FIX 3: Logout now calls a function that clears localStorage (not sessionStorage) -->
+      <a href="#" onclick="logout()" class="mono text-xs text-gray-400 hover:text-red-400 transition">Log Out</a>
     </div>
-
-    <!-- Tier Badge -->
-    <div class="flex items-center gap-2 mb-4">
-      <span class="mono text-xs text-gray-500">Plan:</span>
-      <span id="popupTierBadge" class="mono text-xs px-3 py-1 rounded-full font-bold"></span>
-    </div>
-
-    <!-- API Key Display -->
-    <div class="bg-gray-950 border border-gray-700 rounded-xl p-4 mb-4">
-      <p class="mono text-xs text-gray-500 mb-2">API Key</p>
-      <div class="flex items-center gap-2">
-        <p id="popupApiKey" class="mono text-sm text-emerald-400 flex-1 break-all"></p>
-        <button
-          onclick="copyPopupKey()"
-          id="copyPopupBtn"
-          class="mono text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-emerald-400 px-3 py-1.5 rounded-lg transition whitespace-nowrap"
-        >
-          Copy
-        </button>
-      </div>
-    </div>
-
-    <!-- Warning -->
-    <div class="bg-yellow-950/50 border border-yellow-900 rounded-xl p-3 mb-6">
-      <p class="mono text-xs text-yellow-400">
-        ⚠️ This key will not be shown again. Copy it and store it safely before continuing.
-      </p>
-    </div>
-
-    <!-- Limits Info -->
-    <div id="popupLimitsInfo" class="bg-gray-800 rounded-xl p-3 mb-6">
-      <p class="mono text-xs text-gray-400"></p>
-    </div>
-
-    <!-- CTA Button -->
-    <button
-      onclick="closePopupAndLogin()"
-      class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition"
-    >
-      Continue to Scanner →
-    </button>
-
-  </div>
-</div>
-    <script>
-     (function() {
-       const key = sessionStorage.getItem("shepherd_api_key");
-       if (!key) {
-         window.location.href = "/scanner/login.html";
-       }
-     })();
-    </script>
-    
-    <nav class="border-b border-gray-800 bg-black px-6 py-4 flex items-center justify-between">
-        <div class="mono text-lg font-bold text-emerald-400">SHEPHERD AI</div>
-        <div class="flex gap-5 items-center">
-            <a href="/scanner/index.html" class="mono text-xs text-emerald-400 font-bold px-3 py-1 bg-gray-900 rounded-full">Scanner</a>
-            <a href="/scanner/settings.html" class="mono text-xs text-gray-400 hover:text-emerald-400 transition">Settings</a>
-            <a href="#" onclick="sessionStorage.clear(); window.location.href='/scanner/login.html'" class="mono text-xs text-gray-400 hover:text-red-400 transition">Log Out</a>
-        </div>
-    </nav>
-<p class="mono text-xs text-gray-600 mt-2">⚠️ Available on <a href="/scanner/settings.html" class="underline text-gray-500">Pro ($149/mo)</a>. <a href="..." target="_blank" class="...">Webhook URL →</a></p>
-
+  </nav>
+ 
   <section class="flex flex-col items-center justify-center px-6 py-24 text-center">
     <div class="mono text-xs text-emerald-400 border border-emerald-800 bg-emerald-950 px-4 py-1.5 rounded-full mb-6 flex items-center gap-2">
       <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
       Shepherd AI — HIPAA Compliance Scanner
     </div>
-
+ 
     <h1 class="text-5xl font-bold leading-tight mb-4 tracking-tight">
       Is your API <span class="text-emerald-400">PHI-safe?</span>
     </h1>
-
+ 
     <p class="text-gray-400 text-base max-w-md mb-10 leading-relaxed" style="font-family:sans-serif;">
       Paste your FastAPI URL below and get an instant compliance audit of every route in your OpenAPI spec.
     </p>
-
+ 
     <div class="flex gap-3 w-full max-w-xl">
       <input
         id="urlInput"
@@ -129,52 +79,37 @@
         <span id="btnLabel">Run scan</span>
       </button>
     </div>
-
+ 
     <p id="errorMsg" class="mono text-red-400 text-xs mt-3 hidden"></p>
-
+ 
     <div class="mt-4 w-full max-w-xl mx-auto">
-
-  <!-- API Key Card — shown when logged in -->
-  <div id="apiKeyCard" class="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-3">
-    <div class="flex items-center justify-between mb-2">
-      <div class="flex items-center gap-2">
-        <span class="mono text-xs text-gray-500">Your API Key</span>
-        <span id="tierBadge" class="mono text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 font-bold"></span>
-      </div>
-      <div class="flex gap-2">
-        <button
-          onclick="toggleKeyVisibility()"
-          id="toggleKeyBtn"
-          class="mono text-[10px] text-gray-500 hover:text-gray-300 transition px-2 py-1 bg-gray-800 rounded"
-        >
-          Show
-        </button>
-        <button
-          onclick="copyApiKey()"
-          id="copyKeyBtn"
-          class="mono text-[10px] text-gray-500 hover:text-emerald-400 transition px-2 py-1 bg-gray-800 rounded"
-        >
-          Copy
-        </button>
+      <div id="apiKeyCard" class="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="mono text-xs text-gray-500">Your API Key</span>
+            <span id="tierBadge" class="mono text-[10px] px-2 py-0.5 rounded-full font-bold"></span>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="toggleKeyVisibility()" id="toggleKeyBtn"
+              class="mono text-[10px] text-gray-500 hover:text-gray-300 transition px-2 py-1 bg-gray-800 rounded">
+              Show
+            </button>
+            <button onclick="copyApiKey()" id="copyKeyBtn"
+              class="mono text-[10px] text-gray-500 hover:text-emerald-400 transition px-2 py-1 bg-gray-800 rounded">
+              Copy
+            </button>
+          </div>
+        </div>
+        <input id="apiKeyInput" type="password" readonly onclick="this.select()"
+          class="mono w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-gray-400 focus:outline-none focus:border-emerald-500 transition cursor-pointer"
+        />
+        <div class="flex items-center justify-between mt-2">
+          <p id="userEmailDisplay" class="mono text-[10px] text-gray-600"></p>
+          <a href="settings.html" class="mono text-[10px] text-emerald-600 hover:text-emerald-400 transition">Upgrade plan →</a>
+        </div>
       </div>
     </div>
-    <input
-      id="apiKeyInput"
-      type="password"
-      readonly
-      onclick="this.select()"
-      class="mono w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-gray-400 focus:outline-none focus:border-emerald-500 transition cursor-pointer"
-    />
-    <div class="flex items-center justify-between mt-2">
-      <p id="userEmailDisplay" class="mono text-[10px] text-gray-600"></p>
-      <a href="/scanner/settings.html" class="mono text-[10px] text-emerald-600 hover:text-emerald-400 transition">
-        Upgrade plan →
-      </a>
-    </div>
-  </div>
-
-</div>
-
+ 
     <div id="usageBar" class="hidden mt-5 w-full max-w-xl mx-auto">
       <div class="flex justify-between items-center mb-1.5">
         <span class="mono text-xs text-gray-500">Scans used this month</span>
@@ -184,13 +119,12 @@
         <div id="usageBarFill" class="h-1.5 rounded-full bg-emerald-500 transition-all duration-500" style="width: 0%"></div>
       </div>
       <p id="upgradePrompt" class="hidden mt-3 text-xs text-center mono text-yellow-400">
-    ⚠️ Scan limit reached — <a href="/scanner/settings.html" class="underline text-yellow-300">Upgrade your plan</a> to continue scanning.
-    </p>
+        ⚠️ Scan limit reached — <a href="settings.html" class="underline text-yellow-300">Upgrade your plan</a> to continue scanning.
+      </p>
     </div>
   </section>
-
+ 
   <section id="resultsSection" class="hidden px-6 pb-20 max-w-6xl mx-auto w-full fade-in">
-    
     <div class="grid grid-cols-3 gap-4 mb-6">
       <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
         <p class="mono text-xs text-gray-500 mb-1">Security score</p>
@@ -205,50 +139,61 @@
         <p id="statUnsecured" class="text-3xl font-bold text-red-400">—</p>
       </div>
     </div>
-
+ 
     <div id="downloadRow" class="hidden flex justify-between items-center mb-4">
       <p class="mono text-xs text-gray-500">
         Scan complete — <span id="downloadTarget" class="text-gray-300"></span>
       </p>
-      <button id="downloadBtn" onclick="downloadPDF()" class="mono text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+      <button id="downloadBtn" onclick="downloadPDF()"
+        class="mono text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
         </svg>
         Download PDF Report
       </button>
     </div>
-
+ 
     <div id="alertsRow" class="hidden mt-4 bg-gray-900 border border-gray-800 rounded-xl p-5">
       <p class="mono text-xs text-emerald-400 mb-3">📧 Email Alerts — Get notified when new unprotected routes are detected</p>
       <div class="flex gap-3 items-center">
-        <input id="alertEmailInput" type="email" placeholder="alert@yourcompany.com" class="mono flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition" />
-        <button onclick="configureAlerts()" id="alertBtn" class="mono text-xs bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg transition whitespace-nowrap">Enable Alerts</button>
+        <input id="alertEmailInput" type="email" placeholder="alert@yourcompany.com"
+          class="mono flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition" />
+        <button onclick="configureAlerts()" id="alertBtn"
+          class="mono text-xs bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg transition whitespace-nowrap">Enable Alerts</button>
       </div>
       <p id="alertStatus" class="hidden mono text-xs text-emerald-400 mt-2"></p>
       <p class="mono text-xs text-gray-600 mt-2">⚠️ Available on Starter ($49/mo) and above.</p>
     </div>
-
+ 
     <div id="slackRow" class="hidden mt-4 bg-gray-900 border border-gray-800 rounded-xl p-5">
       <p class="mono text-xs text-emerald-400 mb-3">💬 Slack Alerts — Post scan results directly to your engineering channel</p>
       <div class="flex gap-3 items-center">
-        <input id="slackWebhookInput" type="text" placeholder="https://hooks.slack.com/services/..." class="mono flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition" />
-        <button onclick="configureSlack()" id="slackBtn" class="mono text-xs bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg transition whitespace-nowrap">Connect Slack</button>
+        <input id="slackWebhookInput" type="text" placeholder="https://hooks.slack.com/services/..."
+          class="mono flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition" />
+        <button onclick="configureSlack()" id="slackBtn"
+          class="mono text-xs bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg transition whitespace-nowrap">Connect Slack</button>
       </div>
       <p id="slackStatus" class="hidden mono text-xs text-emerald-400 mt-2"></p>
-      <p class="mono text-xs text-gray-600 mt-2">⚠️ Available on Pro ($149/mo). <a href="https://api.slack.com/messaging/webhooks" target="_blank" class="text-gray-500 underline">Webhook URL →</a></p>
+      <p class="mono text-xs text-gray-600 mt-2">⚠️ Available on Pro ($149/mo).
+        <a href="https://api.slack.com/messaging/webhooks" target="_blank" class="text-gray-500 underline">Webhook URL →</a>
+      </p>
     </div>
-
+ 
     <div id="enterpriseRow" class="hidden mt-4 bg-gray-900 border border-gray-800 rounded-xl p-5">
       <p class="mono text-xs text-emerald-400 mb-3">🏢 Enterprise Settings — White-label reports + custom PHI keywords</p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <input id="companyNameInput" type="text" placeholder="Company Name" class="mono bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 transition" />
-        <input id="logoUrlInput" type="text" placeholder="Logo URL (https://...)" class="mono bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 transition" />
-        <input id="customKeywordsInput" type="text" placeholder="Custom keywords (genomics, mental-health...)" class="mono md:col-span-2 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 transition" />
+        <input id="companyNameInput" type="text" placeholder="Company Name"
+          class="mono bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 transition" />
+        <input id="logoUrlInput" type="text" placeholder="Logo URL (https://...)"
+          class="mono bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 transition" />
+        <input id="customKeywordsInput" type="text" placeholder="Custom keywords (genomics, mental-health...)"
+          class="mono md:col-span-2 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 transition" />
       </div>
-      <button onclick="saveEnterpriseSettings()" id="enterpriseBtn" class="mt-3 mono text-xs bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg transition">Save Settings</button>
+      <button onclick="saveEnterpriseSettings()" id="enterpriseBtn"
+        class="mt-3 mono text-xs bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg transition">Save Settings</button>
       <p id="enterpriseStatus" class="hidden mono text-xs text-emerald-400 mt-2"></p>
     </div>
-
+ 
     <div class="mt-8 border border-gray-800 rounded-xl overflow-hidden">
       <table class="w-full text-sm" style="table-layout:fixed;">
         <thead class="bg-gray-900 border-b border-gray-800">
@@ -264,17 +209,18 @@
       </table>
     </div>
   </section>
-
+ 
   <section class="px-6 pb-20 max-w-6xl mx-auto w-full">
     <div class="flex justify-center mb-6">
-      <button id="historyBtn" onclick="loadHistory()" class="mono text-xs border border-gray-700 hover:border-emerald-500 text-gray-400 hover:text-emerald-400 px-5 py-2.5 rounded-lg transition flex items-center gap-2">
+      <button id="historyBtn" onclick="loadHistory()"
+        class="mono text-xs border border-gray-700 hover:border-emerald-500 text-gray-400 hover:text-emerald-400 px-5 py-2.5 rounded-lg transition flex items-center gap-2">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
         View Audit History
       </button>
     </div>
-
+ 
     <div id="historySection" class="hidden fade-in">
       <div class="flex items-center justify-between mb-4">
         <p class="mono text-xs text-gray-500 uppercase tracking-widest">Audit History</p>
@@ -296,7 +242,54 @@
       <p class="mono text-xs text-gray-600 mt-3 text-center">⚠️ Full history on Starter ($49/mo) and above.</p>
     </div>
   </section>
-
+ 
+  <script>
+    const TIER_COLORS = {
+      free:       "bg-gray-800 text-gray-400",
+      starter:    "bg-blue-950 text-blue-400",
+      pro:        "bg-purple-950 text-purple-400",
+      enterprise: "bg-emerald-950 text-emerald-400",
+    };
+ 
+    // FIX 3: Centralised logout clears localStorage to match what login.html writes
+    function logout() {
+      localStorage.removeItem("shepherd_api_key");
+      localStorage.removeItem("shepherd_email");
+      localStorage.removeItem("shepherd_tier");
+      window.location.href = "login.html";
+    }
+ 
+    document.addEventListener("DOMContentLoaded", function () {
+      const key   = localStorage.getItem("shepherd_api_key");
+      const email = localStorage.getItem("shepherd_email");
+      const tier  = localStorage.getItem("shepherd_tier") || "free";
+ 
+      if (key)   document.getElementById("apiKeyInput").value = key;
+      if (email) document.getElementById("userEmailDisplay").textContent = email;
+ 
+      const badge = document.getElementById("tierBadge");
+      badge.textContent = tier.toUpperCase();
+      badge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
+    });
+ 
+    function toggleKeyVisibility() {
+      const input = document.getElementById("apiKeyInput");
+      const btn   = document.getElementById("toggleKeyBtn");
+      const isHidden = input.type === "password";
+      input.type      = isHidden ? "text" : "password";
+      btn.textContent = isHidden ? "Hide" : "Show";
+    }
+ 
+    function copyApiKey() {
+      const key = document.getElementById("apiKeyInput").value;
+      navigator.clipboard.writeText(key).then(() => {
+        const btn = document.getElementById("copyKeyBtn");
+        btn.textContent = "Copied ✅";
+        setTimeout(() => btn.textContent = "Copy", 2000);
+      });
+    }
+  </script>
+ 
   <script src="results.js"></script>
 </body>
-</html>
+</html
