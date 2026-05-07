@@ -1,464 +1,375 @@
-// results.js — Shepherd AI v0.6 — Days 12 & 13
 "use strict";
 
+// ─────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────
 let lastScanData = null;
-
-const METHOD_COLORS = {
-  GET:    "bg-blue-950 text-blue-300",
-  POST:   "bg-green-950 text-green-300",
-  PUT:    "bg-yellow-950 text-yellow-300",
-  DELETE: "bg-red-950 text-red-300",
-  PATCH:  "bg-pink-950 text-pink-300",
-};
-
-const API_BASE = "https://api-security-scanner-qksl.onrender.com";
-
-// ─────────────────────────────────────────────
-//  Helpers
-// ─────────────────────────────────────────────
-function getApiKey() {
-  const inputVal = document.getElementById("apiKeyInput")?.value.trim();
-  return inputVal || localStorage.getItem("shepherd_api_key") || "";
-}
-function showError(msg) {
-  const el = document.getElementById("errorMsg");
-  if (el) { el.textContent = msg; el.classList.remove("hidden"); }
-}
-
-function hideError() {
-  const el = document.getElementById("errorMsg");
-  if (el) el.classList.add("hidden");
-}
-
-function apiHeaders() {
-  return { "Content-Type": "application/json", "x-api-key": getApiKey() };
-}
-
-// ─────────────────────────────────────────────
-//  Initialize
-// ─────────────────────────────────────────────
-window.addEventListener("load", () => {
-  const key   = localStorage.getItem("shepherd_api_key");
-  const email = localStorage.getItem("shepherd_email");
-  const tier  = localStorage.getItem("shepherd_tier") || "free";
-
-  // 1. SECURITY CHECK: If no key exists, redirect to login immediately
-  if (!key) {
-    console.warn("No API key found. Redirecting to login...");
-    window.location.href = "../login.html";
-    return; // Stop further execution
-  }
-
-  // 2. INITIALIZE DASHBOARD: If key exists, proceed with setup
-  console.log("Session verified for:", email);
-
-  // Fill the hidden input so scans work
-  const keyInput = document.getElementById("apiKeyInput");
-  if (keyInput) keyInput.value = key;
-
-  // Show tier badge
-  const tierBadge = document.getElementById("tierBadge");
-  if (tierBadge) {
-    const tierColors = {
-      free:       "bg-gray-800 text-gray-400",
-      starter:    "bg-blue-950 text-blue-400",
-      pro:        "bg-purple-950 text-purple-400",
-      enterprise: "bg-emerald-950 text-emerald-400",
-    };
-    tierBadge.textContent = tier.toUpperCase();
-    tierBadge.className   = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${tierColors[tier] || tierColors.free}`;
-  }
-
-  // Show email
-  const emailEl = document.getElementById("userEmailDisplay");
-  if (emailEl && email) emailEl.textContent = email;
-});
-// ─────────────────────────────────────────────
-//  API Key Card — Toggle Visibility
-// ─────────────────────────────────────────────
-function toggleKeyVisibility() {
-  const input = document.getElementById("apiKeyInput");
-  const btn   = document.getElementById("toggleKeyBtn");
-  if (!input) return;
-
-  if (input.type === "password") {
-    input.type    = "text";
-    btn.textContent = "Hide";
-  } else {
-    input.type    = "password";
-    btn.textContent = "Show";
-  }
-}
-
-// ─────────────────────────────────────────────
-//  API Key Card — Copy to Clipboard
-// ─────────────────────────────────────────────
-function copyApiKey() {
-  const input = document.getElementById("apiKeyInput");
-  const btn   = document.getElementById("copyKeyBtn");
-  if (!input) return;
-
-  navigator.clipboard.writeText(input.value).then(() => {
-    btn.textContent = "Copied ✅";
-    setTimeout(() => { btn.textContent = "Copy"; }, 2000);
-  }).catch(() => {
-    // Fallback for older browsers
-    input.type = "text";
-    input.select();
-    document.execCommand("copy");
-    input.type = "password";
-    btn.textContent = "Copied ✅";
-    setTimeout(() => { btn.textContent = "Copy"; }, 2000);
-  });
-}
-// ─────────────────────────────────────────────
-//  Risk Assessment
-// ─────────────────────────────────────────────
-function getRisk(finding) {
-  if (finding.is_critical) return { label: "Critical", cls: "bg-red-950 text-red-400" };
-  if (finding.compliance?.length) return { label: "Warning", cls: "bg-yellow-950 text-yellow-400" };
-  return { label: "Low", cls: "bg-gray-800 text-gray-400" };
-}
-
-// ─────────────────────────────────────────────
-//  Usage Bar
-// ─────────────────────────────────────────────
-function updateUsageBar(usage) {
-  if (!usage) return;
-  const { scans_used, scans_limit, tier } = usage;
-  const isUnlimited = scans_limit >= 9999;
-  const pct = isUnlimited ? 10 : Math.min((scans_used / scans_limit) * 100, 100);
-
-  document.getElementById("usageBar")?.classList.remove("hidden");
-
-  const usageText = document.getElementById("usageText");
-  if (usageText) {
-    usageText.textContent = isUnlimited
-      ? `${scans_used} used — ${tier.toUpperCase()} (unlimited)`
-      : `${scans_used} of ${scans_limit} — ${tier.toUpperCase()}`;
-  }
-
-  const fill = document.getElementById("usageBarFill");
-  if (fill) {
-    fill.style.width = `${pct}%`;
-    fill.className = `h-1.5 rounded-full transition-all duration-500 ${
-      pct >= 100 ? "bg-red-500" : pct >= 70 ? "bg-yellow-500" : "bg-emerald-500"
-    }`;
-  }
-
-  const prompt = document.getElementById("upgradePrompt");
-  if (prompt) prompt.classList.toggle("hidden", pct < 100);
-}
-
-// ─────────────────────────────────────────────
-// ─────────────────────────────────────────────
-//  Render Results Table — Shepherd AI v0.6
-// ─────────────────────────────────────────────
-function renderTable(findings, score, target, usage) {
-  const tbody = document.getElementById("resultsBody");
-  if (!tbody) return;
-
-  // 1. Performance: Clear and prepare a string buffer
-  tbody.innerHTML = "";
-  let rowsHtml = "";
-
-  // 2. Logic: Only show Enterprise row if the user tier is 'enterprise'
-  const enterpriseRow = document.getElementById("enterpriseRow");
-  if (enterpriseRow && usage?.tier === "enterprise") {
-    enterpriseRow.classList.remove("hidden");
-  }
-
-  // 3. Performance: Loop through findings and build one large string
-  findings.forEach(f => {
-    const risk = getRisk(f);
-    const tags = (f.compliance || [])
-      .map(t => `<span class="mono text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded">${t}</span>`)
-      .join(" ");
-
-    rowsHtml += `
-      <tr class="hover:bg-gray-900/50 transition border-b border-gray-800/50">
-        <td class="mono text-xs text-gray-300 px-4 py-3 truncate">${f.route}</td>
-        <td class="px-4 py-3">
-          <span class="mono text-[10px] font-bold px-2 py-1 rounded ${METHOD_COLORS[f.method] || "bg-gray-800"}">
-            ${f.method}
-          </span>
-        </td>
-        <td class="px-4 py-3">
-          <span class="mono text-xs flex items-center gap-1.5 text-red-400">
-            <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>
-            Unprotected
-          </span>
-        </td>
-        <td class="px-4 py-3">
-          <span class="mono text-[10px] px-2 py-1 rounded ${risk.cls}">${risk.label}</span>
-        </td>
-        <td class="px-4 py-3 text-gray-500">${tags || "—"}</td>
-      </tr>`;
-  });
-
-  // 4. Performance: Inject all rows at once
-  tbody.innerHTML = rowsHtml;
-
-  // ─────────────────────────────────────────────
-  //  Stats & UI Visibility
-  // ─────────────────────────────────────────────
-  const sc = Math.round(score);
-  const scoreEl = document.getElementById("statScore");
-  if (scoreEl) {
-    scoreEl.textContent = sc + "%";
-    scoreEl.className = `text-3xl font-bold ${
-      sc >= 80 ? "text-emerald-400" : sc >= 50 ? "text-yellow-400" : "text-red-400"
-    }`;
-  }
-
-  const totalEl = document.getElementById("statTotal");
-  if (totalEl) totalEl.textContent = findings.length;
-
-  const unsecEl = document.getElementById("statUnsecured");
-  if (unsecEl) unsecEl.textContent = findings.length;
-
-  document.getElementById("resultsSection")?.classList.remove("hidden");
-
-  const dlRow = document.getElementById("downloadRow");
-  if (dlRow) {
-    dlRow.classList.remove("hidden");
-    const dlTarget = document.getElementById("downloadTarget");
-    if (dlTarget) dlTarget.textContent = target;
-  }
-
-  // Show Tier-Specific Rows
-  document.getElementById("alertsRow")?.classList.remove("hidden");
-  document.getElementById("slackRow")?.classList.remove("hidden");
-}
 
 // ─────────────────────────────────────────────
 //  Run Scan
 // ─────────────────────────────────────────────
 async function runScan() {
-  const urlInput = document.getElementById("urlInput");
-  const url      = urlInput?.value.trim();
-  const apiKey   = getApiKey();
-  const btn      = document.getElementById("scanBtn");
-  const label    = document.getElementById("btnLabel");
-  const spinner  = document.getElementById("spinner");
+  const url    = document.getElementById("urlInput").value.trim();
+  const apiKey = localStorage.getItem("shepherd_api_key");
+  const tier   = localStorage.getItem("shepherd_tier") || "free";
+  const errEl  = document.getElementById("errorMsg");
+  const btn    = document.getElementById("scanBtn");
+  const label  = document.getElementById("btnLabel");
+  const spinner = document.getElementById("spinner");
 
-  hideError();
+  errEl.classList.add("hidden");
 
-  // 1. Pre-flight Validation
   if (!url) {
-    showError("Please enter a target URL to scan.");
-    urlInput?.focus();
+    errEl.textContent = "Please enter a URL.";
+    errEl.classList.remove("hidden");
     return;
   }
-  
   if (!apiKey) {
-    showError("API Key is missing. Please re-login.");
+    window.location.replace("login.html");
     return;
   }
 
-  // 2. UI State: Loading
+  // UI: loading state
   btn.disabled = true;
-  spinner?.classList.remove("hidden");
-  if (label) label.textContent = "Analyzing Endpoints...";
+  spinner.classList.remove("hidden");
+  label.textContent = "Scanning...";
+  document.getElementById("resultsSection").classList.add("hidden");
 
   try {
-    // 3. API Request
-    // Note: Ensure API_BASE does not have a trailing slash (e.g., "...render.com")
-    const res = await fetch(`${API_BASE}/api/scan`, {
-      method: "POST", 
-      headers: apiHeaders(),
-      body: JSON.stringify({ target_url: url })
+    const res = await fetch(`${API_BASE}/scan`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept":       "application/json",
+        "x-api-key":    apiKey,
+      },
+      body: JSON.stringify({ target_url: url }),
     });
 
     const data = await res.json();
 
-    // 4. Handle HTTP Errors (e.g., 404, 401, 429)
     if (!res.ok) {
-      // Specifically handle the "Not Found" error to give a better hint
-      if (res.status === 404) {
-        throw new Error("Endpoint not found (404). Check your API_BASE URL and backend routes.");
+      // 429 = scan limit reached
+      if (res.status === 429) {
+        document.getElementById("upgradePrompt").classList.remove("hidden");
+        throw new Error(data.detail || "Monthly scan limit reached. Upgrade to continue.");
       }
-      throw new Error(data.detail || `Scan failed with status ${res.status}`);
+      throw new Error(data.detail || `Scan failed (${res.status})`);
     }
 
-    // 5. Success Logic
-    lastScanData = data;
-    
-    // FIX: Pass data.usage so renderTable can handle Enterprise/Tier logic
-    renderTable(data.findings, data.score, data.target, data.usage);
-    
-    // Update the progress bar and limits
-    updateUsageBar(data.usage);
+    lastScanData = { target_url: url, ...data };
 
-    // Scroll to results for better UX
-    document.getElementById("resultsSection")?.scrollIntoView({ behavior: 'smooth' });
+    // Update usage bar
+    if (data.usage) {
+      const used      = data.usage.scans_used  ?? 0;
+      const limit     = data.usage.scans_limit ?? 0;
+      const unlimited = limit >= 999999;
+      const pct       = (!unlimited && limit > 0) ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+
+      document.getElementById("usageText").textContent    = `${used} / ${unlimited ? "∞" : limit}`;
+      document.getElementById("usageBarFill").style.width = `${pct}%`;
+      document.getElementById("usageBar").classList.remove("hidden");
+
+      if (pct >= 90) {
+        document.getElementById("usageBarFill").classList.replace("bg-emerald-500", "bg-red-500");
+      }
+      if (!unlimited && used >= limit) {
+        document.getElementById("upgradePrompt").classList.remove("hidden");
+      }
+    }
+
+    renderResults(data, url, tier);
 
   } catch (err) {
-    console.error("Scan Error:", err);
-    showError(err.message);
+    errEl.textContent = err.message;
+    errEl.classList.remove("hidden");
   } finally {
-    // 6. UI State: Reset
     btn.disabled = false;
-    spinner?.classList.add("hidden");
-    if (label) label.textContent = "Run scan";
+    spinner.classList.add("hidden");
+    label.textContent = "Run scan";
   }
 }
-// ─────────────────────────────────────────────
-//  Email Alerts
-// ─────────────────────────────────────────────
-async function configureAlerts() {
-  const alertEmail = document.getElementById("alertEmailInput")?.value.trim();
-  const btn        = document.getElementById("alertBtn");
-  hideError();
 
-  btn.disabled = true; btn.textContent = "Saving...";
+// ─────────────────────────────────────────────
+//  Render Results
+// ─────────────────────────────────────────────
+function renderResults(data, url, tier) {
+  const findings   = data.findings  || [];
+  const score      = data.score     ?? 0;
+  const total      = findings.length;
+  const critical   = findings.filter(f => f.is_critical).length;
+
+  // Summary stats
+  document.getElementById("statScore").textContent     = `${Math.round(score)}%`;
+  document.getElementById("statScore").className       = `text-3xl font-bold ${score >= 80 ? "text-emerald-400" : score >= 50 ? "text-yellow-400" : "text-red-400"}`;
+  document.getElementById("statTotal").textContent     = data.usage ? (data.usage.scans_used) + " scanned" : "—";
+  document.getElementById("statUnsecured").textContent = total;
+
+  // Download row
+  const dlRow = document.getElementById("downloadRow");
+  document.getElementById("downloadTarget").textContent = url;
+  if (tier !== "free") {
+    dlRow.classList.remove("hidden");
+    dlRow.style.display = "flex";
+  }
+
+  // Show tier-gated feature rows
+  if (tier !== "free") {
+    document.getElementById("alertsRow").classList.remove("hidden");
+    loadAlertSettings();
+  }
+  if (tier === "pro" || tier === "enterprise") {
+    document.getElementById("slackRow").classList.remove("hidden");
+    loadSlackSettings();
+  }
+  if (tier === "enterprise") {
+    document.getElementById("enterpriseRow").classList.remove("hidden");
+    loadEnterpriseSettings();
+  }
+
+  // Results table
+  const tbody = document.getElementById("resultsBody");
+  tbody.innerHTML = "";
+
+  if (findings.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="mono text-center text-emerald-400 text-xs py-8">
+          ✅ All routes are secured. Score: ${Math.round(score)}%
+        </td>
+      </tr>`;
+  } else {
+    findings.forEach(f => {
+      const methodColors = {
+        GET:    "bg-blue-950 text-blue-400",
+        POST:   "bg-green-950 text-green-400",
+        PUT:    "bg-yellow-950 text-yellow-400",
+        DELETE: "bg-red-950 text-red-400",
+        PATCH:  "bg-purple-950 text-purple-400",
+      };
+      const methodClass = methodColors[f.method] || "bg-gray-800 text-gray-400";
+      const tags = (f.compliance || []).map(t =>
+        `<span class="mono text-[10px] px-2 py-0.5 rounded-full bg-red-950 text-red-400 border border-red-900">${t}</span>`
+      ).join(" ");
+
+      tbody.innerHTML += `
+        <tr class="hover:bg-gray-900 transition">
+          <td class="mono text-xs text-gray-300 px-4 py-3 truncate" title="${f.route}">${f.route}</td>
+          <td class="px-4 py-3">
+            <span class="mono text-[10px] px-2 py-0.5 rounded ${methodClass} font-bold">${f.method}</span>
+          </td>
+          <td class="px-4 py-3">
+            <span class="mono text-[10px] px-2 py-0.5 rounded ${f.is_critical ? "bg-red-950 text-red-400" : "bg-yellow-950 text-yellow-400"} font-bold">
+              ${f.is_critical ? "⚠ CRITICAL" : "UNSECURED"}
+            </span>
+          </td>
+          <td class="px-4 py-3">
+            <div class="flex flex-wrap gap-1">${tags || '<span class="mono text-[10px] text-gray-600">—</span>'}</div>
+          </td>
+          <td class="mono text-[10px] text-gray-500 px-4 py-3 truncate">${f.summary || "—"}</td>
+        </tr>`;
+    });
+  }
+
+  document.getElementById("resultsSection").classList.remove("hidden");
+  document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ─────────────────────────────────────────────
+//  PDF Download
+// ─────────────────────────────────────────────
+async function downloadPDF() {
+  if (!lastScanData) return;
+  const apiKey = localStorage.getItem("shepherd_api_key");
+  const btn    = document.getElementById("downloadBtn");
+
+  btn.textContent = "Generating...";
+  btn.disabled    = true;
 
   try {
-    const res  = await fetch(`${API_BASE}/api/alerts/configure`, {
-      method: "POST", headers: apiHeaders(),
-      body: JSON.stringify({ email_alerts: true, alert_email: alertEmail || "" })
+    const res = await fetch(`${API_BASE}/report/download`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key":    apiKey,
+      },
+      body: JSON.stringify({
+        target_url:   lastScanData.target_url,
+        score:        lastScanData.score,
+        findings:     lastScanData.findings,
+        company_name: "Shepherd AI",
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "PDF generation failed.");
+    }
+
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href     = URL.createObjectURL(blob);
+    link.download = "shepherd-report.pdf";
+    link.click();
+
+  } catch (err) {
+    alert("PDF Error: " + err.message);
+  } finally {
+    btn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+    </svg> Download PDF Report`;
+    btn.disabled = false;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Email Alert Settings
+// ─────────────────────────────────────────────
+async function loadAlertSettings() {
+  const apiKey = localStorage.getItem("shepherd_api_key");
+  try {
+    const res  = await fetch(`${API_BASE}/alerts/settings`, { headers: { "x-api-key": apiKey } });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.alert_email) document.getElementById("alertEmailInput").value = data.alert_email;
+    if (data.email_alerts) {
+      document.getElementById("alertBtn").textContent = "Alerts Enabled ✅";
+      document.getElementById("alertBtn").classList.replace("bg-gray-700", "bg-emerald-700");
+    }
+  } catch (_) {}
+}
+
+async function configureAlerts() {
+  const apiKey = localStorage.getItem("shepherd_api_key");
+  const email  = document.getElementById("alertEmailInput").value.trim();
+  const btn    = document.getElementById("alertBtn");
+  const status = document.getElementById("alertStatus");
+
+  if (!email) { status.textContent = "Enter an email address."; status.classList.remove("hidden"); return; }
+
+  btn.textContent = "Saving...";
+  btn.disabled    = true;
+
+  try {
+    const res = await fetch(`${API_BASE}/alerts/configure`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      body:    JSON.stringify({ email_alerts: true, alert_email: email }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Failed to save.");
 
-    const status = document.getElementById("alertStatus");
-    if (status) {
-      status.textContent = `✅ Email alerts enabled — ${data.alert_email}`;
-      status.classList.remove("hidden");
-    }
+    status.textContent = `✅ Alerts enabled → ${data.alert_email}`;
+    status.classList.remove("hidden");
+    btn.textContent = "Alerts Enabled ✅";
+    btn.classList.replace("bg-gray-700", "bg-emerald-700");
   } catch (err) {
-    showError(err.message);
+    status.textContent = "⚠ " + err.message;
+    status.classList.remove("hidden");
+    btn.textContent = "Enable Alerts";
   } finally {
-    btn.disabled = false; btn.textContent = "Enable Alerts";
+    btn.disabled = false;
   }
 }
 
 // ─────────────────────────────────────────────
-//  Day 12 — Slack Alerts
+//  Slack Settings
 // ─────────────────────────────────────────────
-async function configureSlack() {
-  const webhookUrl = document.getElementById("slackWebhookInput")?.value.trim();
-  const btn        = document.getElementById("slackBtn");
-  hideError();
+async function loadSlackSettings() {
+  const apiKey = localStorage.getItem("shepherd_api_key");
+  try {
+    const res  = await fetch(`${API_BASE}/slack/settings`, { headers: { "x-api-key": apiKey } });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.slack_webhook) document.getElementById("slackWebhookInput").value = data.slack_webhook;
+    if (data.slack_alerts) {
+      document.getElementById("slackBtn").textContent = "Slack Connected ✅";
+      document.getElementById("slackBtn").classList.replace("bg-gray-700", "bg-emerald-700");
+    }
+  } catch (_) {}
+}
 
-  if (!webhookUrl || !webhookUrl.startsWith("https://hooks.slack.com")) {
-    showError("Please enter a valid Slack webhook URL (starts with https://hooks.slack.com).");
+async function configureSlack() {
+  const apiKey  = localStorage.getItem("shepherd_api_key");
+  const webhook = document.getElementById("slackWebhookInput").value.trim();
+  const btn     = document.getElementById("slackBtn");
+  const status  = document.getElementById("slackStatus");
+
+  if (!webhook.startsWith("https://hooks.slack.com")) {
+    status.textContent = "Enter a valid Slack webhook URL.";
+    status.classList.remove("hidden");
     return;
   }
 
-  btn.disabled = true; btn.textContent = "Saving...";
+  btn.textContent = "Connecting...";
+  btn.disabled    = true;
 
   try {
-    const res  = await fetch(`${API_BASE}/api/slack/configure`, {
-      method: "POST", headers: apiHeaders(),
-      body: JSON.stringify({ webhook_url: webhookUrl, slack_alerts: true })
+    const res = await fetch(`${API_BASE}/slack/configure`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      body:    JSON.stringify({ webhook_url: webhook, slack_alerts: true }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Failed to save Slack settings.");
+    if (!res.ok) throw new Error(data.detail || "Failed.");
 
-    const status = document.getElementById("slackStatus");
-    if (status) {
-      status.textContent = "✅ Slack alerts enabled — you'll get a message after every scan.";
-      status.classList.remove("hidden");
-    }
-
-    // Send test message immediately
-    await testSlack();
-
+    status.textContent = "✅ Slack connected successfully.";
+    status.classList.remove("hidden");
+    btn.textContent = "Slack Connected ✅";
+    btn.classList.replace("bg-gray-700", "bg-emerald-700");
   } catch (err) {
-    showError(err.message);
+    status.textContent = "⚠ " + err.message;
+    status.classList.remove("hidden");
+    btn.textContent = "Connect Slack";
   } finally {
-    btn.disabled = false; btn.textContent = "Connect Slack";
+    btn.disabled = false;
   }
 }
 
-async function testSlack() {
+// ─────────────────────────────────────────────
+//  Enterprise Settings
+// ─────────────────────────────────────────────
+async function loadEnterpriseSettings() {
+  const apiKey = localStorage.getItem("shepherd_api_key");
   try {
-    const res  = await fetch(`${API_BASE}/api/slack/test`, {
-      method: "POST", headers: apiHeaders()
-    });
+    const res  = await fetch(`${API_BASE}/enterprise/settings`, { headers: { "x-api-key": apiKey } });
+    if (!res.ok) return;
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail);
-    console.log("✅ Test Slack message sent.");
-  } catch (err) {
-    console.error("Slack test failed:", err.message);
-  }
+    if (data.company_name)    document.getElementById("companyNameInput").value    = data.company_name;
+    if (data.logo_url)        document.getElementById("logoUrlInput").value        = data.logo_url;
+    if (data.custom_keywords) document.getElementById("customKeywordsInput").value = data.custom_keywords;
+  } catch (_) {}
 }
 
-// ─────────────────────────────────────────────
-//  Day 13 — Enterprise Settings
-// ─────────────────────────────────────────────
 async function saveEnterpriseSettings() {
-  const companyName    = document.getElementById("companyNameInput")?.value.trim();
-  const logoUrl        = document.getElementById("logoUrlInput")?.value.trim();
-  const customKeywords = document.getElementById("customKeywordsInput")?.value.trim();
-  const btn            = document.getElementById("enterpriseBtn");
-  hideError();
+  const apiKey   = localStorage.getItem("shepherd_api_key");
+  const btn      = document.getElementById("enterpriseBtn");
+  const status   = document.getElementById("enterpriseStatus");
 
-  btn.disabled = true; btn.textContent = "Saving...";
+  btn.textContent = "Saving...";
+  btn.disabled    = true;
 
   try {
-    const res  = await fetch(`${API_BASE}/api/enterprise/settings`, {
-      method: "POST", headers: apiHeaders(),
-      body: JSON.stringify({
-        company_name:    companyName    || "Shepherd AI",
-        logo_url:        logoUrl        || "",
-        custom_keywords: customKeywords || "",
-      })
+    const res = await fetch(`${API_BASE}/enterprise/settings`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      body:    JSON.stringify({
+        company_name:    document.getElementById("companyNameInput").value.trim(),
+        logo_url:        document.getElementById("logoUrlInput").value.trim(),
+        custom_keywords: document.getElementById("customKeywordsInput").value.trim(),
+      }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Failed to save enterprise settings.");
+    if (!res.ok) throw new Error(data.detail || "Failed.");
 
-    const status = document.getElementById("enterpriseStatus");
-    if (status) {
-      status.textContent = `✅ Enterprise settings saved — PDFs will use "${data.company_name}"`;
-      status.classList.remove("hidden");
-    }
+    status.textContent = "✅ Enterprise settings saved.";
+    status.classList.remove("hidden");
   } catch (err) {
-    showError(err.message);
+    status.textContent = "⚠ " + err.message;
+    status.classList.remove("hidden");
   } finally {
-    btn.disabled = false; btn.textContent = "Save Settings";
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Download PDF
-// ─────────────────────────────────────────────
-async function downloadPDF() {
-  if (!lastScanData) return;
-  const btn = document.getElementById("downloadBtn");
-  hideError();
-
-  btn.disabled = true; btn.textContent = "Generating...";
-
-  try {
-    const res = await fetch(`${API_BASE}/api/report/download`, {
-      method: "POST", headers: apiHeaders(),
-      body: JSON.stringify({
-        target_url: lastScanData.target,
-        score:      lastScanData.score,
-        findings:   lastScanData.findings,
-      })
-    });
-
-    if (res.status === 403) {
-      const err = await res.json();
-      showError("⚠️ " + err.detail);
-      return;
-    }
-    if (!res.ok) throw new Error("PDF generation failed.");
-
-    const blob = await res.blob();
-    const link = document.createElement("a");
-    link.href  = URL.createObjectURL(blob);
-    link.download = `Shepherd-Report-${Date.now()}.pdf`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-
-  } catch (err) {
-    showError(err.message);
-  } finally {
-    btn.disabled = false; btn.textContent = "Download PDF Report";
+    btn.textContent = "Save Settings";
+    btn.disabled    = false;
   }
 }
 
@@ -466,47 +377,46 @@ async function downloadPDF() {
 //  Audit History
 // ─────────────────────────────────────────────
 async function loadHistory() {
-  const btn     = document.getElementById("historyBtn");
+  const apiKey  = localStorage.getItem("shepherd_api_key");
   const section = document.getElementById("historySection");
+  const btn     = document.getElementById("historyBtn");
   const tbody   = document.getElementById("historyBody");
-  hideError();
 
-  btn.disabled = true; btn.textContent = "Loading...";
+  if (!section.classList.contains("hidden")) {
+    section.classList.add("hidden");
+    btn.querySelector("span") && (btn.querySelector("span").textContent = "View Audit History");
+    return;
+  }
+
+  btn.textContent = "Loading...";
 
   try {
-    const res  = await fetch(`${API_BASE}/api/history`, { headers: apiHeaders() });
+    const res = await fetch(`${API_BASE}/history`, { headers: { "x-api-key": apiKey } });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Failed to load history.");
+
+    if (!res.ok) {
+      tbody.innerHTML = `<tr><td colspan="4" class="mono text-xs text-yellow-400 px-4 py-6 text-center">⚠ ${data.detail || "History unavailable."}</td></tr>`;
+      section.classList.remove("hidden");
+      return;
+    }
 
     tbody.innerHTML = "";
-
     if (!data.history || data.history.length === 0) {
-      tbody.innerHTML = `
-        <tr><td colspan="4" class="px-4 py-8 text-center mono text-xs text-gray-600">
-          No scans yet. Run your first scan above.
-        </td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" class="mono text-xs text-gray-600 px-4 py-6 text-center">No scans yet.</td></tr>`;
     } else {
       data.history.forEach(h => {
-        const sc    = Math.round(h.score);
-        const color = sc >= 80 ? "text-emerald-400" : sc >= 50 ? "text-yellow-400" : "text-red-400";
-        const badge = sc >= 80 ? "bg-green-950 text-green-400" : sc >= 50 ? "bg-yellow-950 text-yellow-400" : "bg-red-950 text-red-400";
-        const label = sc >= 80 ? "Healthy" : sc >= 50 ? "At Risk" : "Critical";
-
-        // ← Fixed: use actual scan date not new Date()
-        const date  = h.scanned_at
-          ? new Date(h.scanned_at).toLocaleDateString("en-GB", {
-              day: "2-digit", month: "short", year: "numeric",
-              hour: "2-digit", minute: "2-digit"
-            })
-          : "—";
-
+        const score  = h.score ?? 0;
+        const color  = score >= 80 ? "text-emerald-400" : score >= 50 ? "text-yellow-400" : "text-red-400";
+        const date   = h.scanned_at ? new Date(h.scanned_at).toLocaleString() : "—";
         tbody.innerHTML += `
-          <tr class="hover:bg-gray-900/50 transition border-b border-gray-800/50">
-            <td class="mono text-xs text-gray-400 px-4 py-3">${date}</td>
-            <td class="mono text-xs text-gray-300 px-4 py-3 truncate">${h.target_url}</td>
-            <td class="px-4 py-3"><span class="mono text-sm font-bold ${color}">${sc}%</span></td>
+          <tr class="hover:bg-gray-900 transition">
+            <td class="mono text-xs text-gray-500 px-4 py-3">${date}</td>
+            <td class="mono text-xs text-gray-300 px-4 py-3 truncate" title="${h.target_url}">${h.target_url}</td>
+            <td class="mono text-xs ${color} px-4 py-3 font-bold">${Math.round(score)}%</td>
             <td class="px-4 py-3">
-              <span class="mono text-[10px] px-2 py-1 rounded ${badge}">${label}</span>
+              <span class="mono text-[10px] px-2 py-0.5 rounded ${score >= 80 ? "bg-emerald-950 text-emerald-400" : "bg-red-950 text-red-400"}">
+                ${score >= 80 ? "PASS" : "REVIEW"}
+              </span>
             </td>
           </tr>`;
       });
@@ -515,8 +425,11 @@ async function loadHistory() {
     section.classList.remove("hidden");
 
   } catch (err) {
-    showError(err.message);
+    tbody.innerHTML = `<tr><td colspan="4" class="mono text-xs text-red-400 px-4 py-6 text-center">Error: ${err.message}</td></tr>`;
+    section.classList.remove("hidden");
   } finally {
-    btn.disabled = false; btn.textContent = "View Audit History";
+    btn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg> View Audit History`;
   }
 }
