@@ -101,14 +101,14 @@ async def verify_api_key(x_api_key: str = Header(...)):
 def home():
     return {"message": "Shepherd AI Online", "version": "0.6", "api_docs": "/docs"}
 
-@app.get("/health")
+@app.get("/api/health")
 def health():
     return {"status": "ok"}
 
 # ─────────────────────────────────────────────
 #  Auth Routes
 # ─────────────────────────────────────────────
-@app.post("/auth/register")
+@app.post("/api/auth/register")
 def register(body: RegisterRequest):
     allowed_tiers = {"free", "starter", "pro", "enterprise"}
     if body.tier not in allowed_tiers:
@@ -119,7 +119,7 @@ def register(body: RegisterRequest):
     email_service.send_welcome_email(body.email, result["api_key"], body.tier)
     return {"message": "Account created.", "api_key": result["api_key"], "tier": body.tier}
 
-@app.post("/auth/login")
+@app.post("/api/auth/login")
 def login(body: LoginRequest):
     user = database.get_user_by_email(body.email, body.password)
     if not user:
@@ -129,7 +129,7 @@ def login(body: LoginRequest):
 # ─────────────────────────────────────────────
 #  Scan Route
 # ─────────────────────────────────────────────
-@app.post("/scan")
+@app.post("/api/scan")
 @limiter.limit("10/minute")
 async def run_scan(
     request: Request,
@@ -201,7 +201,7 @@ async def run_scan(
 # ─────────────────────────────────────────────
 #  Usage
 # ─────────────────────────────────────────────
-@app.get("/usage")
+@app.get("/api/usage")
 def get_usage(user: dict = Depends(verify_api_key)):
     usage = database.check_scan_limit(user["id"], user["tier"])
     return {
@@ -215,7 +215,7 @@ def get_usage(user: dict = Depends(verify_api_key)):
 # ─────────────────────────────────────────────
 #  Email Alerts
 # ─────────────────────────────────────────────
-@app.post("/alerts/configure")
+@app.post("/api/alerts/configure")
 def configure_alerts(body: AlertSettingsRequest, user: dict = Depends(verify_api_key)):
     if body.email_alerts and user["tier"] == "free":
         raise HTTPException(status_code=403, detail="Email alerts available on Starter and above.")
@@ -226,7 +226,7 @@ def configure_alerts(body: AlertSettingsRequest, user: dict = Depends(verify_api
     )
     return {"message": "Alert settings saved.", "alert_email": body.alert_email or user["email"]}
 
-@app.post("/alerts/test")
+@app.post("/api/alerts/test")
 def test_alert(body: TestAlertRequest, user: dict = Depends(verify_api_key)):
     if user["tier"] == "free":
         raise HTTPException(status_code=403, detail="Email alerts available on Starter and above.")
@@ -244,7 +244,7 @@ def test_alert(body: TestAlertRequest, user: dict = Depends(verify_api_key)):
     )
     return {"message": "Test alert sent.", "result": result}
 
-@app.get("/alerts/settings")
+@app.get("/api/alerts/settings")
 def get_alert_settings_route(user: dict = Depends(verify_api_key)):
     settings = database.get_alert_settings(user["id"])
     return settings or {"email_alerts": False, "alert_email": user["email"]}
@@ -252,14 +252,14 @@ def get_alert_settings_route(user: dict = Depends(verify_api_key)):
 # ─────────────────────────────────────────────
 #  Slack Alerts
 # ─────────────────────────────────────────────
-@app.post("/slack/configure")
+@app.post("/api/slack/configure")
 def configure_slack(body: SlackSettingsRequest, user: dict = Depends(verify_api_key)):
     if user["tier"] not in {"pro", "enterprise"}:
         raise HTTPException(status_code=403, detail="Slack alerts available on Pro and above.")
     database.save_slack_settings(user["id"], body.webhook_url, body.slack_alerts)
     return {"message": "Slack alerts configured.", "webhook_saved": True}
 
-@app.post("/slack/test")
+@app.post("/api/slack/test")
 def test_slack(user: dict = Depends(verify_api_key)):
     if user["tier"] not in {"pro", "enterprise"}:
         raise HTTPException(status_code=403, detail="Slack alerts available on Pro and above.")
@@ -279,7 +279,7 @@ def test_slack(user: dict = Depends(verify_api_key)):
     )
     return {"message": "Test Slack alert sent.", "result": result}
 
-@app.get("/slack/settings")
+@app.get("/api/slack/settings")
 def get_slack_settings_route(user: dict = Depends(verify_api_key)):
     settings = database.get_slack_settings(user["id"])
     return settings or {"slack_alerts": False, "slack_webhook": ""}
@@ -287,7 +287,7 @@ def get_slack_settings_route(user: dict = Depends(verify_api_key)):
 # ─────────────────────────────────────────────
 #  Enterprise Settings
 # ─────────────────────────────────────────────
-@app.post("/enterprise/settings")
+@app.post("/api/enterprise/settings")
 def save_enterprise(body: EnterpriseSettingsRequest, user: dict = Depends(verify_api_key)):
     if user["tier"] != "enterprise":
         raise HTTPException(status_code=403, detail="Enterprise plan required.")
@@ -303,7 +303,7 @@ def save_enterprise(body: EnterpriseSettingsRequest, user: dict = Depends(verify
         "custom_keywords": body.custom_keywords,
     }
 
-@app.get("/enterprise/settings")
+@app.get("/api/enterprise/settings")
 def get_enterprise(user: dict = Depends(verify_api_key)):
     if user["tier"] != "enterprise":
         raise HTTPException(status_code=403, detail="Enterprise plan required.")
@@ -312,7 +312,7 @@ def get_enterprise(user: dict = Depends(verify_api_key)):
 # ─────────────────────────────────────────────
 #  PDF Report
 # ─────────────────────────────────────────────
-@app.post("/report/download")
+@app.post("/api/report/download")
 async def download_report(body: ReportRequest, user: dict = Depends(verify_api_key)):
     if user["tier"] == "free":
         raise HTTPException(status_code=403, detail="Upgrade to Starter to download PDF reports.")
@@ -341,7 +341,7 @@ async def download_report(body: ReportRequest, user: dict = Depends(verify_api_k
 # ─────────────────────────────────────────────
 #  Audit History
 # ─────────────────────────────────────────────
-@app.get("/history")
+@app.get("/api/history")
 def get_history(user: dict = Depends(verify_api_key)):
     if user["tier"] == "free":
         raise HTTPException(status_code=403, detail="Audit history available on Starter and above.")
@@ -362,7 +362,7 @@ def verify_paystack_webhook(request_data: bytes, signature: str) -> bool:
     ).hexdigest()
     return hmac.compare_digest(computed, signature)
 
-@app.post("/billing/upgrade")
+@app.post("/api/billing/upgrade")
 def create_upgrade_link(body: BillingUpgradeRequest, user: dict = Depends(verify_api_key)):
     if body.new_tier not in {"starter", "pro", "enterprise"}:
         raise HTTPException(status_code=400, detail="Invalid tier.")
@@ -402,7 +402,7 @@ def create_upgrade_link(body: BillingUpgradeRequest, user: dict = Depends(verify
         logger.error(f"Billing error: {e}")
         raise HTTPException(status_code=500, detail="Billing service unavailable.")
 
-@app.post("/billing/webhook")
+@app.post("/api/billing/webhook")
 async def paystack_webhook(request: Request):
     payload_body = await request.body()
     signature    = request.headers.get("x-paystack-signature", "")
