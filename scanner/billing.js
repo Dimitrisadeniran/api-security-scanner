@@ -1,246 +1,223 @@
-// billing.js — Shepherd AI Settings & Billing
 "use strict";
 
-const API_BASE = "https://api-security-scanner-qksl.onrender.com";
+const API_BASE = "https://api-security-scanner-qksl.onrender.com/api";
 
 // ─────────────────────────────────────────────
-//  Auth helper
+//  Boot — runs on page load
 // ─────────────────────────────────────────────
-function getApiKey() {
-  return localStorage.getItem("shepherd_api_key") || "";
-}
+document.addEventListener("DOMContentLoaded", function () {
+  const key   = localStorage.getItem("shepherd_api_key");
+  const email = localStorage.getItem("shepherd_email");
+  const tier  = localStorage.getItem("shepherd_tier") || "free";
 
-function apiHeaders() {
-  return {
-    "Content-Type": "application/json",
-    "x-api-key": getApiKey()
-  };
-}
+  // Load API key into the input
+  const keyInput = document.getElementById("api-key-input");
+  if (keyInput && key) keyInput.value = key;
 
-// ─────────────────────────────────────────────
-//  Load user settings on page load
-// ─────────────────────────────────────────────
-async function loadUserSettings() {
-  const apiKey = getApiKey();
-
-  if (!apiKey) {
-    window.location.href = "/scanner/login.html";
-    return;
-  }
-
-  // Fill API key input
-  const apiKeyInput = document.getElementById("api-key-input");
-  if (apiKeyInput) apiKeyInput.value = apiKey;
-
-  // Fill email and tier from localStorage
-  const email = localStorage.getItem("shepherd_email") || "";
-  const tier  = localStorage.getItem("shepherd_tier")  || "free";
-
+  // Show current tier
   const tierDisplay = document.getElementById("current-tier-display");
-  if (tierDisplay) {
-    tierDisplay.textContent = tier.toUpperCase();
-    const colors = {
-      free:       "text-gray-400",
-      starter:    "text-blue-400",
-      pro:        "text-purple-400",
-      enterprise: "text-emerald-400",
-    };
-    tierDisplay.className = `font-bold ${colors[tier] || "text-gray-400"}`;
-  }
+  if (tierDisplay) tierDisplay.textContent = tier.toUpperCase();
 
+  // Highlight active tier card
+  highlightActiveTier(tier);
+
+  // Fetch live usage from server
+  fetchUsage(key);
+});
+
+// ─────────────────────────────────────────────
+//  Fetch Usage
+// ─────────────────────────────────────────────
+async function fetchUsage(key) {
+  if (!key) return;
   try {
     const res  = await fetch(`${API_BASE}/usage`, {
-      headers: apiHeaders()
+      headers: { "x-api-key": key, "Accept": "application/json" }
     });
+    if (!res.ok) return;
     const data = await res.json();
 
-    if (res.ok) {
-      // Update scan usage display
-      const usedEl  = document.getElementById("scans-used");
-      const limitEl = document.getElementById("scans-limit");
-      if (usedEl)  usedEl.textContent  = data.scans_used;
-      if (limitEl) limitEl.textContent = data.scans_limit >= 999999
-        ? "∞"
-        : data.scans_limit;
+    const used      = data.scans_used  ?? 0;
+    const limit     = data.scans_limit ?? 0;
+    const unlimited = limit >= 999999;
 
-      // Update tier display with live data from backend
-      if (tierDisplay) tierDisplay.textContent = data.tier.toUpperCase();
+    const usedEl  = document.getElementById("scans-used");
+    const limitEl = document.getElementById("scans-limit");
+    if (usedEl)  usedEl.textContent  = used;
+    if (limitEl) limitEl.textContent = unlimited ? "∞" : limit;
 
-      // Save fresh tier to localStorage
+    // Update cached tier if server says differently
+    if (data.tier) {
       localStorage.setItem("shepherd_tier", data.tier);
-
-      // Highlight the user's current active plan card
-      highlightActivePlan(data.tier);
-
-    } else {
-      console.error("Failed to load usage:", data.detail);
+      const tierDisplay = document.getElementById("current-tier-display");
+      if (tierDisplay) tierDisplay.textContent = data.tier.toUpperCase();
+      highlightActiveTier(data.tier);
     }
-
-  } catch (err) {
-    console.error("Network error loading settings:", err);
-    showStatus("Could not connect to server. Please try again.", "red");
-  }
+  } catch (_) {}
 }
 
 // ─────────────────────────────────────────────
-//  Highlight the active plan card
+//  Highlight the user's current tier card
 // ─────────────────────────────────────────────
-function highlightActivePlan(tier) {
-  // Remove all active styles first
+function highlightActiveTier(tier) {
+  // Remove any existing highlights
   document.querySelectorAll(".tier-card").forEach(card => {
-    card.classList.remove("featured-card", "border-emerald-500", "border-2");
+    card.classList.remove("featured-card", "border-emerald-500");
+    card.classList.add("border-gray-800");
   });
 
-  // Map tier to card class
-  const map = {
-    starter:    ".tier-card.starter",
-    pro:        ".tier-card.pro",
-    enterprise: ".tier-card.enterprise",
-  };
-
+  const map = { starter: ".tier-card.starter", pro: ".tier-card.pro", enterprise: ".tier-card.enterprise" };
   const selector = map[tier];
   if (selector) {
     const card = document.querySelector(selector);
     if (card) {
-      card.classList.add("featured-card", "border-emerald-500", "border-2");
-
-      // Add "Current Plan" badge
-      const existingBadge = card.querySelector(".current-plan-badge");
-      if (!existingBadge) {
-        const badge = document.createElement("div");
-        badge.className = "current-plan-badge mono text-xs bg-emerald-500 text-black font-bold px-3 py-1 rounded-full absolute top-4 right-4";
-        badge.textContent = "Current Plan";
-        card.style.position = "relative";
-        card.appendChild(badge);
-      }
+      card.classList.remove("border-gray-800");
+      card.classList.add("featured-card", "border-emerald-500");
     }
   }
+
+  // Disable buttons for current or lower tiers
+  updateButtonStates(tier);
 }
 
 // ─────────────────────────────────────────────
-//  Show status message
+//  Update button states based on current tier
 // ─────────────────────────────────────────────
-function showStatus(message, color = "white") {
-  const el = document.getElementById("status-message");
-  if (!el) return;
-  el.textContent = message;
-  el.classList.remove("hidden");
-  el.style.color = color;
+function updateButtonStates(tier) {
+  const tierRank = { free: 0, starter: 1, pro: 2, enterprise: 3 };
+  const current  = tierRank[tier] ?? 0;
+
+  const btnMap = {
+    starter:    document.getElementById("starter-btn"),
+    pro:        document.getElementById("pro-btn"),
+    enterprise: document.getElementById("enterprise-btn"),
+  };
+
+  Object.entries(btnMap).forEach(([t, btn]) => {
+    if (!btn) return;
+    const rank = tierRank[t] ?? 0;
+    if (rank <= current) {
+      btn.disabled = true;
+      btn.textContent = rank === current ? "Current Plan ✓" : "Included";
+      btn.classList.add("opacity-50", "cursor-not-allowed");
+      btn.classList.remove("bg-emerald-500", "hover:bg-emerald-400");
+      btn.classList.add("bg-gray-700");
+    }
+  });
 }
 
 // ─────────────────────────────────────────────
-//  Handle upgrade button click
+//  Handle Upgrade — calls /api/billing/upgrade
 // ─────────────────────────────────────────────
-async function handleUpgrade(requestedTier) {
-  const apiKey = getApiKey();
+async function handleUpgrade(newTier) {
+  const key  = localStorage.getItem("shepherd_api_key");
+  const tier = localStorage.getItem("shepherd_tier") || "free";
 
-  if (!apiKey) {
-    showStatus("Please log in first.", "red");
+  if (!key) {
+    window.location.replace("/scanner/login.html");
     return;
   }
 
-  // Map button tier names to backend tier names
-  const tierMap = {
-    "pro":        "starter",    // your "pro" card = backend "starter"
-    "enterprise": "pro",        // your "enterprise" card = backend "pro"
-    "starter":    "starter",
-  };
+  // Map visible card names to backend tier names
+  const tierMap = { starter: "starter", pro: "pro", enterprise: "enterprise" };
+  const backendTier = tierMap[newTier];
+  if (!backendTier) return;
 
-  const backendTier = tierMap[requestedTier] || requestedTier;
+  const tierRank = { free: 0, starter: 1, pro: 2, enterprise: 3 };
+  if ((tierRank[backendTier] ?? 0) <= (tierRank[tier] ?? 0)) {
+    showStatus("⚠ You are already on this plan or higher.", "warning");
+    return;
+  }
 
-  showStatus(`Preparing your ${requestedTier.toUpperCase()} subscription...`, "cyan");
+  // Find the right button
+  const btnId = `${newTier}-btn`;
+  const btn   = document.getElementById(btnId);
+  const origText = btn ? btn.textContent : "";
 
-  // Disable all upgrade buttons
-  document.querySelectorAll("[id$='-btn']").forEach(btn => {
+  if (btn) {
     btn.disabled = true;
-    btn.classList.add("opacity-50", "cursor-not-allowed");
-  });
+    btn.textContent = "Redirecting to checkout...";
+  }
+
+  showStatus("⏳ Initializing secure checkout via Paystack...", "info");
 
   try {
-    const res  = await fetch(`${API_BASE}/billing/upgrade`, {
+    const res = await fetch(`${API_BASE}/billing/upgrade`, {
       method:  "POST",
-      headers: apiHeaders(),
-      body:    JSON.stringify({ new_tier: backendTier })
+      headers: {
+        "Content-Type": "application/json",
+        "Accept":       "application/json",
+        "x-api-key":    key,
+      },
+      body: JSON.stringify({ new_tier: backendTier }),
     });
 
     const data = await res.json();
 
-    if (res.ok && data.checkout_url) {
-      showStatus("Connecting to Paystack checkout...", "white");
-      window.location.href = data.checkout_url;
+    if (!res.ok) {
+      throw new Error(data.detail || `Upgrade failed (${res.status})`);
+    }
+
+    if (data.checkout_url) {
+      showStatus("✅ Redirecting to Paystack checkout...", "success");
+      // Small delay so user sees the message
+      setTimeout(() => { window.location.href = data.checkout_url; }, 800);
     } else {
-      showStatus(`❌ ${data.detail || "Payment gateway error."}`, "red");
-      // Re-enable buttons
-      document.querySelectorAll("[id$='-btn']").forEach(btn => {
-        btn.disabled = false;
-        btn.classList.remove("opacity-50", "cursor-not-allowed");
-      });
+      throw new Error("No checkout URL returned from server.");
     }
 
   } catch (err) {
-    console.error("Payment error:", err);
-    showStatus("Connection error. Please try again or contact support.", "red");
-    document.querySelectorAll("[id$='-btn']").forEach(btn => {
-      btn.disabled = false;
-      btn.classList.remove("opacity-50", "cursor-not-allowed");
-    });
+    showStatus("❌ " + err.message, "error");
+    if (btn) {
+      btn.disabled    = false;
+      btn.textContent = origText;
+    }
   }
 }
 
 // ─────────────────────────────────────────────
-//  Check if returning from Paystack payment
+//  Status Message Helper
 // ─────────────────────────────────────────────
-function checkPaymentStatus() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("billing") === "success") {
-    showStatus("✅ Payment successful! Your plan has been upgraded. Refreshing...", "green");
-    // Reload usage after 2 seconds to show new tier
-    setTimeout(() => {
-      loadUserSettings();
-      // Clean the URL
-      window.history.replaceState({}, "", "/scanner/settings.html");
-    }, 2000);
+function showStatus(message, type = "info") {
+  const el = document.getElementById("status-message");
+  if (!el) return;
+
+  const styles = {
+    info:    "bg-blue-950 border-blue-800 text-blue-300",
+    success: "bg-emerald-950 border-emerald-800 text-emerald-300",
+    warning: "bg-yellow-950 border-yellow-800 text-yellow-300",
+    error:   "bg-red-950 border-red-800 text-red-300",
+  };
+
+  el.className = `mono text-center mb-10 px-6 py-3 border rounded-xl text-sm ${styles[type] || styles.info}`;
+  el.textContent = message;
+  el.classList.remove("hidden");
+
+  // Auto-hide non-error messages after 6s
+  if (type !== "error") {
+    setTimeout(() => el.classList.add("hidden"), 6000);
   }
 }
 
 // ─────────────────────────────────────────────
-//  Toggle API key visibility
-// ─────────────────────────────────────────────
-function toggleApiKey() {
-  const input = document.getElementById("api-key-input");
-  const btn   = document.getElementById("show-api-key");
-  if (!input) return;
-
-  if (input.type === "password") {
-    input.type      = "text";
-    btn.textContent = "Hide";
-    btn.classList.add("bg-emerald-600");
-    btn.classList.remove("bg-gray-800");
-  } else {
-    input.type      = "password";
-    btn.textContent = "Show";
-    btn.classList.remove("bg-emerald-600");
-    btn.classList.add("bg-gray-800");
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Copy API key
+//  Copy API Key
 // ─────────────────────────────────────────────
 function copyApiKey() {
-  const key = getApiKey();
+  const key = localStorage.getItem("shepherd_api_key") || "";
+  if (!key) return;
   navigator.clipboard.writeText(key).then(() => {
-    showStatus("✅ API key copied to clipboard.", "green");
-    setTimeout(() => {
-      document.getElementById("status-message")?.classList.add("hidden");
-    }, 2000);
+    showStatus("✅ API key copied to clipboard.", "success");
   });
 }
 
 // ─────────────────────────────────────────────
-//  Page load
+//  Check for ?billing=success on return from Paystack
 // ─────────────────────────────────────────────
-window.addEventListener("load", () => {
-  checkPaymentStatus();
-  loadUserSettings();
-});
+(function checkBillingReturn() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("billing") === "success") {
+    showStatus("🎉 Payment received! Your plan will update within a few seconds — refresh to confirm.", "success");
+    // Remove the query param cleanly
+    window.history.replaceState({}, "", window.location.pathname);
+  }
+})();
