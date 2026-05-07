@@ -26,26 +26,62 @@ HTTP_METHODS = {"get", "post", "put", "delete", "patch"}
 # ─────────────────────────────────────────────
 #  Logic: Fetch OpenAPI Schema
 # ─────────────────────────────────────────────
-async def fetch_openapi_schema(url: str):
+async def fetch_openapi_schema(base_url: str):
     """
-    Fetches the openapi.json from the target FastAPI URL.
-    Handles URL cleaning (adding /openapi.json if missing).
+    Tries multiple common OpenAPI schema paths.
+    Supports FastAPI, Swagger, Django REST, Express, and more.
     """
-    target = url.strip()
-    # Ensure protocol exists
-    if not target.startswith(("http://", "https://")):
-        target = "https://" + target
-    
-    # Ensure it points to the JSON spec
-    if not target.endswith("openapi.json"):
-        target = target.rstrip("/") + "/openapi.json"
+    base_url = base_url.rstrip("/")
 
-    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-        response = await client.get(target)
-        if response.status_code != 200:
-            raise Exception(f"Schema not found at {target} (Status {response.status_code})")
-        return response.json()
+    # All common OpenAPI/Swagger schema paths across frameworks
+    potential_paths = [
+        "/openapi.json",           # FastAPI default
+        "/swagger.json",           # Older Swagger
+        "/api-docs",               # Express / Springboot
+        "/api/openapi.json",       # FastAPI with prefix
+        "/api/swagger.json",       # Common prefix
+        "/v1/openapi.json",        # Versioned FastAPI
+        "/v2/openapi.json",
+        "/v3/openapi.json",
+        "/docs/openapi.json",      # Docs prefix
+        "/swagger/v1/swagger.json",# .NET / ASP.NET
+        "/api/v1/openapi.json",
+        "/api/v2/openapi.json",
+        "/api/v3/openapi.json",
+        "/openapi/v3.json",
+        "/.well-known/openapi.json",
+    ]
 
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "ShepherdAI-Scanner/1.0"
+    }
+
+    async with httpx.AsyncClient(
+        timeout=15.0,
+        follow_redirects=True,
+        verify=False  # allow self-signed certs
+    ) as client:
+        for path in potential_paths:
+            try:
+                target = f"{base_url}{path}"
+                response = await client.get(target, headers=headers)
+
+                if response.status_code == 200:
+                    content_type = response.headers.get("content-type", "")
+                    # Make sure it's actually JSON
+                    if "json" in content_type or response.text.strip().startswith("{"):
+                        data = response.json()
+                        # Validate it looks like an OpenAPI spec
+                        if "paths" in data or "openapi" in data or "swagger" in data:
+                            print(f"✅ Schema found at: {target}")
+                            return data
+
+            except Exception as e:
+                print(f"DEBUG: Failed {path}: {e}")
+                continue
+
+    return None
 # ─────────────────────────────────────────────
 #  Logic: Find Unsecured Routes
 # ─────────────────────────────────────────────
