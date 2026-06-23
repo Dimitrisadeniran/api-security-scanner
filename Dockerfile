@@ -29,4 +29,4 @@ COPY . .
 EXPOSE 10000
 
 # Run the application
-CMD ["gunicorn", "-b", "0.0.0.0:10000", "main:app"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
