@@ -27,15 +27,32 @@
     }
     .input-field:focus { border-color: #10b981; }
     .input-field::placeholder { color: #4b5563; }
+    .input-field:disabled { opacity: 0.5; cursor: not-allowed; }
     .grid-bg {
       background-image:
         linear-gradient(rgba(16,185,129,0.03) 1px, transparent 1px),
         linear-gradient(90deg, rgba(16,185,129,0.03) 1px, transparent 1px);
       background-size: 40px 40px;
     }
+    .otp-input {
+      letter-spacing: 0.5em;
+      font-size: 1.25rem;
+      text-align: center;
+    }
+    .otp-input::placeholder {
+      letter-spacing: normal;
+      font-size: 0.875rem;
+    }
+    .slide-down {
+      animation: slideDown 0.3s ease forwards;
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); max-height: 0; }
+      to { opacity: 1; transform: translateY(0); max-height: 100px; }
+    }
   </style>
 
-   <!-- FIX: If user is already logged in, skip to scanner immediately — no flash -->
+  <!-- FIX: If user is already logged in, skip to scanner immediately — no flash -->
 <script>
   (function () {
     const key = localStorage.getItem("shepherd_api_key");
@@ -151,7 +168,27 @@
               <input id="loginPassword" type="password" placeholder="••••••••"
                 class="input-field" onkeydown="if(event.key==='Enter') handleLogin()"/>
             </div>
+            
+            <!-- 2FA Section - Hidden initially -->
+            <div id="twoFactorSection" class="hidden slide-down">
+              <div class="border-t border-gray-800 pt-4 mt-2">
+                <div class="flex items-center gap-2 mb-2">
+                  <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                  </svg>
+                  <label class="mono text-xs text-gray-400 block">Two-Factor Authentication</label>
+                </div>
+                <p class="mono text-xs text-gray-600 mb-2">Enter the 6-digit code from your authenticator app</p>
+                <input id="loginOtp" type="text" maxlength="6" placeholder="000000"
+                  class="input-field otp-input" onkeydown="if(event.key==='Enter') handleLogin()"
+                  oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)"/>
+              </div>
+            </div>
+
             <p id="loginError" class="mono text-xs text-red-400 hidden"></p>
+            <p id="loginInfo" class="mono text-xs text-yellow-400 hidden"></p>
+            
             <button id="loginBtn" onclick="handleLogin()"
               class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mt-2">
               <svg id="loginSpinner" class="spinner hidden w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -220,9 +257,7 @@
 
   <script>
     "use strict";
-    // FIX: Routes in main.py have NO /api prefix — /auth/login, /auth/register etc.
-    // are mounted directly on the app root, not under /api.
-    const API_BASE = "https://api-security-scanner-qksl.onrender.com/api";
+    const API_BASE = "https://api-security-scanner-qksl.onrender.com";
 
     const TIER_COLORS = {
       free:       "bg-gray-800 text-gray-400",
@@ -238,6 +273,14 @@
       enterprise: "Unlimited scans · Custom keywords",
     };
 
+    // State for 2FA
+    let loginState = {
+      email: '',
+      password: '',
+      requires2FA: false,
+      userId: null
+    };
+
     // ── Tab Switching ──
     function switchTab(tab) {
       const loginForm    = document.getElementById("loginForm");
@@ -246,6 +289,9 @@
       const registerTab  = document.getElementById("registerTab");
       const isActive   = "flex-1 mono text-xs py-4 transition tab-active";
       const isInactive = "flex-1 mono text-xs py-4 transition tab-inactive";
+
+      // Reset 2FA state when switching tabs
+      reset2FAState();
 
       if (tab === "login") {
         loginForm.classList.remove("hidden");
@@ -260,38 +306,106 @@
       }
     }
 
+    // ── Reset 2FA State ──
+    function reset2FAState() {
+      loginState.requires2FA = false;
+      loginState.userId = null;
+      document.getElementById("twoFactorSection").classList.add("hidden");
+      document.getElementById("loginOtp").value = '';
+      document.getElementById("loginInfo").classList.add("hidden");
+      const btnLabel = document.getElementById("loginBtnLabel");
+      btnLabel.textContent = "Sign In →";
+      document.getElementById("loginBtn").disabled = false;
+    }
+
     // ── Login ──
     async function handleLogin() {
       const email    = document.getElementById("loginEmail").value.trim();
       const password = document.getElementById("loginPassword").value;
+      const otpCode  = document.getElementById("loginOtp").value.trim();
       const errEl    = document.getElementById("loginError");
+      const infoEl   = document.getElementById("loginInfo");
       const btn      = document.getElementById("loginBtn");
       const label    = document.getElementById("loginBtnLabel");
       const spinner  = document.getElementById("loginSpinner");
 
       errEl.classList.add("hidden");
+      infoEl.classList.add("hidden");
+
       if (!email || !password) {
-        errEl.textContent = "Credentials required.";
+        errEl.textContent = "Email and password required.";
         errEl.classList.remove("hidden");
         return;
       }
 
+      // If 2FA is required, validate OTP
+      if (loginState.requires2FA) {
+        if (!otpCode || otpCode.length !== 6) {
+          errEl.textContent = "Please enter a valid 6-digit 2FA code.";
+          errEl.classList.remove("hidden");
+          return;
+        }
+      }
+
       btn.disabled = true;
       spinner.classList.remove("hidden");
-      label.textContent = "Authenticating...";
+      label.textContent = loginState.requires2FA ? "Verifying 2FA..." : "Authenticating...";
 
       try {
+        // If we already have a userId (2FA flow), verify with OTP
+        if (loginState.requires2FA && loginState.userId) {
+          // The login endpoint with OTP will handle the full verification
+          // We'll just send the full login request with OTP
+        }
+
+        const payload = {
+          email: email,
+          password: password
+        };
+
+        // Add OTP if we're in 2FA flow or if user entered one
+        if (loginState.requires2FA && otpCode) {
+          payload.otp_code = otpCode;
+        } else if (otpCode) {
+          payload.otp_code = otpCode;
+        }
+
         const res = await fetch(`${API_BASE}/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Accept": "application/json" },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify(payload)
         });
+        
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "Login failed");
 
+        // Check if 2FA is required
+        if (data.requires_2fa) {
+          loginState.requires2FA = true;
+          loginState.userId = data.user_id;
+          loginState.email = email;
+          loginState.password = password;
+          
+          // Show 2FA section
+          document.getElementById("twoFactorSection").classList.remove("hidden");
+          document.getElementById("loginOtp").focus();
+          
+          infoEl.textContent = "🔐 Two-factor authentication required. Enter your 6-digit code.";
+          infoEl.classList.remove("hidden");
+          
+          label.textContent = "Verify 2FA →";
+          btn.disabled = false;
+          spinner.classList.add("hidden");
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error(data.detail || "Login failed");
+        }
+
+        // Successful login
         localStorage.setItem("shepherd_api_key", data.api_key || data.token || "");
-        localStorage.setItem("shepherd_email",   data.email   || email);
-        localStorage.setItem("shepherd_tier",    data.tier    || "free");
+        localStorage.setItem("shepherd_email",   data.email || email);
+        localStorage.setItem("shepherd_tier",    data.tier || "free");
 
         if (!data.api_key && !data.token) {
           throw new Error("Login succeeded but server returned no API key — check database.get_user_by_email() return value.");
@@ -301,11 +415,23 @@
         setTimeout(() => { window.location.replace("index.html"); }, 800);
 
       } catch (err) {
-        errEl.textContent = err.message;
+        // Reset 2FA state on error
+        if (loginState.requires2FA) {
+          // Don't reset 2FA state, but show error
+          errEl.textContent = err.message || "Invalid 2FA code. Please try again.";
+        } else {
+          errEl.textContent = err.message || "Login failed. Please check your credentials.";
+        }
         errEl.classList.remove("hidden");
-        label.textContent = "Sign In →";
+        label.textContent = loginState.requires2FA ? "Verify 2FA →" : "Sign In →";
         btn.disabled = false;
         spinner.classList.add("hidden");
+        
+        // If 2FA failed, clear OTP field
+        if (loginState.requires2FA) {
+          document.getElementById("loginOtp").value = '';
+          document.getElementById("loginOtp").focus();
+        }
       }
     }
 
@@ -374,6 +500,32 @@
     function closePopupAndLogin() {
       window.location.replace("index.html");
     }
+
+    // ── Handle Enter key for OTP ──
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        const active = document.activeElement;
+        if (active && active.id === 'loginOtp') {
+          e.preventDefault();
+          handleLogin();
+        }
+      }
+    });
+
+    // ── Auto-focus OTP field when it becomes visible ──
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          const twoFactorSection = document.getElementById('twoFactorSection');
+          if (!twoFactorSection.classList.contains('hidden')) {
+            document.getElementById('loginOtp').focus();
+          }
+        }
+      });
+    });
+
+    const twoFactorSection = document.getElementById('twoFactorSection');
+    observer.observe(twoFactorSection, { attributes: true });
   </script>
 
 </body>
