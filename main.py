@@ -156,10 +156,21 @@ def register(body: RegisterRequest):
 
 @app.post("/api/auth/login")
 def login(body: LoginWith2FARequest):
-    """Login with optional 2FA support"""
-    user = database.get_user_by_email(body.email, body.password)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials.")
+    logger.info(f"LOGIN ATTEMPT: {body.email}")
+
+    try:
+        user = database.get_user_by_email(body.email, body.password)
+
+        logger.info(f"USER LOOKUP RESULT: {user}")
+
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials.")
+
+        # rest of login code...
+
+    except Exception as e:
+        logger.exception("LOGIN ERROR")
+        raise
     
     # Check if 2FA is enabled
     if user.get("is_2fa_enabled", False):
