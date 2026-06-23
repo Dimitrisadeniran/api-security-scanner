@@ -310,5 +310,18 @@ def create_session(user_id: int, session_token: str, expires_at: str):
 
     conn.commit()
     conn.close()
+def get_session(session_token: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT * FROM sessions WHERE session_token = ?",
+        (session_token,)
+    )
+
+    row = cursor.fetchone()
+    conn.close()
+
+    return dict(row) if row else None
         return {}
     return get_enterprise_settings(user["id"])
