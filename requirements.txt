@@ -12,4 +12,4 @@ resend
 email-validator
 pyotp==2.9.0
 qrcode==7.4.2
-Pillow==11.1.0
+Pillow==11.1.0 --no-binary :all:
