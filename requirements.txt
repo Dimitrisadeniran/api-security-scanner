@@ -10,3 +10,6 @@ uvicorn==0.27.0
 python-multipart
 resend
 email-validator
+pyotp==2.9.0
+qrcode==7.4.2
+Pillow==10.1.0
