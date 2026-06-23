@@ -296,5 +296,19 @@ def get_slack_settings_by_key(api_key: str):
 def get_enterprise_settings_by_key(api_key: str):
     user = get_user_by_api_key(api_key)
     if not user:
+def create_session(user_id: int, session_token: str, expires_at: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO sessions (user_id, session_token, expires_at)
+        VALUES (?, ?, ?)
+        """,
+        (user_id, session_token, expires_at)
+    )
+
+    conn.commit()
+    conn.close()
         return {}
     return get_enterprise_settings(user["id"])
