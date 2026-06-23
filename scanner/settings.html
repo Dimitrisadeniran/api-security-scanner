@@ -11,7 +11,122 @@
         .mono { font-family: 'DM Mono', monospace; }
         .spinner { animation: spin 0.7s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .featured-card { border: 2px solid #10b981; }
+        .featured-card { border: 2px solid #0fac78; }
+        .slide-down {
+            animation: slideDown 0.3s ease forwards;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); max-height: 0; }
+            to { opacity: 1; transform: translateY(0); max-height: 500px; }
+        }
+        .slide-up {
+            animation: slideUp 0.3s ease forwards;
+        }
+        @keyframes slideUp {
+            from { opacity: 1; transform: translateY(0); max-height: 500px; }
+            to { opacity: 0; transform: translateY(-10px); max-height: 0; }
+        }
+        .otp-input {
+            letter-spacing: 0.5em;
+            font-size: 1.25rem;
+            text-align: center;
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            color: #f9fafb;
+            font-family: 'DM Mono', monospace;
+            outline: none;
+            transition: border-color 0.15s;
+            width: 100%;
+            max-width: 200px;
+        }
+        .otp-input:focus {
+            border-color: #10b981;
+        }
+        .otp-input::placeholder {
+            letter-spacing: normal;
+            font-size: 0.875rem;
+        }
+        .otp-input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .qr-container {
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            display: inline-block;
+        }
+        .qr-container img {
+            display: block;
+            margin: 0 auto;
+            width: 200px;
+            height: 200px;
+            image-rendering: pixelated;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            font-family: 'DM Mono', monospace;
+        }
+        .status-enabled {
+            background: #064e3b;
+            color: #34d399;
+        }
+        .status-disabled {
+            background: #451a1a;
+            color: #f87171;
+        }
+        .secret-text {
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-family: 'DM Mono', monospace;
+            font-size: 0.875rem;
+            color: #f9fafb;
+            word-break: break-all;
+            max-width: 100%;
+        }
+        .alert {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+        .alert-success {
+            background: #064e3b;
+            border: 1px solid #065f46;
+            color: #34d399;
+        }
+        .alert-danger {
+            background: #451a1a;
+            border: 1px solid #7f1d1d;
+            color: #f87171;
+        }
+        .alert-info {
+            background: #1a365d;
+            border: 1px solid #1e3a8a;
+            color: #60a5fa;
+        }
+        .alert-warning {
+            background: #451a1a;
+            border: 1px solid #78350f;
+            color: #fbbf24;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .mt-4 { margin-top: 1rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .gap-4 { gap: 1rem; }
+        .flex-center { display: flex; align-items: center; justify-content: center; }
+        .flex-between { display: flex; align-items: center; justify-content: space-between; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -36,6 +151,129 @@
 
     <div class="container max-w-6xl mx-auto px-6 py-12 flex-1">
         <h1 class="text-4xl font-bold mb-12 tracking-tight">Account Settings</h1>
+
+        <!-- 2FA Section - NEW -->
+        <section id="2fa-section" class="bg-gray-900 border border-gray-800 rounded-2xl p-8 mb-10">
+            <div class="flex-between mb-6 flex-wrap gap-4">
+                <div>
+                    <p class="mono text-xs text-emerald-400 uppercase tracking-widest mb-1.5">Security</p>
+                    <h2 class="text-2xl font-bold mb-2">Two-Factor Authentication</h2>
+                    <p class="text-sm text-gray-400 max-w-md" style="font-family:sans-serif;">
+                        Add an extra layer of security to your account with 2FA using an authenticator app.
+                    </p>
+                </div>
+                <div id="2fa-status-badge">
+                    <span class="status-badge status-disabled">✗ Disabled</span>
+                </div>
+            </div>
+
+            <!-- 2FA Status / Controls -->
+            <div id="2fa-controls">
+                <!-- 2FA Disabled - Show Enable Button -->
+                <div id="2fa-disabled-state">
+                    <button id="enable-2fa-btn" onclick="start2FASetup()"
+                        class="mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-3 rounded-xl transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                        Enable 2FA
+                    </button>
+                    <p class="mono text-xs text-gray-600 mt-3">
+                        Secure your account with time-based one-time passwords (TOTP)
+                    </p>
+                </div>
+
+                <!-- 2FA Enabled - Show Disable Button -->
+                <div id="2fa-enabled-state" class="hidden">
+                    <div class="alert alert-success mb-4">
+                        ✅ Two-factor authentication is enabled for your account.
+                    </div>
+                    <button id="disable-2fa-btn" onclick="start2FADisable()"
+                        class="mono text-sm bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                        Disable 2FA
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2FA Setup Flow -->
+            <div id="2fa-setup-flow" class="hidden mt-6 slide-down">
+                <div class="border-t border-gray-800 pt-6">
+                    <h3 class="text-lg font-bold mb-2">Set up Two-Factor Authentication</h3>
+                    <p class="text-sm text-gray-400 mb-4" style="font-family:sans-serif;">
+                        Scan the QR code with your authenticator app (Google Authenticator, Authy, etc.) 
+                        and enter the 6-digit code to enable 2FA.
+                    </p>
+
+                    <!-- QR Code -->
+                    <div class="flex flex-col items-center mb-6">
+                        <div class="qr-container">
+                            <img id="qr-code-img" src="" alt="QR Code for 2FA setup" />
+                        </div>
+                        <div class="mt-4 w-full max-w-md">
+                            <p class="mono text-xs text-gray-500 mb-1">Secret Key (if you can't scan the QR code):</p>
+                            <div class="secret-text" id="secret-key-display">Loading...</div>
+                        </div>
+                    </div>
+
+                    <!-- OTP Verification -->
+                    <div class="flex flex-col items-center gap-4">
+                        <div class="w-full max-w-md">
+                            <label class="mono text-xs text-gray-500 block mb-1.5">Enter 6-digit code from your authenticator app</label>
+                            <div class="flex gap-3 items-center">
+                                <input type="text" id="setup-otp-input" maxlength="6" placeholder="000000"
+                                    class="otp-input" 
+                                    oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)"
+                                    onkeydown="if(event.key==='Enter') verifyAndEnable2FA()"/>
+                                <button id="verify-2fa-btn" onclick="verifyAndEnable2FA()"
+                                    class="mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-3 rounded-xl transition whitespace-nowrap">
+                                    Verify & Enable
+                                </button>
+                            </div>
+                            <p id="setup-error" class="mono text-xs text-red-400 hidden mt-2"></p>
+                        </div>
+                        <button onclick="cancel2FASetup()" 
+                            class="mono text-xs text-gray-500 hover:text-gray-400 transition">
+                            Cancel Setup
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2FA Disable Flow -->
+            <div id="2fa-disable-flow" class="hidden mt-6 slide-down">
+                <div class="border-t border-gray-800 pt-6">
+                    <div class="alert alert-danger mb-4">
+                        ⚠️ <strong>Warning:</strong> Disabling 2FA will reduce the security of your account. 
+                        Enter your current 2FA code to confirm.
+                    </div>
+                    <div class="flex flex-col items-center gap-4">
+                        <div class="w-full max-w-md">
+                            <label class="mono text-xs text-gray-500 block mb-1.5">Enter current 2FA code</label>
+                            <div class="flex gap-3 items-center">
+                                <input type="text" id="disable-otp-input" maxlength="6" placeholder="000000"
+                                    class="otp-input"
+                                    oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)"
+                                    onkeydown="if(event.key==='Enter') verifyAndDisable2FA()"/>
+                                <button id="disable-verify-btn" onclick="verifyAndDisable2FA()"
+                                    class="mono text-sm bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl transition whitespace-nowrap">
+                                    Disable 2FA
+                                </button>
+                            </div>
+                            <p id="disable-error" class="mono text-xs text-red-400 hidden mt-2"></p>
+                        </div>
+                        <button onclick="cancel2FADisable()"
+                            class="mono text-xs text-gray-500 hover:text-gray-400 transition">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <!-- API Key Section -->
         <section id="api-key-section" class="bg-gray-900 border border-gray-800 rounded-2xl p-8 mb-10">
@@ -90,11 +328,9 @@
 
             <!-- Status message -->
             <div id="status-message" class="hidden mono text-center mb-10 px-6 py-3 border rounded-xl text-sm"></div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                 <!-- STARTER -->
-                <!-- FIX: class="tier-card starter" so billing.js can highlight it -->
                 <div class="tier-card starter bg-gray-900 border border-gray-800 rounded-3xl p-10 flex flex-col hover:border-emerald-700 transition">
                     <div class="flex justify-between items-start mb-8">
                         <div>
@@ -109,7 +345,6 @@
                         <li class="flex items-center gap-3">✅ <span class="mono text-xs bg-gray-800 text-white px-2 py-0.5 rounded">Offer 3:</span> Detailed Audit History (last 500 scans)</li>
                         <li class="flex items-center gap-3 text-white font-semibold">💎 <span class="mono text-xs bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded">LIMIT:</span> 75 Scans/mo</li>
                     </ul>
-                    <!-- FIX 1: id="starter-btn"  FIX 2: onclick passes 'starter' not 'pro' -->
                     <button id="starter-btn"
                       class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 rounded-xl transition flex items-center justify-center gap-2"
                       onclick="handleUpgrade('starter')">
@@ -121,7 +356,6 @@
                 </div>
 
                 <!-- PRO -->
-                <!-- FIX: class="tier-card pro" -->
                 <div class="tier-card pro bg-gray-900 border border-gray-800 rounded-3xl p-10 flex flex-col hover:border-emerald-700 transition">
                     <div class="flex justify-between items-start mb-8">
                         <div>
@@ -139,7 +373,6 @@
                         <li class="flex items-center gap-3">✅ <span class="mono text-xs bg-gray-800 text-white px-2 py-0.5 rounded">Offer 6:</span> Custom Keywords & PII Checks</li>
                         <li class="flex items-center gap-3 text-white font-semibold">💎 <span class="mono text-xs bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded">LIMIT:</span> 200 Scans per month</li>
                     </ul>
-                    <!-- FIX: id="pro-btn" onclick passes 'pro' -->
                     <button id="pro-btn"
                       class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 rounded-xl transition flex items-center justify-center gap-2"
                       onclick="handleUpgrade('pro')">
@@ -151,7 +384,6 @@
                 </div>
 
                 <!-- ENTERPRISE -->
-                <!-- FIX: class="tier-card enterprise" — single unique class -->
                 <div class="tier-card enterprise bg-gray-900 border border-gray-800 rounded-3xl p-10 flex flex-col hover:border-emerald-700 transition md:col-span-2">
                     <div class="flex justify-between items-start mb-8">
                         <div>
@@ -174,7 +406,6 @@
                         <li class="flex items-center gap-3">✅ <span class="mono text-xs bg-gray-800 text-white px-2 py-0.5 rounded">Offer 11:</span> Regulatory Framework Mapping</li>
                         <li class="flex items-center gap-3 text-white font-semibold">💎 <span class="mono text-xs bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded">LIMIT:</span> Unlimited Scans</li>
                     </ul>
-                    <!-- FIX: id="enterprise-btn" onclick passes 'enterprise' -->
                     <button id="enterprise-btn"
                       class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 rounded-xl transition flex items-center justify-center gap-2"
                       onclick="handleUpgrade('enterprise')">
@@ -196,6 +427,225 @@
     <script src="billing.js"></script>
 
     <script>
+        // ── API Configuration ──
+        const API_BASE = "https://api-security-scanner-qksl.onrender.com";
+        const API_KEY = localStorage.getItem("shepherd_api_key");
+
+        // ── DOM Elements ──
+        const twoFAStatusBadge = document.getElementById('2fa-status-badge');
+        const twoFADisabledState = document.getElementById('2fa-disabled-state');
+        const twoFAEnabledState = document.getElementById('2fa-enabled-state');
+        const twoFASetupFlow = document.getElementById('2fa-setup-flow');
+        const twoFADisableFlow = document.getElementById('2fa-disable-flow');
+        const qrCodeImg = document.getElementById('qr-code-img');
+        const secretKeyDisplay = document.getElementById('secret-key-display');
+        const setupOtpInput = document.getElementById('setup-otp-input');
+        const disableOtpInput = document.getElementById('disable-otp-input');
+        const setupError = document.getElementById('setup-error');
+        const disableError = document.getElementById('disable-error');
+
+        let current2FAStatus = { enabled: false };
+
+        // ── Load 2FA Status ──
+        async function load2FAStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/2fa-status`, {
+                    headers: {
+                        'X-API-Key': API_KEY,
+                        'Accept': 'application/json'
+                    }
+                });
+                if (response.ok) {
+                    current2FAStatus = await response.json();
+                    update2FAUI();
+                }
+            } catch (error) {
+                console.error('Failed to load 2FA status:', error);
+            }
+        }
+
+        // ── Update 2FA UI ──
+        function update2FAUI() {
+            const badge = document.getElementById('2fa-status-badge');
+            if (current2FAStatus.enabled) {
+                badge.innerHTML = `<span class="status-badge status-enabled">✓ Enabled</span>`;
+                twoFADisabledState.classList.add('hidden');
+                twoFAEnabledState.classList.remove('hidden');
+                twoFASetupFlow.classList.add('hidden');
+                twoFADisableFlow.classList.add('hidden');
+            } else {
+                badge.innerHTML = `<span class="status-badge status-disabled">✗ Disabled</span>`;
+                twoFADisabledState.classList.remove('hidden');
+                twoFAEnabledState.classList.add('hidden');
+                twoFASetupFlow.classList.add('hidden');
+                twoFADisableFlow.classList.add('hidden');
+            }
+        }
+
+        // ── Start 2FA Setup ──
+        async function start2FASetup() {
+            setupError.classList.add('hidden');
+            setupOtpInput.value = '';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/setup-2fa`, {
+                    method: 'POST',
+                    headers: {
+                        'X-API-Key': API_KEY,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to setup 2FA');
+                }
+
+                const data = await response.json();
+                
+                // Show QR code
+                qrCodeImg.src = `data:image/png;base64,${data.qr_code}`;
+                secretKeyDisplay.textContent = data.secret;
+                
+                // Show setup flow
+                twoFASetupFlow.classList.remove('hidden');
+                twoFADisabledState.classList.add('hidden');
+                twoFAEnabledState.classList.add('hidden');
+                
+                setupOtpInput.focus();
+
+            } catch (error) {
+                setupError.textContent = error.message || 'Failed to setup 2FA';
+                setupError.classList.remove('hidden');
+            }
+        }
+
+        // ── Verify and Enable 2FA ──
+        async function verifyAndEnable2FA() {
+            const otpCode = setupOtpInput.value.trim();
+            
+            if (!otpCode || otpCode.length !== 6) {
+                setupError.textContent = 'Please enter a valid 6-digit code';
+                setupError.classList.remove('hidden');
+                return;
+            }
+
+            setupError.classList.add('hidden');
+            const verifyBtn = document.getElementById('verify-2fa-btn');
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Verifying...';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/verify-2fa`, {
+                    method: 'POST',
+                    headers: {
+                        'X-API-Key': API_KEY,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ otp_code: otpCode })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to verify 2FA');
+                }
+
+                // Success - reload status
+                await load2FAStatus();
+                update2FAUI();
+                
+                // Show success message
+                const statusBadge = document.getElementById('2fa-status-badge');
+                statusBadge.innerHTML = `<span class="status-badge status-enabled">✓ Enabled</span>`;
+
+            } catch (error) {
+                setupError.textContent = error.message || 'Invalid 2FA code. Please try again.';
+                setupError.classList.remove('hidden');
+                setupOtpInput.value = '';
+                setupOtpInput.focus();
+            } finally {
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify & Enable';
+            }
+        }
+
+        // ── Cancel 2FA Setup ──
+        function cancel2FASetup() {
+            twoFASetupFlow.classList.add('hidden');
+            twoFADisabledState.classList.remove('hidden');
+            setupOtpInput.value = '';
+            setupError.classList.add('hidden');
+            load2FAStatus();
+        }
+
+        // ── Start 2FA Disable ──
+        function start2FADisable() {
+            disableError.classList.add('hidden');
+            disableOtpInput.value = '';
+            twoFADisableFlow.classList.remove('hidden');
+            disableOtpInput.focus();
+        }
+
+        // ── Verify and Disable 2FA ──
+        async function verifyAndDisable2FA() {
+            const otpCode = disableOtpInput.value.trim();
+            
+            if (!otpCode || otpCode.length !== 6) {
+                disableError.textContent = 'Please enter a valid 6-digit code';
+                disableError.classList.remove('hidden');
+                return;
+            }
+
+            disableError.classList.add('hidden');
+            const disableBtn = document.getElementById('disable-verify-btn');
+            disableBtn.disabled = true;
+            disableBtn.textContent = 'Verifying...';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/disable-2fa`, {
+                    method: 'POST',
+                    headers: {
+                        'X-API-Key': API_KEY,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ otp_code: otpCode })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to disable 2FA');
+                }
+
+                // Success - reload status
+                await load2FAStatus();
+                update2FAUI();
+                
+                // Show disabled status
+                const statusBadge = document.getElementById('2fa-status-badge');
+                statusBadge.innerHTML = `<span class="status-badge status-disabled">✗ Disabled</span>`;
+
+            } catch (error) {
+                disableError.textContent = error.message || 'Invalid 2FA code. Please try again.';
+                disableError.classList.remove('hidden');
+                disableOtpInput.value = '';
+                disableOtpInput.focus();
+            } finally {
+                disableBtn.disabled = false;
+                disableBtn.textContent = 'Disable 2FA';
+            }
+        }
+
+        // ── Cancel 2FA Disable ──
+        function cancel2FADisable() {
+            twoFADisableFlow.classList.add('hidden');
+            disableOtpInput.value = '';
+            disableError.classList.add('hidden');
+        }
+
+        // ── API Key Functions ──
         function toggleApiKey() {
             const input = document.getElementById("api-key-input");
             const btn   = document.getElementById("show-api-key");
@@ -209,6 +659,61 @@
                 btn.innerText   = "Show";
                 btn.classList.remove("bg-emerald-600");
                 btn.classList.add("bg-gray-800");
+            }
+        }
+
+        function copyApiKey() {
+            const input = document.getElementById("api-key-input");
+            navigator.clipboard.writeText(input.value).then(() => {
+                const btn = document.querySelector('[onclick="copyApiKey()"]');
+                const originalText = btn.textContent;
+                btn.textContent = "Copied! ✅";
+                setTimeout(() => btn.textContent = originalText, 2000);
+            });
+        }
+
+        // ── Load API Key ──
+        function loadApiKey() {
+            const key = localStorage.getItem("shepherd_api_key");
+            if (key) {
+                document.getElementById("api-key-input").value = key;
+            }
+        }
+
+        // ── Load User Tier ──
+        function loadUserTier() {
+            const tier = localStorage.getItem("shepherd_tier") || "free";
+            document.getElementById("current-tier-display").textContent = tier.toUpperCase();
+        }
+
+        // ── Initialize ──
+        document.addEventListener('DOMContentLoaded', function() {
+            loadApiKey();
+            loadUserTier();
+            load2FAStatus();
+            
+            // Allow Enter key to submit OTP
+            setupOtpInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    verifyAndEnable2FA();
+                }
+            });
+            
+            disableOtpInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    verifyAndDisable2FA();
+                }
+            });
+        });
+
+        // ── Handle Upgrade (from billing.js) ──
+        function handleUpgrade(tier) {
+            if (typeof window.handleUpgrade === 'function') {
+                window.handleUpgrade(tier);
+            } else {
+                alert(`Upgrade to ${tier} plan. This will open the payment gateway.`);
             }
         }
     </script>
