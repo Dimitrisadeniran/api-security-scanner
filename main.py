@@ -1,11 +1,15 @@
-# main.py — Shepherd AI v0.6 — Production Ready
+# main.py — Shepherd AI v0.7 — with 2FA Support
 import io
 import json
 import hmac
 import hashlib
 import logging
 import requests
-from datetime import datetime
+import uuid
+import qrcode
+from base64 import b64encode
+from io import BytesIO
+from datetime import datetime, timedelta
 
 from fastapi import FastAPI, HTTPException, Header, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,7 +41,7 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
     title="Shepherd AI - Scanner API",
     description="HIPAA Compliance Scanner for Health Tech APIs",
-    version="0.6"
+    version="0.7"
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -52,7 +56,7 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     database.init_db()
-    logger.info("🚀 Shepherd AI ready.")
+    logger.info("🚀 Shepherd AI ready with 2FA support.")
 
 # ─────────────────────────────────────────────
 #  ALL Models — defined together before any route
@@ -85,8 +89,20 @@ class EnterpriseSettingsRequest(BaseModel):
 class BillingUpgradeRequest(BaseModel):
     new_tier: str
 
+# NEW: 2FA Models
+class TwoFactorVerifyRequest(BaseModel):
+    otp_code: str
+
+class TwoFactorDisableRequest(BaseModel):
+    otp_code: str
+
+class LoginWith2FARequest(BaseModel):
+    email: str
+    password: str
+    otp_code: str | None = None
+
 # ─────────────────────────────────────────────
-#  Auth Dependency
+#  Auth Dependency (API Key)
 # ─────────────────────────────────────────────
 async def verify_api_key(x_api_key: str = Header(...)):
     user = database.get_user_by_api_key(x_api_key)
@@ -95,18 +111,37 @@ async def verify_api_key(x_api_key: str = Header(...)):
     return user
 
 # ─────────────────────────────────────────────
+#  Session Dependency (for Web UI)
+# ─────────────────────────────────────────────
+async def get_current_user(request: Request):
+    """Get current user from session cookie (for web UI)"""
+    session_token = request.cookies.get("session_token")
+    if not session_token:
+        return None
+    
+    user = database.get_session_user(session_token)
+    return user
+
+async def require_current_user(request: Request):
+    """Require authenticated user for web UI routes"""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return user
+
+# ─────────────────────────────────────────────
 #  Health Routes
 # ─────────────────────────────────────────────
 @app.get("/")
 def home():
-    return {"message": "Shepherd AI Online", "version": "0.6", "api_docs": "/docs"}
+    return {"message": "Shepherd AI Online", "version": "0.7", "api_docs": "/docs"}
 
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
 
 # ─────────────────────────────────────────────
-#  Auth Routes
+#  Auth Routes (Updated with 2FA)
 # ─────────────────────────────────────────────
 @app.post("/api/auth/register")
 def register(body: RegisterRequest):
@@ -120,11 +155,143 @@ def register(body: RegisterRequest):
     return {"message": "Account created.", "api_key": result["api_key"], "tier": body.tier}
 
 @app.post("/api/auth/login")
-def login(body: LoginRequest):
+def login(body: LoginWith2FARequest):
+    """Login with optional 2FA support"""
     user = database.get_user_by_email(body.email, body.password)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials.")
-    return user
+    
+    # Check if 2FA is enabled
+    if user.get("is_2fa_enabled", False):
+        if not body.otp_code:
+            # Return that 2FA is required but don't authenticate yet
+            return {
+                "requires_2fa": True,
+                "message": "2FA code required",
+                "user_id": user["id"]
+            }
+        
+        # Verify OTP code
+        user_data = database.get_user_by_id(user["id"])
+        if not user_data or not user_data.get("otp_secret"):
+            raise HTTPException(status_code=401, detail="2FA not properly configured")
+        
+        if not database.verify_otp(user_data["otp_secret"], body.otp_code):
+            raise HTTPException(status_code=401, detail="Invalid 2FA code")
+    
+    # Create session for web login
+    session_token = str(uuid.uuid4())
+    expires_at = (datetime.now() + timedelta(days=7)).isoformat()
+    database.create_session(user["id"], session_token, expires_at)
+    
+    return {
+        "id": user["id"],
+        "email": user["email"],
+        "tier": user["tier"],
+        "api_key": user["api_key"],
+        "is_2fa_enabled": user.get("is_2fa_enabled", False),
+        "session_token": session_token
+    }
+
+@app.post("/api/auth/logout")
+async def logout(request: Request):
+    """Logout and clear session"""
+    session_token = request.cookies.get("session_token")
+    if session_token:
+        database.delete_session(session_token)
+    return JSONResponse({"message": "Logged out"})
+
+# ─────────────────────────────────────────────
+#  NEW: 2FA Routes
+# ─────────────────────────────────────────────
+@app.post("/api/auth/setup-2fa")
+async def setup_2fa(request: Request, user: dict = Depends(require_current_user)):
+    """Generate 2FA secret and QR code for setup"""
+    # Check if 2FA is already enabled
+    status = database.get_user_2fa_status(user["id"])
+    if status["enabled"]:
+        raise HTTPException(status_code=400, detail="2FA already enabled")
+    
+    # Generate new secret
+    secret = database.generate_otp_secret()
+    uri = database.get_otp_uri(user["email"], secret, issuer="Shepherd AI")
+    
+    # Generate QR code
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(uri)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Convert QR code to base64
+    buffered = BytesIO()
+    img.save(buffered, format="PNG")
+    qr_base64 = b64encode(buffered.getvalue()).decode()
+    
+    # Store secret temporarily (not enabled yet)
+    database.store_otp_secret_temp(user["id"], secret)
+    
+    return {
+        "secret": secret,
+        "qr_code": qr_base64,
+        "uri": uri
+    }
+
+@app.post("/api/auth/verify-2fa")
+async def verify_2fa(request: Request, body: TwoFactorVerifyRequest, user: dict = Depends(require_current_user)):
+    """Verify 2FA code and enable 2FA for the user"""
+    # Get user's secret
+    user_data = database.get_user_by_id(user["id"])
+    if not user_data or not user_data.get("otp_secret"):
+        raise HTTPException(status_code=400, detail="2FA not set up")
+    
+    if user_data.get("is_2fa_enabled", False):
+        raise HTTPException(status_code=400, detail="2FA already enabled")
+    
+    # Verify the OTP code
+    if not database.verify_otp(user_data["otp_secret"], body.otp_code):
+        raise HTTPException(status_code=400, detail="Invalid 2FA code")
+    
+    # Enable 2FA
+    if database.enable_2fa_for_user(user["id"], user_data["otp_secret"]):
+        return {"message": "2FA enabled successfully"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to enable 2FA")
+
+@app.post("/api/auth/disable-2fa")
+async def disable_2fa(request: Request, body: TwoFactorDisableRequest, user: dict = Depends(require_current_user)):
+    """Disable 2FA for the user (requires OTP verification)"""
+    # Get user's secret
+    user_data = database.get_user_by_id(user["id"])
+    if not user_data or not user_data.get("otp_secret"):
+        raise HTTPException(status_code=400, detail="2FA not enabled")
+    
+    if not user_data.get("is_2fa_enabled", False):
+        raise HTTPException(status_code=400, detail="2FA not enabled")
+    
+    # Verify OTP code before disabling
+    if not database.verify_otp(user_data["otp_secret"], body.otp_code):
+        raise HTTPException(status_code=400, detail="Invalid 2FA code")
+    
+    if database.disable_2fa_for_user(user["id"]):
+        return {"message": "2FA disabled successfully"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to disable 2FA")
+
+@app.get("/api/auth/me")
+async def get_current_user_info(user: dict = Depends(require_current_user)):
+    """Get current user info (for web UI)"""
+    status = database.get_user_2fa_status(user["id"])
+    return {
+        "id": user["id"],
+        "email": user["email"],
+        "tier": user["tier"],
+        "is_2fa_enabled": status["enabled"]
+    }
+
+@app.get("/api/auth/2fa-status")
+async def get_2fa_status(user: dict = Depends(require_current_user)):
+    """Get 2FA status for the current user"""
+    return database.get_user_2fa_status(user["id"])
 
 # ─────────────────────────────────────────────
 #  Scan Route
@@ -432,6 +599,49 @@ async def paystack_webhook(request: Request):
                 logger.error(f"❌ Webhook metadata missing. Ref: {reference}")
 
     return JSONResponse(content={"message": "OK"})
+
+# ─────────────────────────────────────────────
+#  Web UI Routes (with 2FA)
+# ─────────────────────────────────────────────
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+
+templates = Jinja2Templates(directory="templates")
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """Login page with 2FA support"""
+    user = await get_current_user(request)
+    if user:
+        return RedirectResponse(url="/dashboard", status_code=302)
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request):
+    """Settings page with 2FA management"""
+    user = await get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # Get 2FA status
+    status = database.get_user_2fa_status(user["id"])
+    user["is_2fa_enabled"] = status["enabled"]
+    
+    return templates.TemplateResponse("settings.html", {
+        "request": request,
+        "user": user
+    })
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard_page(request: Request):
+    """Dashboard page"""
+    user = await get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "user": user
+    })
 
 # ─────────────────────────────────────────────
 #  Static Files — MUST be last
