@@ -35,19 +35,19 @@
     }
   </style>
 
-  <!-- FIX: If user is already logged in, skip to scanner immediately — no flash -->
-  <script>
-    (function () {
-      const key = localStorage.getItem("shepherd_api_key");
-      if (key) {
-        window.location.replace("index.html");
-      } else {
-        document.addEventListener("DOMContentLoaded", function () {
-          document.body.style.display = "";
-        });
-      }
-    })();
-  </script>
+   <!-- FIX: If user is already logged in, skip to scanner immediately — no flash -->
+<script>
+  (function () {
+    const key = localStorage.getItem("shepherd_api_key");
+    if (key && key.trim() !== "") {
+      window.location.replace("index.html");
+    } else {
+      document.addEventListener("DOMContentLoaded", function () {
+        document.body.style.display = "";
+      });
+    }
+  })();
+</script>
 </head>
 <body class="min-h-screen flex flex-col grid-bg">
 
