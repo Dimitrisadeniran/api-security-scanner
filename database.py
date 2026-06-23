@@ -45,14 +45,15 @@ def init_db():
     """)
 
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS api_keys (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id    INTEGER NOT NULL,
-            api_key    TEXT UNIQUE NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    """)
+    CREATE TABLE IF NOT EXISTS sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        session_token TEXT UNIQUE NOT NULL,
+        expires_at TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+""")
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS scan_usage (
