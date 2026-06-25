@@ -1,6 +1,6 @@
 "use strict";
 
-const API_BASE = "https://api-security-scanner-qksl.onrender.com/api";
+const BILLING_API_BASE = "https://api-security-scanner-qksl.onrender.com/api";
 
 // ─────────────────────────────────────────────
 //  Boot — runs on page load
@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", function () {
 async function fetchUsage(key) {
   if (!key) return;
   try {
-    const res  = await fetch(`${API_BASE}/usage`, {
+    const res  = await fetch(`${BILLING_API_BASE}/usage`, {
       headers: { "x-api-key": key, "Accept": "application/json" }
     });
     if (!res.ok) return;
@@ -142,7 +142,7 @@ async function handleUpgrade(newTier) {
   showStatus("⏳ Initializing secure checkout via Paystack...", "info");
 
   try {
-    const res = await fetch(`${API_BASE}/billing/upgrade`, {
+    const res = await fetch(`${BILLING_API_BASE}/billing/upgrade`, {
       method:  "POST",
       headers: {
         "Content-Type": "application/json",
