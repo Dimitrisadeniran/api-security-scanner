@@ -105,10 +105,16 @@ class LoginWith2FARequest(BaseModel):
 # ─────────────────────────────────────────────
 #  Auth Dependency (API Key)
 # ─────────────────────────────────────────────
-async def verify_api_key(x_api_key: str = Header(...)):
+async def verify_api_key(x_api_key: str = Header(None)):
+    print("API KEY RECEIVED:", x_api_key)
+
     user = database.get_user_by_api_key(x_api_key)
+
+    print("USER FOUND:", user)
+
     if not user:
         raise HTTPException(status_code=401, detail="Invalid API key.")
+
     return user
 
 # ─────────────────────────────────────────────
