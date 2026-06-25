@@ -217,7 +217,10 @@ async def logout(request: Request):
 #  NEW: 2FA Routes
 # ─────────────────────────────────────────────
 @app.post("/api/auth/setup-2fa")
-async def setup_2fa(request: Request, user: dict = Depends(require_current_user)):
+@app.post("/api/auth/setup-2fa")
+async def setup_2fa(
+    user: dict = Depends(verify_api_key)
+):
     """Generate 2FA secret and QR code for setup"""
     # Check if 2FA is already enabled
     status = database.get_user_2fa_status(user["id"])
@@ -249,7 +252,11 @@ async def setup_2fa(request: Request, user: dict = Depends(require_current_user)
     }
 
 @app.post("/api/auth/verify-2fa")
-async def verify_2fa(request: Request, body: TwoFactorVerifyRequest, user: dict = Depends(require_current_user)):
+@app.post("/api/auth/verify-2fa")
+async def verify_2fa(
+    body: TwoFactorVerifyRequest,
+    user: dict = Depends(verify_api_key)
+):
     """Verify 2FA code and enable 2FA for the user"""
     # Get user's secret
     user_data = database.get_user_by_id(user["id"])
@@ -270,7 +277,11 @@ async def verify_2fa(request: Request, body: TwoFactorVerifyRequest, user: dict 
         raise HTTPException(status_code=500, detail="Failed to enable 2FA")
 
 @app.post("/api/auth/disable-2fa")
-async def disable_2fa(request: Request, body: TwoFactorDisableRequest, user: dict = Depends(require_current_user)):
+@app.post("/api/auth/disable-2fa")
+async def disable_2fa(
+    body: TwoFactorDisableRequest,
+    user: dict = Depends(verify_api_key)
+):
     """Disable 2FA for the user (requires OTP verification)"""
     # Get user's secret
     user_data = database.get_user_by_id(user["id"])
@@ -301,7 +312,10 @@ async def get_current_user_info(user: dict = Depends(require_current_user)):
     }
 
 @app.get("/api/auth/2fa-status")
-async def get_2fa_status(user: dict = Depends(require_current_user)):
+@app.get("/api/auth/2fa-status")
+async def get_2fa_status(
+    user: dict = Depends(verify_api_key)
+):
     """Get 2FA status for the current user"""
     return database.get_user_2fa_status(user["id"])
 
