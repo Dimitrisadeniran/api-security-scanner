@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Shepherd AI — HIPAA Scanner</title>
+  <title>Shepherd AI — PHI/PII SCAN   OPENAPI VALIDATION   HIPAA/PCI/NDPR TAGGING</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700&display=swap" rel="stylesheet"/>
   <style>
@@ -16,7 +16,6 @@
     @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
   </style>
 
-  <!-- FIX 1 cont: IIFE fires before DOM renders — redirect is invisible -->
   <script>
     (function () {
       const key = localStorage.getItem("shepherd_api_key");
@@ -34,10 +33,10 @@
 
   <nav class="border-b border-gray-800 bg-black px-6 py-4 flex items-center justify-between">
     <div class="mono text-lg font-bold text-emerald-400">SHEPHERD AI</div>
-    <div class="flex gap-5 items-center">
-      <a href="index.html" class="mono text-xs text-emerald-400 font-bold px-3 py-1 bg-gray-900 rounded-full">Scanner</a>
-      <a href="settings.html" class="mono text-xs text-gray-400 hover:text-emerald-400 transition">Settings</a>
-      <a href="#" onclick="logout()" class="mono text-xs text-gray-400 hover:text-red-400 transition">Log Out</a>
+    <div class="flex gap-6 items-baseline">
+      <a href="index.html" class="mono text-xs text-emerald-400 font-bold px-3 py-1 bg-gray-900 rounded-full self-center">Scanner</a>
+      <a href="settings.html" class="mono text-xs text-gray-300 hover:text-emerald-400 transition font-medium">Settings</a>
+      <a href="#" onclick="logout()" class="mono text-xs text-gray-300 hover:text-red-400 transition font-medium">Log Out</a>
     </div>
   </nav>
 
@@ -55,33 +54,37 @@
       Paste your FastAPI URL below and get an instant compliance audit of every route in your OpenAPI spec.
     </p>
 
-    <div class="flex gap-3 w-full max-w-xl">
-      <input
-        id="urlInput"
-        type="text"
-        placeholder="https://your-fastapi-app.com (must expose /openapi.json)"
-        class="mono flex-1 bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition"
-        onclick="this.select()"
-        onkeydown="if(event.key==='Enter') runScan()"
-      />
-      <button
-        id="scanBtn"
-        onclick="runScan()"
-        class="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-3 rounded-lg text-sm transition flex items-center gap-2"
-      >
-        <svg id="spinner" class="spinner hidden w-4 h-4" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-        </svg>
-        <span id="btnLabel">Run scan</span>
-      </button>
+    <div class="w-full max-w-xl">
+      <div class="flex gap-3 w-full">
+        <input
+          id="urlInput"
+          type="text"
+          placeholder="https://your-fastapi-app.com"
+          class="mono flex-1 bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition"
+          onclick="this.select()"
+          onkeydown="if(event.key==='Enter') runScan()"
+        />
+        <button
+          id="scanBtn"
+          onclick="runScan()"
+          class="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-3 rounded-lg text-sm transition flex items-center gap-2 shadow-lg shadow-emerald-500/10"
+        >
+          <svg id="spinner" class="spinner hidden w-4 h-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+          </svg>
+          <span id="btnLabel">Run scan</span>
+        </button>
+      </div>
+      <p class="mono text-left text-[11px] text-gray-500 mt-2 px-1 opacity-80">
+        Note: Your API target must explicitly expose <span class="text-gray-400">/openapi.json</span>
+      </p>
     </div>
 
     <p id="errorMsg" class="mono text-red-400 text-xs mt-3 hidden"></p>
 
-    <!-- API Key Card -->
-    <div class="mt-4 w-full max-w-xl mx-auto">
-      <div id="apiKeyCard" class="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-3">
+    <div class="mt-12 w-full max-w-xl mx-auto border-t border-gray-900 pt-8">
+      <div id="apiKeyCard" class="bg-gray-900 border border-gray-800/60 rounded-xl p-4 mb-3">
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-2">
             <span class="mono text-xs text-gray-500">Your API Key</span>
@@ -89,32 +92,31 @@
           </div>
           <div class="flex gap-2">
             <button onclick="toggleKeyVisibility()" id="toggleKeyBtn"
-              class="mono text-[10px] text-gray-500 hover:text-gray-300 transition px-2 py-1 bg-gray-800 rounded">
+              class="mono text-[10px] text-gray-400 hover:text-white transition px-2 py-1 bg-gray-800 rounded">
               Show
             </button>
             <button onclick="copyApiKey()" id="copyKeyBtn"
-              class="mono text-[10px] text-gray-500 hover:text-emerald-400 transition px-2 py-1 bg-gray-800 rounded">
+              class="mono text-[10px] text-gray-400 hover:text-emerald-400 transition px-2 py-1 bg-gray-800 rounded">
               Copy
             </button>
           </div>
         </div>
         <input id="apiKeyInput" type="password" readonly onclick="this.select()"
-          class="mono w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-gray-400 focus:outline-none focus:border-emerald-500 transition cursor-pointer"
+          class="mono w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-xs text-gray-400 focus:outline-none focus:border-emerald-500 transition cursor-pointer"
         />
         <div class="flex items-center justify-between mt-2">
-          <p id="userEmailDisplay" class="mono text-[10px] text-gray-600"></p>
-          <a href="settings.html" class="mono text-[10px] text-emerald-600 hover:text-emerald-400 transition">Upgrade plan →</a>
+          <p id="userEmailDisplay" class="mono text-[10px] text-gray-500"></p>
+          <a href="settings.html" class="mono text-[10px] text-emerald-500 hover:text-emerald-400 transition font-medium">Upgrade plan →</a>
         </div>
       </div>
     </div>
 
-    <!-- Usage Bar -->
-    <div id="usageBar" class="hidden mt-5 w-full max-w-xl mx-auto">
+    <div id="usageBar" class="hidden mt-4 w-full max-w-xl mx-auto">
       <div class="flex justify-between items-center mb-1.5">
         <span class="mono text-xs text-gray-500">Scans used this month</span>
-        <span id="usageText" class="mono text-xs text-emerald-400"></span>
+        <span id="usageText" class="mono text-xs text-emerald-400 font-medium"></span>
       </div>
-      <div class="w-full bg-gray-800 rounded-full h-1.5">
+      <div class="w-full bg-gray-900 rounded-full h-1.5">
         <div id="usageBarFill" class="h-1.5 rounded-full bg-emerald-500 transition-all duration-500" style="width: 0%"></div>
       </div>
       <p id="upgradePrompt" class="hidden mt-3 text-xs text-center mono text-yellow-400">
@@ -123,7 +125,6 @@
     </div>
   </section>
 
-  <!-- Results Section -->
   <section id="resultsSection" class="hidden px-6 pb-20 max-w-6xl mx-auto w-full fade-in">
     <div class="grid grid-cols-3 gap-4 mb-6">
       <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
@@ -194,7 +195,6 @@
       <p id="enterpriseStatus" class="hidden mono text-xs text-emerald-400 mt-2"></p>
     </div>
 
-    <!-- Results Table -->
     <div class="mt-8 border border-gray-800 rounded-xl overflow-hidden">
       <table class="w-full text-sm" style="table-layout:fixed;">
         <thead class="bg-gray-900 border-b border-gray-800">
@@ -211,7 +211,6 @@
     </div>
   </section>
 
-  <!-- Audit History -->
   <section class="px-6 pb-20 max-w-6xl mx-auto w-full">
     <div class="flex justify-center mb-6">
       <button id="historyBtn" onclick="loadHistory()"
@@ -334,7 +333,6 @@
     }
   </script>
 
-  <!-- FIX 6: onerror shows a clear message if results.js fails to load -->
   <script
     src="results.js"
     onerror="document.getElementById('errorMsg').textContent='Scanner failed to load (results.js missing). Please refresh.'; document.getElementById('errorMsg').classList.remove('hidden');"
