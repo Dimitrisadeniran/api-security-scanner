@@ -5,10 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Shepherd AI — Login</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
-    /* FIX: Hide body to prevent flash when already-logged-in users hit this page */
-    body { display: none; font-family: 'Syne', sans-serif; background: #0a0a0a; color: #f0f0f0; }
+    body { display: none; font-family: 'Inter', sans-serif; background: #0a0a0a; color: #f0f0f0; }
     .mono { font-family: 'DM Mono', monospace; }
     .fade-in { animation: fadeIn 0.5s ease forwards; }
     @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
@@ -16,9 +15,9 @@
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
     .spinner { animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .tab-active { color: #10b981; border-bottom: 2px solid #10b981; }
-    .tab-inactive { color: #6b7280; border-bottom: 2px solid transparent; }
-    .tab-inactive:hover { color: #d1d5db; }
+    .tab-active { color: #10b981; border-bottom: 2px solid #10b981; font-weight: 600; }
+    .tab-inactive { color: #9ca3af; border-bottom: 2px solid transparent; }
+    .tab-inactive:hover { color: #f3f4f6; }
     .input-field {
       width: 100%; background: #111827; border: 1px solid #374151;
       border-radius: 0.5rem; padding: 0.75rem 1rem; font-size: 0.875rem;
@@ -30,8 +29,8 @@
     .input-field:disabled { opacity: 0.5; cursor: not-allowed; }
     .grid-bg {
       background-image:
-        linear-gradient(rgba(16,185,129,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(16,185,129,0.03) 1px, transparent 1px);
+        linear-gradient(rgba(16,185,129,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16,185,129,0.02) 1px, transparent 1px);
       background-size: 40px 40px;
     }
     .otp-input {
@@ -52,19 +51,18 @@
     }
   </style>
 
-  <!-- FIX: If user is already logged in, skip to scanner immediately — no flash -->
-<script>
-  (function () {
-    const key = localStorage.getItem("shepherd_api_key");
-    if (key && key.trim() !== "") {
-      window.location.replace("index.html");
-    } else {
-      document.addEventListener("DOMContentLoaded", function () {
-        document.body.style.display = "";
-      });
-    }
-  })();
-</script>
+  <script>
+    (function () {
+      const key = localStorage.getItem("shepherd_api_key");
+      if (key && key.trim() !== "") {
+        window.location.replace("index.html");
+      } else {
+        document.addEventListener("DOMContentLoaded", function () {
+          document.body.style.display = "";
+        });
+      }
+    })();
+  </script>
 </head>
 <body class="min-h-screen flex flex-col grid-bg">
 
@@ -79,78 +77,78 @@
           </svg>
         </div>
         <div>
-          <h3 class="font-bold text-lg">Your API Key is Ready 🎉</h3>
-          <p class="mono text-xs text-gray-500">Save this — it authenticates every scan</p>
+          <h3 class="font-bold text-lg text-white">Your API Key is Ready 🎉</h3>
+          <p class="mono text-xs text-gray-400">Save this — it authenticates every scan</p>
         </div>
       </div>
 
       <div class="flex items-center gap-2 mb-4">
-        <span class="mono text-xs text-gray-500">Plan:</span>
+        <span class="mono text-xs text-gray-400">Plan:</span>
         <span id="popupTierBadge" class="mono text-xs px-3 py-1 rounded-full font-bold"></span>
       </div>
 
       <div class="bg-gray-950 border border-gray-700 rounded-xl p-4 mb-4">
-        <p class="mono text-xs text-gray-500 mb-2">API Key</p>
+        <p class="mono text-xs text-gray-400 mb-2">API Key</p>
         <div class="flex items-center gap-2">
           <p id="popupApiKey" class="mono text-sm text-emerald-400 flex-1 break-all"></p>
           <button onclick="copyPopupKey()" id="copyPopupBtn"
-            class="mono text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-emerald-400 px-3 py-1.5 rounded-lg transition whitespace-nowrap">
+            class="mono text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-emerald-400 px-3 py-1.5 rounded-lg transition whitespace-nowrap">
             Copy
           </button>
         </div>
       </div>
 
-      <div class="bg-yellow-950/50 border border-yellow-900 rounded-xl p-3 mb-4">
+      <div class="bg-yellow-950/40 border border-yellow-800/60 rounded-xl p-3 mb-4">
         <p class="mono text-xs text-yellow-400">
           ⚠️ Copy and save this key before continuing. You can always find it in Settings.
         </p>
       </div>
 
       <div id="popupLimitsInfo" class="bg-gray-800 rounded-xl p-3 mb-6">
-        <p class="mono text-xs text-gray-400"></p>
+        <p class="mono text-xs text-gray-300"></p>
       </div>
 
       <button onclick="closePopupAndLogin()"
-        class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition">
-        Continue to Scanner →
+        class="w-full text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-semibold py-3.5 rounded-xl transition">
+        Continue to Scanner &rarr;
       </button>
     </div>
   </div>
 
   <!-- Nav -->
   <nav class="border-b border-gray-800 bg-black/80 backdrop-blur px-6 py-4 flex items-center justify-between">
-    <div class="mono text-lg font-bold text-emerald-400">SHEPHERD AI</div>
-    <div class="mono text-xs text-gray-600">HIPAA Compliance Scanner</div>
+    <div class="mono text-lg font-bold text-emerald-400 tracking-wider">SHEPHERD AI</div>
+    <div class="text-xs font-medium text-gray-300 tracking-wide bg-gray-900 border border-gray-800 px-3 py-1 rounded-md">HIPAA Compliance Scanner</div>
   </nav>
 
   <!-- Main -->
-  <main class="flex-1 flex items-center justify-center px-6 py-16">
+  <main class="flex-1 flex items-center justify-center px-6 py-12">
     <div class="w-full max-w-md fade-in">
 
-      <div class="flex justify-center mb-8">
-        <div class="mono text-xs text-emerald-400 border border-emerald-800 bg-emerald-950 px-4 py-1.5 rounded-full flex items-center gap-2">
+      <div class="flex justify-center mb-6">
+        <div class="mono text-xs text-emerald-400 border border-emerald-800/60 bg-emerald-950/80 px-4 py-1.5 rounded-full flex items-center gap-2 tracking-wide">
           <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full pulse-dot"></span>
           Secure Access Portal
         </div>
       </div>
 
-      <h1 class="text-3xl font-bold text-center mb-2 tracking-tight">
-        Welcome to <span class="text-emerald-400">Shepherd AI</span>
+      <h1 class="text-3xl font-bold text-center mb-2 tracking-tight text-white">
+        Welcome to <span class="text-emerald-400 font-extrabold">Shepherd AI</span>
       </h1>
-      <p class="text-gray-500 text-sm text-center mb-8" style="font-family:sans-serif;">
+      <p class="text-gray-300 text-sm text-center mb-8 font-normal">
         Sign in to your account or create one to start scanning
       </p>
 
-      <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-2xl">
 
         <!-- Tabs -->
         <div class="flex border-b border-gray-800">
           <button id="loginTab" onclick="switchTab('login')"
-            class="flex-1 mono text-xs py-4 transition tab-active">
+            class="flex-1 text-sm py-4 transition tab-active">
             Sign In
           </button>
           <button id="registerTab" onclick="switchTab('register')"
-            class="flex-1 mono text-xs py-4 transition tab-inactive">
+            class="flex-1 text-sm py-4 transition tab-inactive">
             Create Account
           </button>
         </div>
@@ -159,14 +157,19 @@
         <div id="loginForm" class="p-8">
           <div class="space-y-4">
             <div>
-              <label class="mono text-xs text-gray-500 block mb-1.5">Email</label>
+              <label class="text-xs font-semibold text-gray-300 block mb-1.5 tracking-wide">Email Address</label>
               <input id="loginEmail" type="email" placeholder="you@healthtech.com"
                 class="input-field" onkeydown="if(event.key==='Enter') handleLogin()"/>
             </div>
             <div>
-              <label class="mono text-xs text-gray-500 block mb-1.5">Password</label>
-              <input id="loginPassword" type="password" placeholder="••••••••"
-                class="input-field" onkeydown="if(event.key==='Enter') handleLogin()"/>
+              <label class="text-xs font-semibold text-gray-300 block mb-1.5 tracking-wide">Password</label>
+              <div class="relative">
+                <input id="loginPassword" type="password" placeholder="••••••••"
+                  class="input-field pr-10" onkeydown="if(event.key==='Enter') handleLogin()"/>
+                <button type="button" onclick="togglePasswordVisibility('loginPassword')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                </button>
+              </div>
             </div>
             
             <!-- 2FA Section - Hidden initially -->
@@ -177,30 +180,30 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                   </svg>
-                  <label class="mono text-xs text-gray-400 block">Two-Factor Authentication</label>
+                  <label class="text-xs font-semibold text-gray-300 block tracking-wide">Two-Factor Authentication</label>
                 </div>
-                <p class="mono text-xs text-gray-600 mb-2">Enter the 6-digit code from your authenticator app</p>
+                <p class="mono text-xs text-gray-400 mb-2">Enter the 6-digit code from your authenticator app</p>
                 <input id="loginOtp" type="text" maxlength="6" placeholder="000000"
                   class="input-field otp-input" onkeydown="if(event.key==='Enter') handleLogin()"
                   oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)"/>
               </div>
             </div>
 
-            <p id="loginError" class="mono text-xs text-red-400 hidden"></p>
-            <p id="loginInfo" class="mono text-xs text-yellow-400 hidden"></p>
+            <p id="loginError" class="mono text-xs text-red-400 hidden bg-red-950/30 border border-red-900/50 p-2.5 rounded-lg"></p>
+            <p id="loginInfo" class="mono text-xs text-yellow-400 hidden bg-yellow-950/30 border border-yellow-900/50 p-2.5 rounded-lg"></p>
             
             <button id="loginBtn" onclick="handleLogin()"
-              class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mt-2">
+              class="w-full text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mt-4 shadow-lg shadow-emerald-500/10">
               <svg id="loginSpinner" class="spinner hidden w-4 h-4" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
               </svg>
-              <span id="loginBtnLabel">Sign In →</span>
+              <span id="loginBtnLabel" class="flex items-center gap-1">Sign In <span class="text-base font-normal leading-none">&rarr;</span></span>
             </button>
           </div>
-          <p class="mono text-xs text-gray-600 text-center mt-6">
+          <p class="text-xs text-gray-400 text-center mt-6">
             No account yet?
-            <button onclick="switchTab('register')" class="text-emerald-500 hover:text-emerald-400 transition">
+            <button onclick="switchTab('register')" class="text-emerald-400 hover:text-emerald-300 font-medium transition underline underline-offset-4">
               Create one free
             </button>
           </p>
@@ -210,15 +213,20 @@
         <div id="registerForm" class="p-8 hidden">
           <div class="space-y-4">
             <div>
-              <label class="mono text-xs text-gray-500 block mb-1.5">Email</label>
+              <label class="text-xs font-semibold text-gray-300 block mb-1.5 tracking-wide">Email Address</label>
               <input id="registerEmail" type="email" placeholder="you@healthtech.com" class="input-field"/>
             </div>
             <div>
-              <label class="mono text-xs text-gray-500 block mb-1.5">Password</label>
-              <input id="registerPassword" type="password" placeholder="Choose a strong password" class="input-field" onkeydown="if(event.key==='Enter') handleRegister()"/>
+              <label class="text-xs font-semibold text-gray-300 block mb-1.5 tracking-wide">Password</label>
+              <div class="relative">
+                <input id="registerPassword" type="password" placeholder="Choose a strong password" class="input-field pr-10" onkeydown="if(event.key==='Enter') handleRegister()"/>
+                <button type="button" onclick="togglePasswordVisibility('registerPassword')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                </button>
+              </div>
             </div>
             <div>
-              <label class="mono text-xs text-gray-500 block mb-1.5">Plan</label>
+              <label class="text-xs font-semibold text-gray-300 block mb-1.5 tracking-wide">Select Plan Tier</label>
               <select id="registerTier" class="input-field" style="cursor:pointer;">
                 <option value="free">Free — 10 scans/month</option>
                 <option value="starter">Starter — USD 220/year · 50 scans</option>
@@ -226,28 +234,35 @@
                 <option value="enterprise">Enterprise — USD 1,400/year · Unlimited</option>
               </select>
             </div>
-            <p id="registerError" class="mono text-xs text-red-400 hidden"></p>
-            <p id="registerSuccess" class="mono text-xs text-emerald-400 hidden"></p>
+            <p id="registerError" class="mono text-xs text-red-400 hidden bg-red-950/30 border border-red-900/50 p-2.5 rounded-lg"></p>
+            <p id="registerSuccess" class="mono text-xs text-emerald-400 hidden bg-emerald-950/30 border border-emerald-900/50 p-2.5 rounded-lg"></p>
             <button id="registerBtn" onclick="handleRegister()"
-              class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mt-2">
+              class="w-full text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mt-4 shadow-lg shadow-emerald-500/10">
               <svg id="registerSpinner" class="spinner hidden w-4 h-4" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
               </svg>
-              <span id="registerBtnLabel">Create Account →</span>
+              <span id="registerBtnLabel" class="flex items-center gap-1">Create Account <span class="text-base font-normal leading-none">&rarr;</span></span>
             </button>
           </div>
-          <p class="mono text-xs text-gray-600 text-center mt-6">
+          <p class="text-xs text-gray-400 text-center mt-6">
             Already have an account?
-            <button onclick="switchTab('login')" class="text-emerald-500 hover:text-emerald-400 transition">
+            <button onclick="switchTab('login')" class="text-emerald-400 hover:text-emerald-300 font-medium transition underline underline-offset-4">
               Sign in
             </button>
           </p>
         </div>
 
+        <!-- Trust Badges Block -->
+        <div class="border-t border-gray-800/80 bg-black/40 px-6 py-4 flex items-center justify-center gap-6 opacity-40 grayscale hover:opacity-60 transition duration-300">
+          <span class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">HIPAA COMPLIANT</span>
+          <span class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">SOC 2 READY</span>
+          <span class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">AES-256</span>
+        </div>
+
       </div>
 
-      <p class="mono text-xs text-gray-700 text-center mt-6">
+      <p class="mono text-xs text-gray-500 text-center mt-6 leading-relaxed">
         Your API key is generated automatically on registration.<br/>
         Keep it safe — it authenticates every scan.
       </p>
@@ -273,7 +288,6 @@
       enterprise: "Unlimited scans · Custom keywords",
     };
 
-    // State for 2FA
     let loginState = {
       email: '',
       password: '',
@@ -281,16 +295,23 @@
       userId: null
     };
 
-    // ── Tab Switching ──
+    function togglePasswordVisibility(fieldId) {
+      const field = document.getElementById(fieldId);
+      if (field.type === "password") {
+        field.type = "text";
+      } else {
+        field.type = "password";
+      }
+    }
+
     function switchTab(tab) {
       const loginForm    = document.getElementById("loginForm");
       const registerForm = document.getElementById("registerForm");
       const loginTab     = document.getElementById("loginTab");
       const registerTab  = document.getElementById("registerTab");
-      const isActive   = "flex-1 mono text-xs py-4 transition tab-active";
-      const isInactive = "flex-1 mono text-xs py-4 transition tab-inactive";
+      const isActive   = "flex-1 text-sm py-4 transition tab-active";
+      const isInactive = "flex-1 text-sm py-4 transition tab-inactive";
 
-      // Reset 2FA state when switching tabs
       reset2FAState();
 
       if (tab === "login") {
@@ -306,7 +327,6 @@
       }
     }
 
-    // ── Reset 2FA State ──
     function reset2FAState() {
       loginState.requires2FA = false;
       loginState.userId = null;
@@ -314,11 +334,10 @@
       document.getElementById("loginOtp").value = '';
       document.getElementById("loginInfo").classList.add("hidden");
       const btnLabel = document.getElementById("loginBtnLabel");
-      btnLabel.textContent = "Sign In →";
+      btnLabel.innerHTML = 'Sign In <span class="text-base font-normal leading-none">&rarr;</span>';
       document.getElementById("loginBtn").disabled = false;
     }
 
-    // ── Login ──
     async function handleLogin() {
       const email    = document.getElementById("loginEmail").value.trim();
       const password = document.getElementById("loginPassword").value;
@@ -338,7 +357,6 @@
         return;
       }
 
-      // If 2FA is required, validate OTP
       if (loginState.requires2FA) {
         if (!otpCode || otpCode.length !== 6) {
           errEl.textContent = "Please enter a valid 6-digit 2FA code.";
@@ -352,21 +370,12 @@
       label.textContent = loginState.requires2FA ? "Verifying 2FA..." : "Authenticating...";
 
       try {
-        // If we already have a userId (2FA flow), verify with OTP
-        if (loginState.requires2FA && loginState.userId) {
-          // The login endpoint with OTP will handle the full verification
-          // We'll just send the full login request with OTP
-        }
-
         const payload = {
           email: email,
           password: password
         };
 
-        // Add OTP if we're in 2FA flow or if user entered one
-        if (loginState.requires2FA && otpCode) {
-          payload.otp_code = otpCode;
-        } else if (otpCode) {
+        if (otpCode) {
           payload.otp_code = otpCode;
         }
 
@@ -377,30 +386,26 @@
         });
         
         const responseText = await res.text();
-console.log("Server response:", responseText);
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch {
+            throw new Error(responseText);
+        }
 
-let data;
-try {
-    data = JSON.parse(responseText);
-} catch {
-    throw new Error(responseText);
-}
-
-        // Check if 2FA is required
         if (data.requires_2fa) {
           loginState.requires2FA = true;
           loginState.userId = data.user_id;
           loginState.email = email;
           loginState.password = password;
           
-          // Show 2FA section
           document.getElementById("twoFactorSection").classList.remove("hidden");
           document.getElementById("loginOtp").focus();
           
           infoEl.textContent = "🔐 Two-factor authentication required. Enter your 6-digit code.";
           infoEl.classList.remove("hidden");
           
-          label.textContent = "Verify 2FA →";
+          label.innerHTML = 'Verify 2FA <span class="text-base font-normal leading-none">&rarr;</span>';
           btn.disabled = false;
           spinner.classList.add("hidden");
           return;
@@ -410,32 +415,28 @@ try {
           throw new Error(data.detail || "Login failed");
         }
 
-        // Successful login
         localStorage.setItem("shepherd_api_key", data.api_key || data.token || "");
         localStorage.setItem("shepherd_email",   data.email || email);
         localStorage.setItem("shepherd_tier",    data.tier || "free");
 
         if (!data.api_key && !data.token) {
-          throw new Error("Login succeeded but server returned no API key — check database.get_user_by_email() return value.");
+          throw new Error("Login succeeded but server returned no API key.");
         }
 
         label.textContent = "Verified. Entering...";
         setTimeout(() => { window.location.replace("index.html"); }, 800);
 
       } catch (err) {
-        // Reset 2FA state on error
         if (loginState.requires2FA) {
-          // Don't reset 2FA state, but show error
           errEl.textContent = err.message || "Invalid 2FA code. Please try again.";
         } else {
           errEl.textContent = err.message || "Login failed. Please check your credentials.";
         }
         errEl.classList.remove("hidden");
-        label.textContent = loginState.requires2FA ? "Verify 2FA →" : "Sign In →";
+        label.innerHTML = loginState.requires2FA ? 'Verify 2FA <span class="text-base font-normal leading-none">&rarr;</span>' : 'Sign In <span class="text-base font-normal leading-none">&rarr;</span>';
         btn.disabled = false;
         spinner.classList.add("hidden");
         
-        // If 2FA failed, clear OTP field
         if (loginState.requires2FA) {
           document.getElementById("loginOtp").value = '';
           document.getElementById("loginOtp").focus();
@@ -443,7 +444,6 @@ try {
       }
     }
 
-    // ── Register ──
     async function handleRegister() {
       const email    = document.getElementById("registerEmail").value.trim();
       const password = document.getElementById("registerPassword").value;
@@ -482,7 +482,7 @@ try {
       } catch (err) {
         errEl.textContent = err.message;
         errEl.classList.remove("hidden");
-        label.textContent = "Create Account →";
+        label.innerHTML = 'Create Account <span class="text-base font-normal leading-none">&rarr;</span>';
         btn.disabled = false;
         spinner.classList.add("hidden");
       }
@@ -509,7 +509,6 @@ try {
       window.location.replace("index.html");
     }
 
-    // ── Handle Enter key for OTP ──
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') {
         const active = document.activeElement;
@@ -520,7 +519,6 @@ try {
       }
     });
 
-    // ── Auto-focus OTP field when it becomes visible ──
     const observer = new MutationObserver(function(mutations) {
       mutations.forEach(function(mutation) {
         if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
@@ -535,6 +533,5 @@ try {
     const twoFactorSection = document.getElementById('twoFactorSection');
     observer.observe(twoFactorSection, { attributes: true });
   </script>
-
 </body>
 </html>
