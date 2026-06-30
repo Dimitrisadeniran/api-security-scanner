@@ -49,6 +49,33 @@
       from { opacity: 0; transform: translateY(-10px); max-height: 0; }
       to { opacity: 1; transform: translateY(0); max-height: 100px; }
     }
+    .qr-container {
+      background: #ffffff;
+      border-radius: 1rem;
+      padding: 1.25rem;
+      display: inline-block;
+    }
+    .qr-container img {
+      display: block;
+      margin: 0 auto;
+      width: 180px;
+      height: 180px;
+      image-rendering: pixelated;
+    }
+    .secret-text {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 0.5rem;
+      padding: 0.75rem 1rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      color: #f9fafb;
+      word-break: break-all;
+    }
+    .step-dot {
+      width: 8px; height: 8px; border-radius: 9999px; background: #374151;
+    }
+    .step-dot.active { background: #10b981; }
   </style>
 
   <script>
@@ -66,9 +93,81 @@
 </head>
 <body class="min-h-screen flex flex-col grid-bg">
 
-  <!-- API Key Popup -->
+  <!-- ───────────────────────────────────────────────
+       MANDATORY 2FA SETUP MODAL (shown right after registration,
+       BEFORE the user can reach the scanner)
+  ──────────────────────────────────────────────── -->
+  <div id="setup2FAPopup" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center px-6">
+    <div class="bg-gray-900 border border-emerald-800 rounded-2xl p-8 w-full max-w-md fade-in">
+
+      <div class="flex items-center justify-center gap-2 mb-6">
+        <span class="step-dot active"></span>
+        <span class="step-dot active"></span>
+        <span class="step-dot"></span>
+      </div>
+
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 bg-emerald-950 rounded-full flex items-center justify-center">
+          <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="font-bold text-lg text-white">Secure Your Account</h3>
+          <p class="mono text-xs text-gray-400">2FA setup is required to continue</p>
+        </div>
+      </div>
+
+      <p class="text-sm text-gray-300 mb-5">
+        Scan this QR code with Google Authenticator, Authy, or any TOTP app. This step is mandatory — Shepherd AI handles PHI/PCI/PII data, and we don't allow account access without it.
+      </p>
+
+      <div class="flex justify-center mb-4">
+        <div class="qr-container">
+          <img id="setupQrImg" src="" alt="2FA QR Code" />
+        </div>
+      </div>
+
+      <div class="mb-5">
+        <p class="mono text-xs text-gray-400 mb-1">Can't scan? Enter this key manually:</p>
+        <div class="secret-text" id="setupSecretDisplay">Loading...</div>
+      </div>
+
+      <div class="mb-2">
+        <label class="text-xs font-semibold text-gray-300 block mb-1.5 tracking-wide">Enter the 6-digit code from your app</label>
+        <input id="setupOtpInput" type="text" maxlength="6" placeholder="000000"
+          class="input-field otp-input" onkeydown="if(event.key==='Enter') verifyInitial2FA()"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)"/>
+      </div>
+
+      <p id="setup2FAError" class="mono text-xs text-red-400 hidden bg-red-950/30 border border-red-900/50 p-2.5 rounded-lg mt-2"></p>
+
+      <button id="verify2FABtn" onclick="verifyInitial2FA()"
+        class="w-full text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mt-5">
+        <svg id="verify2FASpinner" class="spinner hidden w-4 h-4" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+        </svg>
+        <span id="verify2FABtnLabel">Verify & Activate 2FA</span>
+      </button>
+
+      <p class="mono text-xs text-gray-500 text-center mt-4">
+        You won't be able to access the scanner until this is verified.
+      </p>
+    </div>
+  </div>
+
+  <!-- API Key Popup (now shown AFTER 2FA is confirmed) -->
   <div id="apiKeyPopup" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center px-6">
     <div class="bg-gray-900 border border-emerald-800 rounded-2xl p-8 w-full max-w-md fade-in">
+
+      <div class="flex items-center justify-center gap-2 mb-6">
+        <span class="step-dot active"></span>
+        <span class="step-dot active"></span>
+        <span class="step-dot active"></span>
+      </div>
+
       <div class="flex items-center gap-3 mb-6">
         <div class="w-10 h-10 bg-emerald-950 rounded-full flex items-center justify-center">
           <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,8 +176,8 @@
           </svg>
         </div>
         <div>
-          <h3 class="font-bold text-lg text-white">Your API Key is Ready 🎉</h3>
-          <p class="mono text-xs text-gray-400">Save this — it authenticates every scan</p>
+          <h3 class="font-bold text-lg text-white">2FA Active — You're All Set 🎉</h3>
+          <p class="mono text-xs text-gray-400">Save your API key — it authenticates every scan</p>
         </div>
       </div>
 
@@ -171,7 +270,7 @@
                 </button>
               </div>
             </div>
-            
+
             <!-- 2FA Section - Hidden initially -->
             <div id="twoFactorSection" class="hidden slide-down">
               <div class="border-t border-gray-800 pt-4 mt-2">
@@ -234,6 +333,14 @@
                 <option value="enterprise">Enterprise — USD 1,400/year · Unlimited</option>
               </select>
             </div>
+            <div class="bg-emerald-950/30 border border-emerald-900/50 rounded-lg p-3 flex items-start gap-2">
+              <svg class="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+              </svg>
+              <p class="mono text-xs text-gray-300">
+                You'll set up two-factor authentication (2FA) right after this step. It's required to protect access to your scans.
+              </p>
+            </div>
             <p id="registerError" class="mono text-xs text-red-400 hidden bg-red-950/30 border border-red-900/50 p-2.5 rounded-lg"></p>
             <p id="registerSuccess" class="mono text-xs text-emerald-400 hidden bg-emerald-950/30 border border-emerald-900/50 p-2.5 rounded-lg"></p>
             <button id="registerBtn" onclick="handleRegister()"
@@ -270,7 +377,7 @@
 
   <script>
     "use strict";
-    const API_BASE = "https://api-security-scanner-pq3w.onrender.com";
+    const API_BASE = "https://api-security-scanner-pq3w.onrender.com"; // 🔁 confirm this matches your live Render URL
 
     const TIER_COLORS = {
       free:       "bg-gray-800 text-gray-400",
@@ -293,13 +400,16 @@
       userId: null
     };
 
+    // Holds context between registration and mandatory 2FA setup
+    let pendingSetup = {
+      apiKey: null,
+      tier: null,
+      email: null
+    };
+
     function togglePasswordVisibility(fieldId) {
       const field = document.getElementById(fieldId);
-      if (field.type === "password") {
-        field.type = "text";
-      } else {
-        field.type = "password";
-      }
+      field.type = field.type === "password" ? "text" : "password";
     }
 
     function switchTab(tab) {
@@ -336,6 +446,7 @@
       document.getElementById("loginBtn").disabled = false;
     }
 
+    // ── LOGIN (unchanged — already correctly requires 2FA code if enabled) ──
     async function handleLogin() {
       const email    = document.getElementById("loginEmail").value.trim();
       const password = document.getElementById("loginPassword").value;
@@ -368,50 +479,39 @@
       label.textContent = loginState.requires2FA ? "Verifying 2FA..." : "Authenticating...";
 
       try {
-        const payload = {
-          email: email,
-          password: password
-        };
-
-        if (otpCode) {
-          payload.otp_code = otpCode;
-        }
+        const payload = { email, password };
+        if (otpCode) payload.otp_code = otpCode;
 
         const res = await fetch(`${API_BASE}/api/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Accept": "application/json" },
           body: JSON.stringify(payload)
         });
-        
+
         const responseText = await res.text();
         let data;
-        try {
-            data = JSON.parse(responseText);
-        } catch {
-            throw new Error(responseText);
-        }
+        try { data = JSON.parse(responseText); }
+        catch { throw new Error(responseText); }
 
         if (data.requires_2fa) {
           loginState.requires2FA = true;
           loginState.userId = data.user_id;
           loginState.email = email;
           loginState.password = password;
-          
+
           document.getElementById("twoFactorSection").classList.remove("hidden");
           document.getElementById("loginOtp").focus();
-          
+
           infoEl.textContent = "🔐 Two-factor authentication required. Enter your 6-digit code.";
           infoEl.classList.remove("hidden");
-          
+
           label.innerHTML = 'Verify 2FA <span class="text-base font-normal leading-none">&rarr;</span>';
           btn.disabled = false;
           spinner.classList.add("hidden");
           return;
         }
 
-        if (!res.ok) {
-          throw new Error(data.detail || "Login failed");
-        }
+        if (!res.ok) throw new Error(data.detail || "Login failed");
 
         localStorage.setItem("shepherd_api_key", data.api_key || data.token || "");
         localStorage.setItem("shepherd_email",   data.email || email);
@@ -425,16 +525,14 @@
         setTimeout(() => { window.location.replace("index.html"); }, 800);
 
       } catch (err) {
-        if (loginState.requires2FA) {
-          errEl.textContent = err.message || "Invalid 2FA code. Please try again.";
-        } else {
-          errEl.textContent = err.message || "Login failed. Please check your credentials.";
-        }
+        errEl.textContent = loginState.requires2FA
+          ? (err.message || "Invalid 2FA code. Please try again.")
+          : (err.message || "Login failed. Please check your credentials.");
         errEl.classList.remove("hidden");
         label.innerHTML = loginState.requires2FA ? 'Verify 2FA <span class="text-base font-normal leading-none">&rarr;</span>' : 'Sign In <span class="text-base font-normal leading-none">&rarr;</span>';
         btn.disabled = false;
         spinner.classList.add("hidden");
-        
+
         if (loginState.requires2FA) {
           document.getElementById("loginOtp").value = '';
           document.getElementById("loginOtp").focus();
@@ -442,6 +540,9 @@
       }
     }
 
+    // ── REGISTER ──
+    // No 2FA at this step — just creates the account, then immediately
+    // triggers mandatory 2FA setup (does NOT show the API key popup yet).
     async function handleRegister() {
       const email    = document.getElementById("registerEmail").value.trim();
       const password = document.getElementById("registerPassword").value;
@@ -471,11 +572,17 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "Registration failed");
 
+        // Store the API key now (needed as the X-API-Key header for setup-2fa),
+        // but DO NOT redirect to the scanner yet — 2FA setup is mandatory first.
+        pendingSetup.apiKey = data.api_key;
+        pendingSetup.tier   = tier;
+        pendingSetup.email  = email;
+
         localStorage.setItem("shepherd_api_key", data.api_key);
         localStorage.setItem("shepherd_email",   email);
         localStorage.setItem("shepherd_tier",    tier);
 
-        showApiKeyPopup(data.api_key, tier);
+        await beginMandatory2FASetup();
 
       } catch (err) {
         errEl.textContent = err.message;
@@ -483,6 +590,88 @@
         label.innerHTML = 'Create Account <span class="text-base font-normal leading-none">&rarr;</span>';
         btn.disabled = false;
         spinner.classList.add("hidden");
+      }
+    }
+
+    // ── MANDATORY 2FA SETUP (new) ──
+    async function beginMandatory2FASetup() {
+      const errEl = document.getElementById("setup2FAError");
+      errEl.classList.add("hidden");
+
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/setup-2fa`, {
+          method: "POST",
+          headers: {
+            "X-API-Key": pendingSetup.apiKey,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          }
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Failed to start 2FA setup");
+
+        document.getElementById("setupQrImg").src = `data:image/png;base64,${data.qr_code}`;
+        document.getElementById("setupSecretDisplay").textContent = data.secret;
+        document.getElementById("setupOtpInput").value = '';
+
+        document.getElementById("setup2FAPopup").classList.remove("hidden");
+        document.getElementById("setupOtpInput").focus();
+
+      } catch (err) {
+        // If setup itself fails, fall back to letting them into the API key
+        // popup rather than locking them out entirely — but flag it clearly.
+        alert("Could not start 2FA setup: " + err.message + "\nYou can set it up later in Settings.");
+        showApiKeyPopup(pendingSetup.apiKey, pendingSetup.tier);
+      }
+    }
+
+    async function verifyInitial2FA() {
+      const otpCode = document.getElementById("setupOtpInput").value.trim();
+      const errEl   = document.getElementById("setup2FAError");
+      const btn     = document.getElementById("verify2FABtn");
+      const label   = document.getElementById("verify2FABtnLabel");
+      const spinner = document.getElementById("verify2FASpinner");
+
+      errEl.classList.add("hidden");
+
+      if (!otpCode || otpCode.length !== 6) {
+        errEl.textContent = "Please enter a valid 6-digit code.";
+        errEl.classList.remove("hidden");
+        return;
+      }
+
+      btn.disabled = true;
+      spinner.classList.remove("hidden");
+      label.textContent = "Verifying...";
+
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/verify-2fa`, {
+          method: "POST",
+          headers: {
+            "X-API-Key": pendingSetup.apiKey,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({ otp_code: otpCode })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Invalid 2FA code. Please try again.");
+
+        // 2FA confirmed — now move to the API key popup (step 3 of 3)
+        document.getElementById("setup2FAPopup").classList.add("hidden");
+        showApiKeyPopup(pendingSetup.apiKey, pendingSetup.tier);
+
+      } catch (err) {
+        errEl.textContent = err.message || "Invalid 2FA code. Please try again.";
+        errEl.classList.remove("hidden");
+        document.getElementById("setupOtpInput").value = '';
+        document.getElementById("setupOtpInput").focus();
+      } finally {
+        btn.disabled = false;
+        spinner.classList.add("hidden");
+        label.textContent = "Verify & Activate 2FA";
       }
     }
 
