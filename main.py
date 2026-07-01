@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from pathlib import Path
 
 import database
 import pdf_generator
@@ -27,17 +28,7 @@ import slack_service
 import engine
 from auth import RegisterRequest, LoginRequest
 from config import PAYSTACK_SECRET_KEY, PAYSTACK_BASE_URL, TIER_PRICES
-from pathlib import Path
-import database
 
-@app.on_event("startup")
-def on_startup():
-    if database.DATABASE_PATH.exists():
-        print("Deleting old database:", database.DATABASE_PATH)
-        database.DATABASE_PATH.unlink()
-
-    database.init_db()
-    logger.info("🚀 Shepherd AI ready")
 
 # ─────────────────────────────────────────────
 #  Logging & Rate Limiter
@@ -157,7 +148,17 @@ def home():
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+@app.get("/debug/users-schema")
+def debug_schema():
+    import sqlite3
 
+    conn = sqlite3.connect("shepherd.db")
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(users)")
+    columns = cursor.fetchall()
+    conn.close()
+
+    return {"columns": columns}
 # ─────────────────────────────────────────────
 #  Auth Routes (Updated with 2FA)
 # ─────────────────────────────────────────────
