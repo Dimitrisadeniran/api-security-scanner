@@ -148,17 +148,6 @@ def home():
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
-@app.get("/debug/users-schema")
-def debug_schema():
-    import sqlite3
-
-    conn = sqlite3.connect("shepherd.db")
-    cursor = conn.cursor()
-    cursor.execute("PRAGMA table_info(users)")
-    columns = cursor.fetchall()
-    conn.close()
-
-    return {"columns": columns}
 # ─────────────────────────────────────────────
 #  Auth Routes (Updated with 2FA)
 # ─────────────────────────────────────────────
