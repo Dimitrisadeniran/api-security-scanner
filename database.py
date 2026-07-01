@@ -27,7 +27,7 @@ import bcrypt
 import pyotp
 
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, List
 
@@ -757,7 +757,6 @@ def get_session_user(session_token: str):
         return None
 
     return get_user_by_id(session["user_id"])
-
 
 ###############################################################################
 # Two-Factor Authentication
