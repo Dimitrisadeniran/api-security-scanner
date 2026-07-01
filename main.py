@@ -200,7 +200,10 @@ def login(body: LoginWith2FARequest):
     # Create session for web login
     session_token = str(uuid.uuid4())
     expires_at = (datetime.now() + timedelta(days=7)).isoformat()
-    database.create_session(user["id"], session_token, expires_at)
+    database.create_session(
+    user["id"],
+    session_token
+    )
     
     return {
         "id": user["id"],
