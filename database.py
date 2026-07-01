@@ -648,44 +648,28 @@ def update_user_tier(user_id: str, new_tier: str):
 # Session Management
 ###############################################################################
 
-def create_session(user_id: str, session_token: str):
-    """
-    Creates a new web session that expires in SESSION_DURATION_DAYS.
-    """
-    expires_at = (datetime.now(timezone.utc) + timedelta(days=SESSION_DURATION_DAYS)).isoformat()
+def create_session(user_id, session_token, expires_at):
 
     with get_connection() as conn:
 
         conn.execute("""
-
             INSERT INTO sessions(
-
                 session_token,
                 user_id,
                 expires_at,
                 created_at
-
             )
-
             VALUES(?,?,?,?)
-
         """, (
-
             session_token,
             user_id,
             expires_at,
             now()
-
         ))
 
         conn.commit()
 
-        return True
-
-        conn.commit()
-
-        return True
-
+    return True
 
 ###############################################################################
 
