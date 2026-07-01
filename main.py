@@ -27,6 +27,17 @@ import slack_service
 import engine
 from auth import RegisterRequest, LoginRequest
 from config import PAYSTACK_SECRET_KEY, PAYSTACK_BASE_URL, TIER_PRICES
+from pathlib import Path
+import database
+
+@app.on_event("startup")
+def on_startup():
+    if database.DATABASE_PATH.exists():
+        print("Deleting old database:", database.DATABASE_PATH)
+        database.DATABASE_PATH.unlink()
+
+    database.init_db()
+    logger.info("🚀 Shepherd AI ready")
 
 # ─────────────────────────────────────────────
 #  Logging & Rate Limiter
