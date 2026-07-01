@@ -27,7 +27,7 @@ import bcrypt
 import pyotp
 
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, Dict, List
 
@@ -748,16 +748,11 @@ def get_session_user(session_token: str):
         return None
 
     try:
-
-        expires = datetime.fromisoformat(
-            session["expires_at"]
-        )
-
+        expires = datetime.fromisoformat(session["expires_at"])
     except Exception:
-
         return None
 
-        if expires < datetime.now(timezone.utc):
+    if expires < datetime.now():
         delete_session(session_token)
         return None
 
