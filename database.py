@@ -140,6 +140,17 @@ def init_db():
     with get_connection() as conn:
 
         cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(users)")
+columns = [row[1] for row in cursor.fetchall()]
+
+if "otp_secret" not in columns:
+    cursor.execute("ALTER TABLE users ADD COLUMN otp_secret TEXT")
+
+if "is_2fa_enabled" not in columns:
+    cursor.execute(
+        "ALTER TABLE users ADD COLUMN is_2fa_enabled INTEGER DEFAULT 0"
+    )
+        
 
         #######################################################################
         # USERS
