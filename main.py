@@ -229,7 +229,13 @@ async def setup_2fa(
     """Generate 2FA secret and QR code for setup"""
     # Check if 2FA is already enabled
     status = database.get_user_2fa_status(user["id"])
-    if status["enabled"]:
+
+    print("2FA status:", status)
+
+    if status is None:
+        raise HTTPException(status_code=500, detail="get_user_2fa_status returned None")
+
+    if status.get("enabled", False):
         raise HTTPException(status_code=400, detail="2FA already enabled")
     
     # Generate new secret
