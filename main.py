@@ -638,7 +638,9 @@ async def paystack_webhook(request: Request):
                 logger.error(f"❌ Webhook metadata missing. Ref: {reference}")
 
     return JSONResponse(content={"message": "OK"})
-    @app.get("/debug/schema")
+
+
+@app.get("/debug/schema")
 def debug_schema():
     import sqlite3
 
@@ -658,9 +660,8 @@ def debug_schema():
     return {
         "database": str(database.DATABASE_PATH),
         "tables": tables,
-        "users_table": users
+        "users_table": users,
     }
-
 # ─────────────────────────────────────────────
 #  Web UI Routes (with 2FA)
 # ─────────────────────────────────────────────
