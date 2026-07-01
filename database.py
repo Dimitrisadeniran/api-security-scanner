@@ -133,24 +133,41 @@ def now():
 def init_db():
     """
     Creates every table required by Shepherd AI.
-
     Safe to run multiple times.
     """
 
     with get_connection() as conn:
-
         cursor = conn.cursor()
-    cursor.execute("PRAGMA table_info(users)")
-columns = [row[1] for row in cursor.fetchall()]
 
-if "otp_secret" not in columns:
-    cursor.execute("ALTER TABLE users ADD COLUMN otp_secret TEXT")
+        #######################################################################
+        # USERS
+        #######################################################################
 
-if "is_2fa_enabled" not in columns:
-    cursor.execute(
-        "ALTER TABLE users ADD COLUMN is_2fa_enabled INTEGER DEFAULT 0"
-    )
-        
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users(
+            id TEXT PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            tier TEXT NOT NULL DEFAULT 'free',
+            created_at TEXT NOT NULL,
+            otp_secret TEXT,
+            is_2fa_enabled INTEGER DEFAULT 0
+        )
+        """)
+
+        # ---- Migration for existing databases ----
+        cursor.execute("PRAGMA table_info(users)")
+        columns = [row["name"] for row in cursor.fetchall()]
+
+        if "otp_secret" not in columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN otp_secret TEXT")
+
+        if "is_2fa_enabled" not in columns:
+            cursor.execute(
+                "ALTER TABLE users ADD COLUMN is_2fa_enabled INTEGER DEFAULT 0"
+            )
+
+        # Continue creating the rest of your tables...
 
         #######################################################################
         # USERS
