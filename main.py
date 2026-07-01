@@ -662,6 +662,29 @@ def debug_schema():
         "tables": tables,
         "users_table": users,
     }
+# TEMP DEBUG ROUTE
+# ==========================================
+
+@app.get("/debug/user/{email}")
+def debug_user(email: str):
+    import sqlite3
+
+    conn = sqlite3.connect(database.DATABASE_PATH)
+    conn.row_factory = sqlite3.Row
+
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT email, password FROM users WHERE email=?",
+        (email,)
+    )
+
+    row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        return {"found": False}
+
+    return dict(row)    
 # ─────────────────────────────────────────────
 #  Web UI Routes (with 2FA)
 # ─────────────────────────────────────────────
