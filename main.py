@@ -223,7 +223,6 @@ async def logout(request: Request):
 #  NEW: 2FA Routes
 # ─────────────────────────────────────────────
 @app.post("/api/auth/setup-2fa")
-@app.post("/api/auth/setup-2fa")
 async def setup_2fa(
     user: dict = Depends(verify_api_key)
 ):
@@ -258,7 +257,6 @@ async def setup_2fa(
     }
 
 @app.post("/api/auth/verify-2fa")
-@app.post("/api/auth/verify-2fa")
 async def verify_2fa(
     body: TwoFactorVerifyRequest,
     user: dict = Depends(verify_api_key)
@@ -282,7 +280,6 @@ async def verify_2fa(
     else:
         raise HTTPException(status_code=500, detail="Failed to enable 2FA")
 
-@app.post("/api/auth/disable-2fa")
 @app.post("/api/auth/disable-2fa")
 async def disable_2fa(
     body: TwoFactorDisableRequest,
