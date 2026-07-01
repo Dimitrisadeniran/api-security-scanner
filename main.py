@@ -637,6 +637,28 @@ async def paystack_webhook(request: Request):
                 logger.error(f"❌ Webhook metadata missing. Ref: {reference}")
 
     return JSONResponse(content={"message": "OK"})
+    @app.get("/debug/schema")
+def debug_schema():
+    import sqlite3
+
+    conn = sqlite3.connect(database.DATABASE_PATH)
+    conn.row_factory = sqlite3.Row
+
+    cur = conn.cursor()
+
+    cur.execute("PRAGMA table_info(users)")
+    users = [dict(row) for row in cur.fetchall()]
+
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    tables = [row["name"] for row in cur.fetchall()]
+
+    conn.close()
+
+    return {
+        "database": str(database.DATABASE_PATH),
+        "tables": tables,
+        "users_table": users
+    }
 
 # ─────────────────────────────────────────────
 #  Web UI Routes (with 2FA)
