@@ -585,7 +585,7 @@ def create_upgrade_link(body: BillingUpgradeRequest, user: dict = Depends(verify
     payload = {
         "email":        user["email"],
         "amount":       amount,
-        "callback_url": "https://api-security-scanner-pq3w.onrender.com/scanner/?billing=success",
+        "callback_url": "https://api-security-scanner-55gm.onrender.com/scanner/?billing=success",
         "metadata": {
             "user_id":     user["id"],
             "target_tier": body.new_tier
