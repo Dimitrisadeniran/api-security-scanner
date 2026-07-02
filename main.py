@@ -9,7 +9,7 @@ import uuid
 import qrcode
 from base64 import b64encode
 from io import BytesIO
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI, HTTPException, Header, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -159,7 +159,12 @@ def register(body: RegisterRequest):
     result = database.create_user(body.email, body.password, body.tier)
     if not result:
         raise HTTPException(status_code=409, detail="Email already exists.")
-    email_service.send_welcome_email(body.email, result["api_key"], body.tier)
+    
+    try:
+        email_service.send_welcome_email(body.email, result["api_key"], body.tier)
+    except Exception as e:
+        logger.error(f"Welcome email failed: {e}")
+    
     return {"message": "Account created.", "api_key": result["api_key"], "tier": body.tier}
 
 @app.post("/api/auth/login")
@@ -203,7 +208,8 @@ def login(body: LoginWith2FARequest):
     expires_at = (datetime.now() + timedelta(days=7)).isoformat()
     database.create_session(
     user["id"],
-    session_token
+    session_token,
+    expires_at
     )
     
     return {
