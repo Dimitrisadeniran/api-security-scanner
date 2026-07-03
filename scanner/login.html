@@ -577,11 +577,7 @@
         pendingSetup.apiKey = data.api_key;
         pendingSetup.tier   = tier;
         pendingSetup.email  = email;
-
-        localStorage.setItem("shepherd_api_key", data.api_key);
-        localStorage.setItem("shepherd_email",   email);
-        localStorage.setItem("shepherd_tier",    tier);
-
+        
         await beginMandatory2FASetup();
 
       } catch (err) {
