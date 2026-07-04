@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" contdivent="width=device-width, initial-scale=1.0"/>
   <title>Shepherd AI — PHI/PII SCAN   OPENAPI VALIDATION   HIPAA/PCI/NDPR TAGGING</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700&display=swap" rel="stylesheet"/>
@@ -126,6 +126,17 @@
   </section>
 
   <section id="resultsSection" class="hidden px-6 pb-20 max-w-6xl mx-auto w-full fade-in">
+    <div id="complianceBanner" class="mb-6 rounded-xl p-5 border">
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <p class="mono text-xs text-gray-400 mb-1">Compliance Readiness</p>
+          <p id="complianceScoreText" class="text-2xl font-bold">—</p>
+        </div>
+        <span id="auditStatusBadge" class="mono text-xs px-4 py-2 rounded-full font-bold">—</span>
+      </div>
+      <div id="overlapWarning" class="hidden mt-3 mono text-xs text-red-400 bg-red-950/40 border border-red-900/50 rounded-lg p-3">
+      </div>
+    </div>
     <div class="grid grid-cols-3 gap-4 mb-6">
       <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
         <p class="mono text-xs text-gray-500 mb-1">Security score</p>
