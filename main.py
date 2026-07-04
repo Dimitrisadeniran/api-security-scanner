@@ -364,46 +364,54 @@ async def run_scan(
         if not schema:
             raise HTTPException(status_code=400, detail="Could not fetch OpenAPI schema.")
 
-        unsecured_routes, score = engine.find_unsecured_routes(schema, custom_keywords)
+        unsecured_routes, score, compliance_summary = engine.find_unsecured_routes(schema, custom_keywords)
         database.log_scan(user["id"], body.target_url, score)
 
         # Email alert
         alert_settings = database.get_alert_settings(user["id"])
         if alert_settings and alert_settings["email_alerts"]:
-            critical_count = sum(1 for f in unsecured_routes if f.get("is_critical"))
             email_service.send_scan_alert(
                 to_email=alert_settings["alert_email"],
                 target_url=body.target_url,
                 score=score,
                 total_unsecured=len(unsecured_routes),
-                critical_count=critical_count,
+                critical_count=compliance_summary["critical_count"],
                 findings=unsecured_routes,
             )
 
         # Slack alert
         slack_settings = database.get_slack_settings(user["id"])
         if slack_settings and slack_settings["slack_alerts"] and slack_settings["slack_webhook"]:
-            critical_count = sum(1 for f in unsecured_routes if f.get("is_critical"))
             slack_service.send_slack_alert(
                 webhook_url=slack_settings["slack_webhook"],
                 target_url=body.target_url,
                 score=score,
                 total_unsecured=len(unsecured_routes),
-                critical_count=critical_count,
+                critical_count=compliance_summary["critical_count"],
                 findings=unsecured_routes,
             )
 
         return {
-            "target":   body.target_url,
-            "score":    round(score, 1),
-            "findings": unsecured_routes,
+            "target":            body.target_url,
+            "score":             round(score, 1),
+            "findings":          unsecured_routes,
+            "compliance_score":  compliance_summary["compliance_score"],
+            "audit_status":      compliance_summary["audit_status"],
+            "audit_status_label": compliance_summary["audit_status_label"],
+            "summary": {
+                "total_routes":     compliance_summary["total_routes"],
+                "protected_routes": compliance_summary["protected_routes"],
+                "critical_count":   compliance_summary["critical_count"],
+                "warning_count":    compliance_summary["warning_count"],
+                "info_count":       compliance_summary["info_count"],
+                "overlap_count":    compliance_summary["overlap_count"],
+            },
             "usage": {
                 "scans_used":  usage["used"] + 1,
                 "scans_limit": usage["limit"],
                 "tier":        user["tier"]
             }
         }
-
     except HTTPException:
         raise
     except Exception as e:
