@@ -97,13 +97,46 @@ function renderResults(data, url, tier) {
   const findings   = data.findings  || [];
   const score      = data.score     ?? 0;
   const total      = findings.length;
-  const critical   = findings.filter(f => f.is_critical).length;
+  const compliance = data.compliance_score ?? null;
+  const auditLabel = data.audit_status_label ?? null;
+  const summary    = data.summary || {};
 
-  // Summary stats
+  // Summary stats (unchanged — structural security score)
   document.getElementById("statScore").textContent     = `${Math.round(score)}%`;
   document.getElementById("statScore").className       = `text-3xl font-bold ${score >= 80 ? "text-emerald-400" : score >= 50 ? "text-yellow-400" : "text-red-400"}`;
   document.getElementById("statTotal").textContent     = data.usage ? (data.usage.scans_used) + " scanned" : "—";
   document.getElementById("statUnsecured").textContent = total;
+
+  // NEW: Compliance banner
+  if (compliance !== null) {
+    const banner  = document.getElementById("complianceBanner");
+    const scoreEl = document.getElementById("complianceScoreText");
+    const badge   = document.getElementById("auditStatusBadge");
+    const overlapEl = document.getElementById("overlapWarning");
+
+    scoreEl.textContent = `${compliance}/100`;
+
+    let colorClass, borderClass, badgeClass;
+    if (compliance >= 85) {
+      colorClass = "text-emerald-400"; borderClass = "border-emerald-900/50 bg-emerald-950/20"; badgeClass = "bg-emerald-950 text-emerald-400";
+    } else if (compliance >= 60) {
+      colorClass = "text-yellow-400"; borderClass = "border-yellow-900/50 bg-yellow-950/20"; badgeClass = "bg-yellow-950 text-yellow-400";
+    } else {
+      colorClass = "text-red-400"; borderClass = "border-red-900/50 bg-red-950/20"; badgeClass = "bg-red-950 text-red-400";
+    }
+
+    scoreEl.className = `text-2xl font-bold ${colorClass}`;
+    banner.className  = `mb-6 rounded-xl p-5 border ${borderClass}`;
+    badge.textContent = auditLabel || "—";
+    badge.className   = `mono text-xs px-4 py-2 rounded-full font-bold ${badgeClass}`;
+
+    if (summary.overlap_count > 0) {
+      overlapEl.textContent = `🚨 ${summary.overlap_count} route(s) trigger overlapping compliance exposure (e.g. NDPA + PCI) — highest priority to fix.`;
+      overlapEl.classList.remove("hidden");
+    } else {
+      overlapEl.classList.add("hidden");
+    }
+  }
 
   // Download row
   const dlRow = document.getElementById("downloadRow");
@@ -113,7 +146,6 @@ function renderResults(data, url, tier) {
     dlRow.style.display = "flex";
   }
 
-  // Show tier-gated feature rows
   if (tier !== "free") {
     document.getElementById("alertsRow").classList.remove("hidden");
     loadAlertSettings();
@@ -152,16 +184,32 @@ function renderResults(data, url, tier) {
         `<span class="mono text-[10px] px-2 py-0.5 rounded-full bg-red-950 text-red-400 border border-red-900">${t}</span>`
       ).join(" ");
 
+      // NEW: severity-based badge instead of flat is_critical
+      const severity = f.severity || (f.is_critical ? "CRITICAL" : "INFO");
+      const severityStyles = {
+        CRITICAL: "bg-red-950 text-red-400",
+        WARNING:  "bg-yellow-950 text-yellow-400",
+        INFO:     "bg-gray-800 text-gray-400",
+      };
+      const severityLabels = {
+        CRITICAL: "🚨 CRITICAL",
+        WARNING:  "⚠ WARNING",
+        INFO:     "UNSECURED",
+      };
+      const overlapBadge = f.is_overlap
+        ? `<span class="mono text-[9px] px-1.5 py-0.5 rounded bg-red-900 text-red-300 ml-1">OVERLAP</span>`
+        : "";
+
       tbody.innerHTML += `
-        <tr class="hover:bg-gray-900 transition">
+        <tr class="hover:bg-gray-900 transition" title="${f.message || ''}">
           <td class="mono text-xs text-gray-300 px-4 py-3 truncate" title="${f.route}">${f.route}</td>
           <td class="px-4 py-3">
             <span class="mono text-[10px] px-2 py-0.5 rounded ${methodClass} font-bold">${f.method}</span>
           </td>
           <td class="px-4 py-3">
-            <span class="mono text-[10px] px-2 py-0.5 rounded ${f.is_critical ? "bg-red-950 text-red-400" : "bg-yellow-950 text-yellow-400"} font-bold">
-              ${f.is_critical ? "⚠ CRITICAL" : "UNSECURED"}
-            </span>
+            <span class="mono text-[10px] px-2 py-0.5 rounded ${severityStyles[severity]} font-bold">
+              ${severityLabels[severity]}
+            </span>${overlapBadge}
           </td>
           <td class="px-4 py-3">
             <div class="flex flex-wrap gap-1">${tags || '<span class="mono text-[10px] text-gray-600">—</span>'}</div>
@@ -174,7 +222,6 @@ function renderResults(data, url, tier) {
   document.getElementById("resultsSection").classList.remove("hidden");
   document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth", block: "start" });
 }
-
 // ─────────────────────────────────────────────
 //  PDF Download
 // ─────────────────────────────────────────────
