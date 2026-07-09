@@ -360,9 +360,10 @@ async def run_scan(
             if kw_string:
                 custom_keywords = [k.strip() for k in kw_string.split(",") if k.strip()]
 
-        schema = await engine.fetch_openapi_schema(body.target_url)
-        if not schema:
-            raise HTTPException(status_code=400, detail="Could not fetch OpenAPI schema.")
+        try:
+            schema = await engine.fetch_openapi_schema(body.target_url)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
         unsecured_routes, score, compliance_summary = engine.find_unsecured_routes(schema, custom_keywords)
         database.log_scan(user["id"], body.target_url, score)
