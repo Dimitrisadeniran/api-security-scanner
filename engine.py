@@ -52,9 +52,10 @@ HTTP_METHODS = {"get", "post", "put", "delete", "patch"}
 #  Severity weights — used for the compliance score
 # ─────────────────────────────────────────────
 SEVERITY_WEIGHTS = {
-    "CRITICAL": 12,
-    "WARNING":  5,
-    "INFO":     1,
+    "CONFIRMED_LEAK": 25,
+    "CRITICAL":       12,
+    "WARNING":        5,
+    "INFO":           1,
 }
 
 AUDIT_THRESHOLDS = [
@@ -62,6 +63,23 @@ AUDIT_THRESHOLDS = [
     (60, "NEEDS_IMPROVEMENT",  "⚠️ Needs improvement before audit"),
     (0,  "NOT_AUDIT_READY",    "🚨 Not audit-ready"),
 ]
+
+# Max number of live GET requests fired per scan, and per-request timeout.
+# Keeps probing bounded so a scan can't hammer someone's production API.
+MAX_LIVE_PROBES = 15
+PROBE_TIMEOUT = 6.0
+
+
+def _redact(value: str) -> str:
+    """
+    Masks a matched sensitive value before it's ever stored or displayed.
+    Shows only enough to confirm a real match occurred (first 2 / last 2 chars).
+    The full value is never persisted anywhere.
+    """
+    value = str(value)
+    if len(value) <= 4:
+        return "*" * len(value)
+    return f"{value[:2]}{'*' * (len(value) - 4)}{value[-2:]}"
 
 # ─────────────────────────────────────────────
 #  Logic: Fetch OpenAPI Schema
@@ -160,6 +178,46 @@ def _classify_finding(found_tags: list, patterns_found: list, route: str):
     message = "ℹ️ INFO: Route is unsecured but no sensitive-data signals detected"
     return severity, message, False
 
+def _compute_summary(unsecured: list, total_routes: int, protected_count: int):
+    """
+    Computes security score, compliance score, and audit status from a
+    findings list. Shared by both the schema-only pass and the post-probe
+    pass, so scores stay consistent regardless of when they're computed.
+    """
+    security_score = (protected_count / total_routes * 100) if total_routes > 0 else 100.0
+
+    severity_counts = {"CONFIRMED_LEAK": 0, "CRITICAL": 0, "WARNING": 0, "INFO": 0}
+    overlap_count = 0
+    for f in unsecured:
+        severity_counts[f["severity"]] = severity_counts.get(f["severity"], 0) + 1
+        if f.get("is_overlap"):
+            overlap_count += 1
+
+    penalty = sum(SEVERITY_WEIGHTS[f["severity"]] for f in unsecured)
+    compliance_score = max(0, round(100 - penalty, 1))
+
+    audit_status_code = "NOT_AUDIT_READY"
+    audit_status_label = "🚨 Not audit-ready"
+    for threshold, code, label in AUDIT_THRESHOLDS:
+        if compliance_score >= threshold:
+            audit_status_code = code
+            audit_status_label = label
+            break
+
+    return {
+        "total_routes":       total_routes,
+        "protected_routes":   protected_count,
+        "unsecured_routes":   len(unsecured),
+        "confirmed_leak_count": severity_counts["CONFIRMED_LEAK"],
+        "critical_count":     severity_counts["CRITICAL"],
+        "warning_count":      severity_counts["WARNING"],
+        "info_count":         severity_counts["INFO"],
+        "overlap_count":      overlap_count,
+        "compliance_score":   compliance_score,
+        "audit_status":       audit_status_code,
+        "audit_status_label": audit_status_label,
+    }, security_score
+
 # ─────────────────────────────────────────────
 #  Logic: Find Unsecured Routes (v2.0 — severity + compliance scoring)
 # ─────────────────────────────────────────────
@@ -172,9 +230,6 @@ def find_unsecured_routes(schema: dict, custom_keywords: list = []):
     active_keywords = {**SENSITIVE_KEYWORDS}
     if custom_keywords:
         active_keywords["CUSTOM"] = custom_keywords
-
-    severity_counts = {"CRITICAL": 0, "WARNING": 0, "INFO": 0}
-    overlap_count = 0
 
     for route, path_item in paths.items():
         if not isinstance(path_item, dict):
@@ -209,9 +264,6 @@ def find_unsecured_routes(schema: dict, custom_keywords: list = []):
             ]
 
             severity, message, is_overlap = _classify_finding(found_tags, patterns_found, route)
-            severity_counts[severity] += 1
-            if is_overlap:
-                overlap_count += 1
 
             unsecured.append({
                 "route":         route,
@@ -222,40 +274,92 @@ def find_unsecured_routes(schema: dict, custom_keywords: list = []):
                 "severity":      severity,
                 "message":       message,
                 "is_overlap":    is_overlap,
+                "confirmed_leak": False,
+                "leak_evidence":  [],
                 # kept for backward compatibility with existing frontend/PDF code
                 "is_critical":   severity == "CRITICAL",
             })
 
-    # ── Structural security score (unchanged behavior: % of routes protected) ──
-    security_score = (protected_count / total_routes * 100) if total_routes > 0 else 100.0
-
-    # ── Compliance-readiness score ──
-    # Starts at 100, deducts weighted points per finding severity, floors at 0.
-    penalty = sum(
-        SEVERITY_WEIGHTS[f["severity"]] for f in unsecured
-    )
-    compliance_score = max(0, round(100 - penalty, 1))
-
-    audit_status_code = "NOT_AUDIT_READY"
-    audit_status_label = "🚨 Not audit-ready"
-    for threshold, code, label in AUDIT_THRESHOLDS:
-        if compliance_score >= threshold:
-            audit_status_code = code
-            audit_status_label = label
-            break
-
-    summary = {
-        "total_routes":       total_routes,
-        "protected_routes":   protected_count,
-        "unsecured_routes":   len(unsecured),
-        "critical_count":     severity_counts["CRITICAL"],
-        "warning_count":      severity_counts["WARNING"],
-        "info_count":         severity_counts["INFO"],
-        "overlap_count":      overlap_count,
-        "compliance_score":   compliance_score,
-        "audit_status":       audit_status_code,
-        "audit_status_label": audit_status_label,
-    }
+    summary, security_score = _compute_summary(unsecured, total_routes, protected_count)
 
     # Returns: (findings list, structural security score, compliance summary dict)
     return unsecured, security_score, summary
+
+# ─────────────────────────────────────────────
+#  Logic: Live Leak Probing (v2.0 — the literal "detect leaks" feature)
+# ─────────────────────────────────────────────
+def _has_path_params(route: str) -> bool:
+    return "{" in route and "}" in route
+
+
+async def probe_for_leaks(base_url: str, unsecured: list, total_routes: int, protected_count: int):
+    """
+    For unsecured GET routes with no path parameters, sends a real request
+    and scans the ACTUAL response body for PII patterns.
+
+    - Bounded to MAX_LIVE_PROBES requests per scan.
+    - Only GET (never mutates data on the target system).
+    - Never stores the real matched value — only a redacted preview and
+      the pattern type, so Shepherd AI never becomes a second copy of
+      whatever sensitive data it finds.
+
+    Mutates `unsecured` in place (upgrades matching findings to
+    CONFIRMED_LEAK) and returns a freshly recomputed summary dict.
+    """
+    base = base_url.strip()
+    if not base.startswith(("http://", "https://")):
+        base = "https://" + base
+    base = base.rstrip("/")
+
+    candidates = [
+        f for f in unsecured
+        if f["method"] == "GET" and not _has_path_params(f["route"])
+    ][:MAX_LIVE_PROBES]
+
+    if not candidates:
+        summary, security_score = _compute_summary(unsecured, total_routes, protected_count)
+        return summary
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (compatible; ShepherdAI-Scanner/2.0; "
+            "+https://api-security-scanner-pq3w.onrender.com)"
+        ),
+        "Accept": "application/json",
+    }
+
+    async with httpx.AsyncClient(timeout=PROBE_TIMEOUT, follow_redirects=True) as client:
+        for finding in candidates:
+            full_url = base + finding["route"]
+            try:
+                response = await client.get(full_url, headers=headers)
+            except httpx.RequestError:
+                continue  # unreachable route — skip, don't fail the whole scan
+
+            if response.status_code != 200:
+                continue
+
+            body_text = response.text[:20000]  # cap how much we scan per response
+
+            evidence = []
+            for pattern_name, pattern in PII_REGEX.items():
+                match = re.search(pattern, body_text)
+                if match:
+                    evidence.append({
+                        "type":    pattern_name,
+                        "preview": _redact(match.group(0)),
+                    })
+
+            if evidence:
+                finding["confirmed_leak"] = True
+                finding["leak_evidence"]  = evidence
+                finding["severity"] = "CONFIRMED_LEAK"
+                types = ", ".join(e["type"] for e in evidence)
+                finding["message"] = (
+                    f"🔴 CONFIRMED LEAK: Live response from this unsecured route "
+                    f"contains real {types} data ({', '.join(e['preview'] for e in evidence)})"
+                )
+                finding["is_critical"] = True
+
+    summary, security_score = _compute_summary(unsecured, total_routes, protected_count)
+    return summary
