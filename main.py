@@ -366,6 +366,15 @@ async def run_scan(
             raise HTTPException(status_code=400, detail=str(e))
 
         unsecured_routes, score, compliance_summary = engine.find_unsecured_routes(schema, custom_keywords)
+
+        # v2.0: live-probe unsecured GET routes for actual confirmed leaks
+        compliance_summary = await engine.probe_for_leaks(
+            base_url=body.target_url,
+            unsecured=unsecured_routes,
+            total_routes=compliance_summary["total_routes"],
+            protected_count=compliance_summary["protected_routes"],
+        )
+
         database.log_scan(user["id"], body.target_url, score)
 
         # Email alert
@@ -400,9 +409,10 @@ async def run_scan(
             "audit_status":      compliance_summary["audit_status"],
             "audit_status_label": compliance_summary["audit_status_label"],
             "summary": {
-                "total_routes":     compliance_summary["total_routes"],
-                "protected_routes": compliance_summary["protected_routes"],
-                "critical_count":   compliance_summary["critical_count"],
+                "total_routes":       compliance_summary["total_routes"],
+                "protected_routes":   compliance_summary["protected_routes"],
+                "confirmed_leak_count": compliance_summary["confirmed_leak_count"],
+                "critical_count":     compliance_summary["critical_count"],
                 "warning_count":    compliance_summary["warning_count"],
                 "info_count":       compliance_summary["info_count"],
                 "overlap_count":    compliance_summary["overlap_count"],
