@@ -106,6 +106,7 @@ async def fetch_openapi_schema(url: str):
             "+https://api-security-scanner-pq3w.onrender.com)"
         ),
         "Accept": "application/json",
+        "ngrok-skip-browser-warning": "true",
     }
 
     try:
@@ -320,12 +321,13 @@ async def probe_for_leaks(base_url: str, unsecured: list, total_routes: int, pro
         summary, security_score = _compute_summary(unsecured, total_routes, protected_count)
         return summary
 
-    headers = {
+   headers = {
         "User-Agent": (
             "Mozilla/5.0 (compatible; ShepherdAI-Scanner/2.0; "
             "+https://api-security-scanner-pq3w.onrender.com)"
         ),
         "Accept": "application/json",
+        "ngrok-skip-browser-warning": "true",
     }
 
     async with httpx.AsyncClient(timeout=PROBE_TIMEOUT, follow_redirects=True) as client:
