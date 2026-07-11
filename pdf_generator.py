@@ -1,4 +1,4 @@
-# pdf_generator.py
+# pdf_generator.py — Shepherd AI v2.0
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
@@ -14,24 +14,48 @@ import io
 # ─────────────────────────────────────────────
 #  Brand Colors
 # ─────────────────────────────────────────────
-GREEN      = colors.HexColor("#10b981")
-RED        = colors.HexColor("#ef4444")
-YELLOW     = colors.HexColor("#f59e0b")
-DARK_BG    = colors.HexColor("#111827")
-GRAY       = colors.HexColor("#6b7280")
-LIGHT_GRAY = colors.HexColor("#f3f4f6")
-WHITE      = colors.white
-BLACK      = colors.black
+GREEN       = colors.HexColor("#10b981")
+RED         = colors.HexColor("#ef4444")
+DARK_RED    = colors.HexColor("#7f1d1d")
+YELLOW      = colors.HexColor("#f59e0b")
+DARK_BG     = colors.HexColor("#111827")
+GRAY        = colors.HexColor("#6b7280")
+LIGHT_GRAY  = colors.HexColor("#f3f4f6")
+WHITE       = colors.white
+BLACK       = colors.black
 
 def get_score_color(score: float):
     if score >= 80: return GREEN
     if score >= 50: return YELLOW
     return RED
 
-def get_risk_color(is_critical: bool, compliance: list):
-    if is_critical: return RED
-    if compliance:  return YELLOW
-    return GREEN
+SEVERITY_COLORS = {
+    "CONFIRMED_LEAK": DARK_RED,
+    "CRITICAL":       RED,
+    "WARNING":         YELLOW,
+    "INFO":            GRAY,
+}
+
+SEVERITY_LABELS = {
+    "CONFIRMED_LEAK": "CONFIRMED LEAK",
+    "CRITICAL":        "Critical",
+    "WARNING":          "Warning",
+    "INFO":             "Low",
+}
+
+def _get_severity(finding: dict) -> str:
+    """
+    Reads finding['severity'] if present (v2.0 findings).
+    Falls back to the old is_critical/compliance boolean logic for any
+    finding shape that predates the severity field.
+    """
+    if finding.get("severity"):
+        return finding["severity"]
+    if finding.get("is_critical"):
+        return "CRITICAL"
+    if finding.get("compliance"):
+        return "WARNING"
+    return "INFO"
 
 # ─────────────────────────────────────────────
 #  Main PDF Generator
@@ -42,11 +66,18 @@ def generate_pdf_report(
     findings: list,
     user_email: str,
     tier: str,
-    company_name: str = "Shepherd AI"
+    company_name: str = "Shepherd AI",
+    compliance_score: float = None,
+    audit_status_label: str = None,
+    confirmed_leak_count: int = 0,
 ) -> bytes:
     """
-    Generates a HIPAA compliance PDF report.
+    Generates a compliance PDF report (NDPA / PCI / HIPAA).
     Returns raw bytes — ready to stream to the browser.
+
+    compliance_score / audit_status_label / confirmed_leak_count are
+    optional (v2.0 fields) — the report still renders correctly without
+    them, just without the compliance-readiness section.
     """
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -113,18 +144,16 @@ def generate_pdf_report(
 
     title_data = [[
         Paragraph(f"{company_name}", header_style),
-        Paragraph(f"HIPAA Compliance Report", sub_style),
+        Paragraph(f"Compliance Risk Report — NDPA · PCI · HIPAA", sub_style),
     ]]
 
-    # 1. Added rowHeights to ensure the dark box is tall enough for the font
     title_table = Table(title_data, colWidths=[120*mm, 50*mm], rowHeights=18*mm)
 
     title_table.setStyle(TableStyle([
         ("BACKGROUND",  (0, 0), (-1, -1), DARK_BG),
-        # 2. Replaced general PADDING with specific values to prevent clipping
         ("LEFTPADDING", (0, 0), (-1, -1), 12),
         ("RIGHTPADDING",(0, 0), (-1, -1), 12),
-        ("TOPPADDING",  (0, 0), (-1, -1), 15), # Pushes "Shepherd AI" down
+        ("TOPPADDING",  (0, 0), (-1, -1), 15),
         ("BOTTOMPADDING",(0, 0), (-1, -1), 10),
         ("VALIGN",      (0, 0), (-1, -1), "MIDDLE"),
     ]))
@@ -156,6 +185,36 @@ def generate_pdf_report(
     story.append(meta_table)
     story.append(Spacer(1, 6*mm))
 
+    # ── Compliance Readiness (v2.0 — only if data was passed in) ──
+    if compliance_score is not None:
+        story.append(Paragraph("Compliance Readiness", section_style))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=LIGHT_GRAY))
+        story.append(Spacer(1, 3*mm))
+
+        compliance_color = get_score_color(compliance_score)
+        compliance_style = ParagraphStyle(
+            "compliance", fontSize=36, textColor=compliance_color,
+            fontName="Helvetica-Bold", alignment=TA_CENTER,
+        )
+        status_style = ParagraphStyle(
+            "status", fontSize=12, textColor=compliance_color,
+            fontName="Helvetica-Bold", alignment=TA_CENTER, spaceAfter=6,
+        )
+        leak_note_style = ParagraphStyle(
+            "leaknote", fontSize=10, textColor=DARK_RED,
+            fontName="Helvetica-Bold", alignment=TA_CENTER, spaceAfter=4,
+        )
+
+        story.append(Paragraph(f"{compliance_score}/100", compliance_style))
+        story.append(Paragraph(audit_status_label or "", status_style))
+        if confirmed_leak_count > 0:
+            plural = "s" if confirmed_leak_count != 1 else ""
+            story.append(Paragraph(
+                f"🔴 {confirmed_leak_count} CONFIRMED data leak{plural} found in live API responses — highest priority to fix",
+                leak_note_style
+            ))
+        story.append(Spacer(1, 6*mm))
+
     # ── Score Summary ────────────────────────
     story.append(Paragraph("Security Score", section_style))
     story.append(HRFlowable(width="100%", thickness=0.5, color=LIGHT_GRAY))
@@ -163,8 +222,10 @@ def generate_pdf_report(
 
     score_color  = get_score_color(score)
     total_routes = len(findings)
-    critical     = sum(1 for f in findings if f.get("is_critical"))
-    warnings     = sum(1 for f in findings if not f.get("is_critical") and f.get("compliance"))
+    severities   = [_get_severity(f) for f in findings]
+    confirmed    = sum(1 for s in severities if s == "CONFIRMED_LEAK")
+    critical     = sum(1 for s in severities if s == "CRITICAL")
+    warnings     = sum(1 for s in severities if s == "WARNING")
 
     score_style = ParagraphStyle(
         "score",
@@ -187,16 +248,25 @@ def generate_pdf_report(
         spaceAfter=6,
     )
 
+    summary_rows = [
+        [Paragraph("Unprotected Routes", label_style)],
+        [Paragraph(str(total_routes),     value_style)],
+    ]
+    if confirmed > 0:
+        summary_rows += [
+            [Paragraph("Confirmed Leaks", label_style)],
+            [Paragraph(str(confirmed), ParagraphStyle("v2", parent=value_style, textColor=DARK_RED))],
+        ]
+    summary_rows += [
+        [Paragraph("Critical Findings",   label_style)],
+        [Paragraph(str(critical),         value_style)],
+        [Paragraph("Warnings",            label_style)],
+        [Paragraph(str(warnings),         value_style)],
+    ]
+
     score_data = [[
         Paragraph(f"{score:.1f}%", score_style),
-        Table([
-            [Paragraph("Unprotected Routes", label_style)],
-            [Paragraph(str(total_routes),     value_style)],
-            [Paragraph("Critical Findings",   label_style)],
-            [Paragraph(str(critical),         value_style)],
-            [Paragraph("Warnings",            label_style)],
-            [Paragraph(str(warnings),         value_style)],
-        ], colWidths=[80*mm])
+        Table(summary_rows, colWidths=[80*mm])
     ]]
     score_table = Table(score_data, colWidths=[80*mm, 90*mm])
     score_table.setStyle(TableStyle([
@@ -216,25 +286,38 @@ def generate_pdf_report(
 
     if not findings:
         story.append(Paragraph(
-            "✅ No unprotected PHI routes detected. All routes are secured.",
+            "✅ No unprotected routes detected. All routes are secured.",
             ParagraphStyle("ok", fontSize=10, textColor=GREEN, fontName="Helvetica-Bold")
         ))
     else:
-        # Table header
+        # Sort so CONFIRMED_LEAK / CRITICAL findings surface first
+        severity_order = {"CONFIRMED_LEAK": 0, "CRITICAL": 1, "WARNING": 2, "INFO": 3}
+        findings_sorted = sorted(findings, key=lambda f: severity_order.get(_get_severity(f), 4))
+
         table_data = [[
             Paragraph("Route",       ParagraphStyle("th", fontSize=9, fontName="Helvetica-Bold", textColor=WHITE)),
             Paragraph("Method",      ParagraphStyle("th", fontSize=9, fontName="Helvetica-Bold", textColor=WHITE)),
             Paragraph("Risk",        ParagraphStyle("th", fontSize=9, fontName="Helvetica-Bold", textColor=WHITE)),
             Paragraph("Frameworks",  ParagraphStyle("th", fontSize=9, fontName="Helvetica-Bold", textColor=WHITE)),
-            Paragraph("PII Detected",ParagraphStyle("th", fontSize=9, fontName="Helvetica-Bold", textColor=WHITE)),
+            Paragraph("Evidence",    ParagraphStyle("th", fontSize=9, fontName="Helvetica-Bold", textColor=WHITE)),
         ]]
 
         row_styles = []
-        for i, f in enumerate(findings, start=1):
-            risk_color  = get_risk_color(f.get("is_critical", False), f.get("compliance", []))
-            risk_label  = "Critical" if f.get("is_critical") else "Warning" if f.get("compliance") else "Low"
+        for i, f in enumerate(findings_sorted, start=1):
+            severity    = _get_severity(f)
+            risk_color  = SEVERITY_COLORS.get(severity, GRAY)
+            risk_label  = SEVERITY_LABELS.get(severity, "Low")
             frameworks  = ", ".join(f.get("compliance", [])) or "—"
-            pii         = ", ".join(f.get("pii_detected", [])) or "—"
+
+            # Evidence column: prefer real confirmed-leak evidence (redacted),
+            # fall back to schema-based PII pattern names.
+            leak_evidence = f.get("leak_evidence") or []
+            if leak_evidence:
+                evidence_text = ", ".join(
+                    f"{e.get('type', '?')}: {e.get('preview', '')}" for e in leak_evidence
+                )
+            else:
+                evidence_text = ", ".join(f.get("pii_detected", [])) or "—"
 
             route_para = Paragraph(
                 f.get("route", ""),
@@ -252,20 +335,19 @@ def generate_pdf_report(
                 frameworks,
                 ParagraphStyle("cell", fontSize=8, fontName="Helvetica", textColor=BLACK)
             )
-            pii_para = Paragraph(
-                pii,
+            evidence_para = Paragraph(
+                evidence_text,
                 ParagraphStyle("cell", fontSize=8, fontName="Helvetica", textColor=BLACK)
             )
 
-            table_data.append([route_para, method_para, risk_para, fw_para, pii_para])
+            table_data.append([route_para, method_para, risk_para, fw_para, evidence_para])
 
-            # Alternate row colors
             bg = LIGHT_GRAY if i % 2 == 0 else WHITE
             row_styles.append(("BACKGROUND", (0, i), (-1, i), bg))
 
         findings_table = Table(
             table_data,
-            colWidths=[55*mm, 18*mm, 18*mm, 35*mm, 44*mm]
+            colWidths=[50*mm, 16*mm, 22*mm, 32*mm, 50*mm]
         )
         findings_table.setStyle(TableStyle([
             ("BACKGROUND",  (0, 0), (-1, 0), DARK_BG),
@@ -284,8 +366,10 @@ def generate_pdf_report(
     story.append(Spacer(1, 3*mm))
     story.append(Paragraph(
         f"This report was generated automatically by Shepherd AI on {now}. "
-        f"It is intended for compliance review purposes only. "
-        f"Shepherd AI does not provide legal advice.",
+        f"Confirmed-leak evidence shown above is redacted — Shepherd AI never "
+        f"stores the full value of any sensitive data it detects. "
+        f"This report is intended for compliance review purposes only and "
+        f"does not constitute legal advice.",
         small_style
     ))
 
