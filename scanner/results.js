@@ -187,14 +187,16 @@ function renderResults(data, url, tier) {
       // NEW: severity-based badge instead of flat is_critical
       const severity = f.severity || (f.is_critical ? "CRITICAL" : "INFO");
       const severityStyles = {
-        CRITICAL: "bg-red-950 text-red-400",
-        WARNING:  "bg-yellow-950 text-yellow-400",
-        INFO:     "bg-gray-800 text-gray-400",
+        CONFIRMED_LEAK: "bg-red-900 text-red-300 border border-red-600",
+        CRITICAL:       "bg-red-950 text-red-400",
+        WARNING:        "bg-yellow-950 text-yellow-400",
+        INFO:           "bg-gray-800 text-gray-400",
       };
       const severityLabels = {
-        CRITICAL: "🚨 CRITICAL",
-        WARNING:  "⚠ WARNING",
-        INFO:     "UNSECURED",
+        CONFIRMED_LEAK: "🔴 CONFIRMED LEAK",
+        CRITICAL:       "🚨 CRITICAL",
+        WARNING:        "⚠ WARNING",
+        INFO:           "UNSECURED",
       };
       const overlapBadge = f.is_overlap
         ? `<span class="mono text-[9px] px-1.5 py-0.5 rounded bg-red-900 text-red-300 ml-1">OVERLAP</span>`
