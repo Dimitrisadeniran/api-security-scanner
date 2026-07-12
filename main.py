@@ -399,8 +399,10 @@ async def run_scan(
                 total_unsecured=len(unsecured_routes),
                 critical_count=compliance_summary["critical_count"],
                 findings=unsecured_routes,
+                compliance_score=compliance_summary["compliance_score"],
+                audit_status_label=compliance_summary["audit_status_label"],
+                confirmed_leak_count=compliance_summary["confirmed_leak_count"],
             )
-
         return {
             "target":            body.target_url,
             "score":             round(score, 1),
