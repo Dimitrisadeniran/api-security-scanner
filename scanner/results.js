@@ -24,6 +24,11 @@ async function runScan() {
     errEl.classList.remove("hidden");
     return;
   }
+  if (!document.getElementById("authConsent").checked) {
+    errEl.textContent = "Please confirm you're authorized to scan this API before running a compliance check.";
+    errEl.classList.remove("hidden");
+    return;
+  }
   if (!apiKey) {
     window.location.replace("login.html");
     return;
