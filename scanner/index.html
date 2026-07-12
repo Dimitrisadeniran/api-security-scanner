@@ -53,6 +53,16 @@
     <p class="text-gray-400 text-base max-w-md mb-10 leading-relaxed" style="font-family:sans-serif;">
       Paste your FastAPI URL below and get an instant compliance audit of every route in your OpenAPI spec.
     </p>
+    <div class="w-full max-w-xl mb-4">
+      <label class="flex items-start gap-3 text-left cursor-pointer group">
+        <input type="checkbox" id="authConsent"
+          class="mt-1 w-4 h-4 rounded border-gray-700 bg-gray-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-gray-900" />
+        <span class="mono text-xs text-gray-400 group-hover:text-gray-300 transition">
+          I confirm I own this API, or have explicit authorization to run a compliance scan against it.
+          Shepherd AI's audit-readiness scoring is intended for systems you're authorized to assess.
+        </span>
+      </label>
+    </div>
 
     <div class="w-full max-w-xl">
       <div class="flex gap-3 w-full">
