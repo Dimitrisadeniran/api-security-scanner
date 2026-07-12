@@ -698,6 +698,9 @@
     }
 
     function closePopupAndLogin() {
+      localStorage.setItem("shepherd_api_key", pendingSetup.apiKey);
+      localStorage.setItem("shepherd_email",   pendingSetup.email);
+      localStorage.setItem("shepherd_tier",    pendingSetup.tier);
       window.location.replace("index.html");
     }
 
