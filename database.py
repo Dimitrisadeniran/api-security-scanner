@@ -195,6 +195,14 @@ def init_db():
         )
         """)
 
+        # Migration: add v2.0 columns for storing full scan results, so a
+        # past audit can be reviewed and its PDF re-downloaded later.
+        cursor.execute("ALTER TABLE scan_history ADD COLUMN IF NOT EXISTS findings TEXT")
+        cursor.execute("ALTER TABLE scan_history ADD COLUMN IF NOT EXISTS compliance_score REAL")
+        cursor.execute("ALTER TABLE scan_history ADD COLUMN IF NOT EXISTS audit_status TEXT")
+        cursor.execute("ALTER TABLE scan_history ADD COLUMN IF NOT EXISTS audit_status_label TEXT")
+        cursor.execute("ALTER TABLE scan_history ADD COLUMN IF NOT EXISTS confirmed_leak_count INTEGER DEFAULT 0")
+
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_email ON users(email)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_api_key ON api_keys(api_key)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_scan_user ON scan_history(user_id)")
@@ -576,19 +584,41 @@ def get_enterprise_settings(user_id: str):
 # Scan History
 ###############################################################################
 
-def log_scan(user_id: str, target_url: str, score: float):
+def log_scan(
+    user_id: str,
+    target_url: str,
+    score: float,
+    findings: list = None,
+    compliance_score: float = None,
+    audit_status: str = None,
+    audit_status_label: str = None,
+    confirmed_leak_count: int = 0,
+):
+    import json
+    findings_json = json.dumps(findings) if findings is not None else None
+
     with get_connection() as conn:
-        conn.cursor().execute("""
-            INSERT INTO scan_history(user_id, target_url, score, scanned_at)
-            VALUES(%s,%s,%s,%s)
-        """, (user_id, target_url, score, now()))
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO scan_history(
+                user_id, target_url, score, scanned_at,
+                findings, compliance_score, audit_status, audit_status_label, confirmed_leak_count
+            )
+            VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            RETURNING id
+        """, (
+            user_id, target_url, score, now(),
+            findings_json, compliance_score, audit_status, audit_status_label, confirmed_leak_count
+        ))
+        new_id = cursor.fetchone()["id"]
         conn.commit()
-        return True
+        return new_id
 
 
 ###############################################################################
 
 def get_scan_history(user_id: str):
+    import json
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -596,7 +626,51 @@ def get_scan_history(user_id: str):
             WHERE user_id=%s
             ORDER BY scanned_at DESC
         """, (user_id,))
-        return cursor.fetchall()
+        rows = cursor.fetchall()
+
+    results = []
+    for row in rows:
+        row = dict(row)
+        if row.get("findings"):
+            try:
+                row["findings"] = json.loads(row["findings"])
+            except Exception:
+                row["findings"] = []
+        else:
+            row["findings"] = []
+        results.append(row)
+    return results
+
+
+###############################################################################
+
+def get_scan_by_id(user_id: str, scan_id: int):
+    """
+    Fetches a single past scan (owned by user_id) with its full findings —
+    used to re-download a PDF report for a past audit.
+    Returns None if not found or not owned by this user.
+    """
+    import json
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT * FROM scan_history
+            WHERE id=%s AND user_id=%s
+        """, (scan_id, user_id))
+        row = cursor.fetchone()
+
+    if not row:
+        return None
+
+    row = dict(row)
+    if row.get("findings"):
+        try:
+            row["findings"] = json.loads(row["findings"])
+        except Exception:
+            row["findings"] = []
+    else:
+        row["findings"] = []
+    return row
 
 ###############################################################################
 # Usage Limits
