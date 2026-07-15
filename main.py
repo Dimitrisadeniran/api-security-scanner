@@ -375,7 +375,14 @@ async def run_scan(
             protected_count=compliance_summary["protected_routes"],
         )
 
-        database.log_scan(user["id"], body.target_url, score)
+        scan_id = database.log_scan(
+            user["id"], body.target_url, score,
+            findings=unsecured_routes,
+            compliance_score=compliance_summary["compliance_score"],
+            audit_status=compliance_summary["audit_status"],
+            audit_status_label=compliance_summary["audit_status_label"],
+            confirmed_leak_count=compliance_summary["confirmed_leak_count"],
+        )
 
         # Email alert
         alert_settings = database.get_alert_settings(user["id"])
@@ -594,7 +601,40 @@ def verify_paystack_webhook(request_data: bytes, signature: str) -> bool:
         hashlib.sha256
     ).hexdigest()
     return hmac.compare_digest(computed, signature)
+@app.get("/api/history/{scan_id}/report")
+async def download_history_report(scan_id: int, user: dict = Depends(verify_api_key)):
+    if user["tier"] == "free":
+        raise HTTPException(status_code=403, detail="Upgrade to Starter to download PDF reports.")
 
+    scan = database.get_scan_by_id(user["id"], scan_id)
+    if not scan:
+        raise HTTPException(status_code=404, detail="Scan not found.")
+
+    company_name = "Shepherd AI"
+    if user["tier"] == "enterprise":
+        ent = database.get_enterprise_settings(user["id"])
+        company_name = ent.get("company_name", "Shepherd AI")
+
+    try:
+        pdf_bytes = pdf_generator.generate_pdf_report(
+            target_url=scan["target_url"],
+            score=scan["score"],
+            findings=scan["findings"],
+            user_email=user["email"],
+            tier=user["tier"],
+            company_name=company_name,
+            compliance_score=scan.get("compliance_score"),
+            audit_status_label=scan.get("audit_status_label"),
+            confirmed_leak_count=scan.get("confirmed_leak_count") or 0,
+        )
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=shepherd-report-{scan_id}.pdf"}
+        )
+    except Exception as e:
+        logger.error(f"History PDF Error: {e}")
+        raise HTTPException(status_code=500, detail="PDF generation failed.")
 @app.post("/api/billing/upgrade")
 def create_upgrade_link(body: BillingUpgradeRequest, user: dict = Depends(verify_api_key)):
     if body.new_tier not in {"starter", "pro", "enterprise"}:
