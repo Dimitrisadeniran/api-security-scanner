@@ -208,21 +208,21 @@ function renderResults(data, url, tier) {
         : "";
 
       tbody.innerHTML += `
-          <tr class="hover:bg-gray-900 transition">
-            <td class="mono text-xs text-gray-500 px-4 py-3">${date}</td>
-            <td class="mono text-xs text-gray-300 px-4 py-3 truncate" title="${h.target_url}">${h.target_url}</td>
-            <td class="mono text-xs ${color} px-4 py-3 font-bold">${Math.round(score)}%</td>
-            <td class="px-4 py-3">
-              <span class="mono text-[10px] px-2 py-0.5 rounded ${score >= 80 ? "bg-emerald-950 text-emerald-400" : "bg-red-950 text-red-400"}">
-                ${score >= 80 ? "PASS" : "REVIEW"}
-              </span>
-            </td>
-            <td class="px-4 py-3">
-              <button onclick="downloadHistoryReport(${h.id})" class="mono text-[10px] text-emerald-400 hover:text-emerald-300 underline">
-                Download PDF
-              </button>
-            </td>
-          </tr>`;
+        <tr class="hover:bg-gray-900 transition">
+          <td class="mono text-xs text-gray-300 px-4 py-3 truncate" title="${f.route}">${f.route}</td>
+          <td class="px-4 py-3">
+            <span class="mono text-[10px] px-2 py-0.5 rounded ${methodClass} font-bold">${f.method}</span>
+          </td>
+          <td class="px-4 py-3">
+            <span class="mono text-[10px] px-2 py-0.5 rounded ${severityStyles[severity]} font-bold">
+              ${severityLabels[severity]}
+            </span>${overlapBadge}
+          </td>
+          <td class="px-4 py-3">
+            <div class="flex flex-wrap gap-1">${tags || '<span class="mono text-[10px] text-gray-600">—</span>'}</div>
+          </td>
+          <td class="mono text-[10px] text-gray-500 px-4 py-3 truncate">${f.summary || "—"}</td>
+        </tr>`;
     });
   }
 
@@ -481,7 +481,7 @@ async function loadHistory() {
         const score  = h.score ?? 0;
         const color  = score >= 80 ? "text-emerald-400" : score >= 50 ? "text-yellow-400" : "text-red-400";
         const date   = h.scanned_at ? new Date(h.scanned_at).toLocaleString() : "—";
-        tbody.innerHTML += `
+       tbody.innerHTML += `
           <tr class="hover:bg-gray-900 transition">
             <td class="mono text-xs text-gray-500 px-4 py-3">${date}</td>
             <td class="mono text-xs text-gray-300 px-4 py-3 truncate" title="${h.target_url}">${h.target_url}</td>
@@ -490,6 +490,11 @@ async function loadHistory() {
               <span class="mono text-[10px] px-2 py-0.5 rounded ${score >= 80 ? "bg-emerald-950 text-emerald-400" : "bg-red-950 text-red-400"}">
                 ${score >= 80 ? "PASS" : "REVIEW"}
               </span>
+            </td>
+            <td class="px-4 py-3">
+              <button onclick="downloadHistoryReport(${h.id})" class="mono text-[10px] text-emerald-400 hover:text-emerald-300 underline">
+                Download PDF
+              </button>
             </td>
           </tr>`;
       });
