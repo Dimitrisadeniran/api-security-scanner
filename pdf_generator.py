@@ -4,12 +4,25 @@ from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer,
-    Table, TableStyle, HRFlowable
+    Table, TableStyle, HRFlowable, Image as RLImage
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from datetime import datetime
+from pathlib import Path
+import hashlib
 import io
+
+# ─────────────────────────────────────────────
+#  Brand Assets
+# ─────────────────────────────────────────────
+# Logo files ship alongside this module — add both PNGs to an `assets/`
+# folder next to pdf_generator.py in the repo. Everything degrades
+# gracefully (falls back to text) if either file is missing, so a
+# forgotten asset never breaks report generation.
+BASE_DIR = Path(__file__).resolve().parent
+LOGO_HEADER_PATH = BASE_DIR / "assets" / "shepherd_logo_header.png"
+LOGO_WATERMARK_PATH = BASE_DIR / "assets" / "shepherd_logo_watermark.png"
 
 # ─────────────────────────────────────────────
 #  Brand Colors
@@ -56,6 +69,55 @@ def _get_severity(finding: dict) -> str:
     if finding.get("compliance"):
         return "WARNING"
     return "INFO"
+
+
+def _make_report_id(target_url: str, score: float, compliance_score, findings_count: int, user_email: str) -> str:
+    """
+    Derives a verification ID from the report's actual content rather than
+    a random value. The same underlying scan always produces the same ID —
+    re-downloading it later yields an identical ID, but if the numbers on
+    a printed/copied report were altered, recomputing the ID from the
+    (now different) content would no longer match what's printed on it.
+    """
+    source = f"{target_url}|{round(score, 1)}|{compliance_score}|{findings_count}|{user_email}"
+    digest = hashlib.sha256(source.encode()).hexdigest()[:12].upper()
+    return f"SHPD-{digest}"
+
+
+def _draw_page_decoration(canvas, doc, report_id: str):
+    """
+    Drawn on every page: a faint logo watermark and a footer carrying
+    the report ID + page number, so a page can't be separated from its
+    source report and passed off as something else.
+    """
+    canvas.saveState()
+    if LOGO_WATERMARK_PATH.exists():
+        wm_w = 130 * mm
+        wm_h = wm_w  # scaled per-image below via drawImage's preserveAspectRatio
+        canvas.drawImage(
+            str(LOGO_WATERMARK_PATH),
+            (A4[0] - wm_w) / 2, (A4[1] - wm_h) / 2,
+            width=wm_w, height=wm_h,
+            mask="auto", preserveAspectRatio=True, anchor="c",
+        )
+    else:
+        # Fallback if the logo asset hasn't been added to the repo yet
+        canvas.setFont("Helvetica-Bold", 62)
+        canvas.setFillColor(colors.Color(0.10, 0.14, 0.22, alpha=0.05))
+        canvas.translate(A4[0] / 2, A4[1] / 2)
+        canvas.rotate(38)
+        canvas.drawCentredString(0, 0, "SHEPHERD AI")
+    canvas.restoreState()
+
+    canvas.saveState()
+    canvas.setStrokeColor(LIGHT_GRAY)
+    canvas.setLineWidth(0.5)
+    canvas.line(20 * mm, 14 * mm, A4[0] - 20 * mm, 14 * mm)
+    canvas.setFont("Helvetica", 7)
+    canvas.setFillColor(GRAY)
+    canvas.drawString(20 * mm, 10 * mm, f"Report ID: {report_id}  •  Verify authenticity at shepherdai.dev/verify")
+    canvas.drawRightString(A4[0] - 20 * mm, 10 * mm, f"Page {canvas.getPageNumber()}")
+    canvas.restoreState()
 
 # ─────────────────────────────────────────────
 #  Main PDF Generator
@@ -141,17 +203,20 @@ def generate_pdf_report(
 
     # ── Title Block ──────────────────────────
     now = datetime.now().strftime("%B %d, %Y at %H:%M UTC")
+    report_id = _make_report_id(target_url, score, compliance_score, len(findings), user_email)
 
     title_data = [[
+        RLImage(str(LOGO_HEADER_PATH), width=14*mm, height=14*mm*(440/500)) if LOGO_HEADER_PATH.exists() else "",
         Paragraph(f"{company_name}", header_style),
         Paragraph(f"Compliance Risk Report — NDPA · PCI · HIPAA", sub_style),
     ]]
 
-    title_table = Table(title_data, colWidths=[120*mm, 50*mm], rowHeights=18*mm)
+    title_table = Table(title_data, colWidths=[20*mm, 100*mm, 50*mm], rowHeights=18*mm)
 
     title_table.setStyle(TableStyle([
         ("BACKGROUND",  (0, 0), (-1, -1), DARK_BG),
-        ("LEFTPADDING", (0, 0), (-1, -1), 12),
+        ("LEFTPADDING", (0, 0), (0, -1), 8),
+        ("LEFTPADDING", (1, 0), (1, -1), 4),
         ("RIGHTPADDING",(0, 0), (-1, -1), 12),
         ("TOPPADDING",  (0, 0), (-1, -1), 15),
         ("BOTTOMPADDING",(0, 0), (-1, -1), 10),
@@ -167,6 +232,7 @@ def generate_pdf_report(
     story.append(Spacer(1, 3*mm))
 
     meta_data = [
+        ["Report ID",    report_id],
         ["Generated",    now],
         ["Target API",   target_url],
         ["Prepared for", user_email],
@@ -365,14 +431,14 @@ def generate_pdf_report(
     story.append(HRFlowable(width="100%", thickness=0.5, color=LIGHT_GRAY))
     story.append(Spacer(1, 3*mm))
     story.append(Paragraph(
-        f"This report was generated automatically by Shepherd AI on {now}. "
-        f"Confirmed-leak evidence shown above is redacted — Shepherd AI never "
-        f"stores the full value of any sensitive data it detects. "
-        f"This report is intended for compliance review purposes only and "
-        f"does not constitute legal advice.",
+        f"This report was generated automatically by Shepherd AI on {now} and carries verification ID "
+        f"<b>{report_id}</b>, derived from this report's own data. Confirmed-leak evidence shown above is "
+        f"redacted — Shepherd AI never stores the full value of any sensitive data it detects. "
+        f"This report is intended for compliance review purposes only and does not constitute legal advice.",
         small_style
     ))
 
-    doc.build(story)
+    decorate = lambda c, d: _draw_page_decoration(c, d, report_id)
+    doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
     buffer.seek(0)
     return buffer.read()
