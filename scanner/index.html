@@ -31,9 +31,9 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
-  <nav class="border-b border-gray-800 bg-black px-6 py-4 flex items-center justify-between">
+  <nav class="border-b border-gray-800 bg-black px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
     <div class="mono text-lg font-bold text-emerald-400">SHEPHERD AI</div>
-    <div class="flex gap-6 items-baseline">
+    <div class="flex gap-4 sm:gap-6 items-baseline flex-wrap">
       <a href="index.html" class="mono text-xs text-emerald-400 font-bold px-3 py-1 bg-gray-900 rounded-full self-center">Scanner</a>
       <a href="settings.html" class="mono text-xs text-gray-300 hover:text-emerald-400 transition font-medium">Settings</a>
       <a href="#" onclick="logout()" class="mono text-xs text-gray-300 hover:text-red-400 transition font-medium">Log Out</a>
@@ -46,7 +46,7 @@
       Compliance-First API Risk Scoring — Built for African Startups & Fintechs
     </div>
 
-    <h1 class="text-5xl font-bold leading-tight mb-4 tracking-tight">
+    <h1 class="text-3xl sm:text-5xl font-bold leading-tight mb-4 tracking-tight px-2">
       Find the <span class="text-emerald-400">data leak</span> before your auditor does.
     </h1>
 
@@ -66,7 +66,7 @@
     </div>
 
     <div class="w-full max-w-xl">
-      <div class="flex gap-3 w-full">
+     <div class="flex flex-col sm:flex-row gap-3 w-full">
         <input
           id="urlInput"
           type="text"
@@ -78,7 +78,7 @@
         <button
           id="scanBtn"
           onclick="runScan()"
-          class="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-3 rounded-lg text-sm transition flex items-center gap-2 shadow-lg shadow-emerald-500/10"
+          class="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-3 rounded-lg text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 w-full sm:w-auto"
         >
           <svg id="spinner" class="spinner hidden w-4 h-4" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -148,7 +148,7 @@
       <div id="overlapWarning" class="hidden mt-3 mono text-xs text-red-400 bg-red-950/40 border border-red-900/50 rounded-lg p-3">
       </div>
     </div>
-    <div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
       <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
         <p class="mono text-xs text-gray-500 mb-1">Security score</p>
         <p id="statScore" class="text-3xl font-bold text-white">—</p>
@@ -163,7 +163,7 @@
       </div>
     </div>
 
-    <div id="downloadRow" class="hidden flex justify-between items-center mb-4">
+    <div id="downloadRow" class="hidden flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
       <p class="mono text-xs text-gray-500">
         Scan complete — <span id="downloadTarget" class="text-gray-300"></span>
       </p>
@@ -178,11 +178,11 @@
 
     <div id="alertsRow" class="hidden mt-4 bg-gray-900 border border-gray-800 rounded-xl p-5">
       <p class="mono text-xs text-emerald-400 mb-3">📧 Email Alerts — Get notified when new unprotected routes are detected</p>
-      <div class="flex gap-3 items-center">
+      <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
         <input id="alertEmailInput" type="email" placeholder="alert@yourcompany.com"
           class="mono flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition" />
         <button onclick="configureAlerts()" id="alertBtn"
-          class="mono text-xs bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg transition whitespace-nowrap">Enable Alerts</button>
+          class="mono text-xs bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg transition whitespace-nowrap w-full sm:w-auto">Enable Alerts</button>
       </div>
       <p id="alertStatus" class="hidden mono text-xs text-emerald-400 mt-2"></p>
       <p class="mono text-xs text-gray-600 mt-2">⚠️ Available on Starter ($49/mo) and above.</p>
@@ -190,11 +190,11 @@
 
     <div id="slackRow" class="hidden mt-4 bg-gray-900 border border-gray-800 rounded-xl p-5">
       <p class="mono text-xs text-emerald-400 mb-3">💬 Slack Alerts — Post scan results directly to your engineering channel</p>
-      <div class="flex gap-3 items-center">
+      <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
         <input id="slackWebhookInput" type="text" placeholder="https://hooks.slack.com/services/..."
           class="mono flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition" />
         <button onclick="configureSlack()" id="slackBtn"
-          class="mono text-xs bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg transition whitespace-nowrap">Connect Slack</button>
+          class="mono text-xs bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg transition whitespace-nowrap w-full sm:w-auto">Connect Slack</button>
       </div>
       <p id="slackStatus" class="hidden mono text-xs text-emerald-400 mt-2"></p>
       <p class="mono text-xs text-gray-600 mt-2">⚠️ Available on Pro ($149/mo).
@@ -217,8 +217,8 @@
       <p id="enterpriseStatus" class="hidden mono text-xs text-emerald-400 mt-2"></p>
     </div>
 
-    <div class="mt-8 border border-gray-800 rounded-xl overflow-hidden">
-      <table class="w-full text-sm" style="table-layout:fixed;">
+    <div class="mt-8 border border-gray-800 rounded-xl overflow-x-auto">
+      <table class="w-full text-sm" style="table-layout:fixed; min-width: 640px;">
         <thead class="bg-gray-900 border-b border-gray-800">
           <tr>
             <th class="mono text-left text-xs text-gray-500 px-4 py-3 w-2/5">Route</th>
@@ -249,8 +249,8 @@
         <p class="mono text-xs text-gray-500 uppercase tracking-widest">Audit History</p>
         <span class="mono text-xs text-gray-600">Last 20 scans</span>
       </div>
-      <div class="border border-gray-800 rounded-xl overflow-hidden">
-        <table class="w-full text-sm" style="table-layout:fixed;">
+      <div class="border border-gray-800 rounded-xl overflow-x-auto">
+        <table class="w-full text-sm" style="table-layout:fixed; min-width: 560px;">
           <thead class="bg-gray-900 border-b border-gray-800">
             <tr>
               <th class="mono text-left text-xs text-gray-500 px-4 py-3 w-1/4">Date</th>
