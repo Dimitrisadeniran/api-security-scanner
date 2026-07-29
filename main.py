@@ -72,6 +72,9 @@ class ReportRequest(BaseModel):
     score:        float
     findings:     list
     company_name: str = "Shepherd AI"
+    compliance_score: float = None
+    audit_status_label: str = None
+    confirmed_leak_count: int = 0
 
 class AlertSettingsRequest(BaseModel):
     email_alerts: bool = True
