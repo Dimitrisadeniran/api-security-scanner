@@ -82,6 +82,94 @@ def _redact(value: str) -> str:
     return f"{value[:2]}{'*' * (len(value) - 4)}{value[-2:]}"
 
 # ─────────────────────────────────────────────
+#  Remediation Guidance (Business+ tier PDF section)
+# ─────────────────────────────────────────────
+BASE_REMEDIATION = (
+    "Add an authentication requirement to this route (e.g. API key, OAuth2, "
+    "or JWT bearer scheme) before it reaches production."
+)
+
+FRAMEWORK_REMEDIATION = {
+    "HIPAA": (
+        "Restrict this data to authenticated, role-appropriate users only, "
+        "and enable audit logging for every access — required under HIPAA's "
+        "technical safeguards."
+    ),
+    "PCI": (
+        "Never return full card numbers in plaintext — mask or tokenize card "
+        "data, and confirm this endpoint sits within your defined PCI-DSS scope."
+    ),
+    "NDPA": (
+        "Limit the personal data this route returns to what's strictly "
+        "necessary (data minimization), and confirm a documented lawful "
+        "basis exists for this data flow."
+    ),
+    "CUSTOM": (
+        "Review this route against your internal data-handling policy — it "
+        "matched one of your organization's custom-flagged keywords."
+    ),
+}
+
+CONFIRMED_LEAK_PREFIX = (
+    "🔴 URGENT — this is a confirmed live exposure, not a naming-based guess. "
+    "Prioritize this fix immediately and consider rotating or invalidating any "
+    "data that may already have been exposed. "
+)
+
+OVERLAP_PREFIX = (
+    "This route triggers more than one regulatory framework at once — treat "
+    "it as a compliance review item, not just a technical fix. "
+)
+
+
+def _get_remediation(finding: dict) -> str:
+    """
+    Builds a concrete, actionable fix recommendation for a single finding.
+    Used in the Business+ tier PDF's Remediation Roadmap section.
+    """
+    parts = []
+
+    if finding.get("severity") == "CONFIRMED_LEAK":
+        parts.append(CONFIRMED_LEAK_PREFIX)
+    if finding.get("is_overlap"):
+        parts.append(OVERLAP_PREFIX)
+
+    parts.append(BASE_REMEDIATION)
+
+    for tag in finding.get("compliance", []):
+        guidance = FRAMEWORK_REMEDIATION.get(tag)
+        if guidance:
+            parts.append(guidance)
+
+    return " ".join(parts)
+
+
+def build_remediation_roadmap(findings: list) -> list:
+    """
+    Returns a list of {route, method, severity, remediation} dicts, sorted
+    with the highest-priority findings first — the input for the PDF's
+    Remediation Roadmap section. Only includes routes that actually need
+    a fix (skips clean/INFO-only routes with no framework or leak signal).
+    """
+    severity_order = {"CONFIRMED_LEAK": 0, "CRITICAL": 1, "WARNING": 2, "INFO": 3}
+
+    actionable = [
+        f for f in findings
+        if f.get("severity") in ("CONFIRMED_LEAK", "CRITICAL", "WARNING")
+    ]
+    actionable.sort(key=lambda f: severity_order.get(f.get("severity"), 4))
+
+    return [
+        {
+            "route": f["route"],
+            "method": f["method"],
+            "severity": f["severity"],
+            "remediation": _get_remediation(f),
+        }
+        for f in actionable
+    ]
+
+# ─────────────────────────────────────────────
 #  Logic: Fetch OpenAPI Schema
 # ─────────────────────────────────────────────
 async def fetch_openapi_schema(url: str):
