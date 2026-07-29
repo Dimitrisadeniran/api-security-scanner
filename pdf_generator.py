@@ -71,6 +71,62 @@ def _get_severity(finding: dict) -> str:
     return "INFO"
 
 
+# ─────────────────────────────────────────────
+#  Remediation Guidance (Business+ tier section)
+# ─────────────────────────────────────────────
+BASE_REMEDIATION = (
+    "Add an authentication requirement to this route (e.g. API key, OAuth2, "
+    "or JWT bearer scheme) before it reaches production."
+)
+
+FRAMEWORK_REMEDIATION = {
+    "HIPAA": (
+        "Restrict this data to authenticated, role-appropriate users only, "
+        "and enable audit logging for every access — required under HIPAA's "
+        "technical safeguards."
+    ),
+    "PCI": (
+        "Never return full card numbers in plaintext — mask or tokenize card "
+        "data, and confirm this endpoint sits within your defined PCI-DSS scope."
+    ),
+    "NDPA": (
+        "Limit the personal data this route returns to what's strictly "
+        "necessary (data minimization), and confirm a documented lawful "
+        "basis exists for this data flow."
+    ),
+    "CUSTOM": (
+        "Review this route against your internal data-handling policy — it "
+        "matched one of your organization's custom-flagged keywords."
+    ),
+}
+
+CONFIRMED_LEAK_PREFIX = (
+    "URGENT — this is a confirmed live exposure, not a naming-based guess. "
+    "Prioritize this fix immediately and consider rotating or invalidating "
+    "any data that may already have been exposed. "
+)
+
+OVERLAP_PREFIX = (
+    "This route triggers more than one regulatory framework at once — treat "
+    "it as a compliance review item, not just a technical fix. "
+)
+
+
+def _get_remediation_text(finding: dict) -> str:
+    """Builds a concrete fix recommendation for a single finding."""
+    parts = []
+    if finding.get("severity") == "CONFIRMED_LEAK":
+        parts.append(CONFIRMED_LEAK_PREFIX)
+    if finding.get("is_overlap"):
+        parts.append(OVERLAP_PREFIX)
+    parts.append(BASE_REMEDIATION)
+    for tag in finding.get("compliance", []):
+        guidance = FRAMEWORK_REMEDIATION.get(tag)
+        if guidance:
+            parts.append(guidance)
+    return " ".join(parts)
+
+
 def _make_report_id(target_url: str, score: float, compliance_score, findings_count: int, user_email: str) -> str:
     """
     Derives a verification ID from the report's actual content rather than
@@ -132,6 +188,7 @@ def generate_pdf_report(
     compliance_score: float = None,
     audit_status_label: str = None,
     confirmed_leak_count: int = 0,
+    include_remediation: bool = False,
 ) -> bytes:
     """
     Generates a compliance PDF report (NDPA / PCI / HIPAA).
@@ -140,6 +197,9 @@ def generate_pdf_report(
     compliance_score / audit_status_label / confirmed_leak_count are
     optional (v2.0 fields) — the report still renders correctly without
     them, just without the compliance-readiness section.
+
+    include_remediation adds a "Remediation Roadmap" section (Business+
+    tiers) with a concrete fix recommendation per unsecured finding.
     """
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -426,6 +486,42 @@ def generate_pdf_report(
         story.append(findings_table)
 
     story.append(Spacer(1, 8*mm))
+
+    # ── Remediation Roadmap (Business+ tiers only) ──
+    if include_remediation:
+        story.append(Paragraph("Remediation Roadmap", section_style))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=LIGHT_GRAY))
+        story.append(Spacer(1, 3*mm))
+
+        actionable = [f for f in findings if _get_severity(f) in ("CONFIRMED_LEAK", "CRITICAL", "WARNING")]
+        severity_order = {"CONFIRMED_LEAK": 0, "CRITICAL": 1, "WARNING": 2}
+        actionable.sort(key=lambda f: severity_order.get(_get_severity(f), 3))
+
+        if not actionable:
+            story.append(Paragraph(
+                "✅ No action items — every route is either secured or shows no compliance risk.",
+                ParagraphStyle("ok2", fontSize=10, textColor=GREEN, fontName="Helvetica-Bold")
+            ))
+        else:
+            for f in actionable:
+                severity = _get_severity(f)
+                risk_color = SEVERITY_COLORS.get(severity, GRAY)
+                risk_label = SEVERITY_LABELS.get(severity, "Low")
+                risk_hex = "#" + risk_color.hexval()[2:]
+
+                item_header = Paragraph(
+                    f'<font color="{risk_hex}"><b>[{risk_label}]</b></font> '
+                    f'<b>{f.get("method","")} {f.get("route","")}</b>',
+                    ParagraphStyle("remhead", fontSize=10, fontName="Helvetica", textColor=BLACK, spaceAfter=2)
+                )
+                item_body = Paragraph(
+                    _get_remediation_text(f),
+                    ParagraphStyle("rembody", fontSize=9, fontName="Helvetica", textColor=GRAY, spaceAfter=8, leftIndent=4)
+                )
+                story.append(item_header)
+                story.append(item_body)
+
+        story.append(Spacer(1, 6*mm))
 
     # ── Footer ───────────────────────────────
     story.append(HRFlowable(width="100%", thickness=0.5, color=LIGHT_GRAY))
