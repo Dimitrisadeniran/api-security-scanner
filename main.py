@@ -568,6 +568,10 @@ async def download_report(body: ReportRequest, user: dict = Depends(verify_api_k
             user_email=user["email"],
             tier=user["tier"],
             company_name=company_name,
+            compliance_score=body.compliance_score,
+            audit_status_label=body.audit_status_label,
+            confirmed_leak_count=body.confirmed_leak_count,
+            include_remediation=(user["tier"] in {"pro", "enterprise"}),
         )
         return StreamingResponse(
             io.BytesIO(pdf_bytes),
@@ -626,6 +630,7 @@ async def download_history_report(scan_id: int, user: dict = Depends(verify_api_
             compliance_score=scan.get("compliance_score"),
             audit_status_label=scan.get("audit_status_label"),
             confirmed_leak_count=scan.get("confirmed_leak_count") or 0,
+            include_remediation=(user["tier"] in {"pro", "enterprise"}),
         )
         return StreamingResponse(
             io.BytesIO(pdf_bytes),
