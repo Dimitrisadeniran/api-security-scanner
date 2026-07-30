@@ -1,1 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>About — Shepherd AI, a product of Astro Rescue Ventures</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-family: 'Syne', sans-serif; background: #0a0a0a; color: #f0f0f0; }
+    .mono { font-family: 'DM Mono', monospace; }
+    .fade-in { animation: fadeIn 0.4s ease forwards; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
 
+  <nav class="border-b border-gray-800 bg-black px-6 py-4 flex items-center justify-between">
+    <div class="mono text-lg font-bold text-emerald-400">SHEPHERD AI</div>
+    <div class="flex gap-6 items-baseline">
+      <a href="index.html" class="mono text-xs text-gray-400 hover:text-emerald-400 transition font-medium">Scanner</a>
+      <a href="about.html" class="mono text-xs text-emerald-400 font-bold px-3 py-1 bg-gray-900 rounded-full">About</a>
+      <a href="login.html" class="mono text-xs text-gray-400 hover:text-emerald-400 transition font-medium">Sign In</a>
+    </div>
+  </nav>
+
+  <main class="flex-1 px-6 py-16">
+    <div class="max-w-3xl mx-auto fade-in">
+
+      <div class="mono text-xs text-emerald-400 border border-emerald-800 bg-emerald-950 px-4 py-1.5 rounded-full mb-6 inline-flex items-center gap-2">
+        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+        About
+      </div>
+
+      <h1 class="text-4xl font-bold leading-tight mb-6 tracking-tight">
+        Shepherd AI is a product of <span class="text-emerald-400">Astro Rescue Ventures</span>
+      </h1>
+
+      <div class="space-y-5 text-gray-300 text-base leading-relaxed" style="font-family: sans-serif;">
+        <p>
+          <strong class="text-white">Astro Rescue Ventures</strong> is the registered company behind Shepherd AI.
+          Shepherd AI is not a separate business — it is a proprietary software product developed, operated, and
+          maintained by Astro Rescue Ventures as part of its portfolio of digital products and services.
+        </p>
+
+        <p>
+          Shepherd AI is a compliance-first API security scanner built for African startups and fintechs. It
+          scans a target API in minutes, identifies unsecured routes, confirms real data exposure in live
+          responses — not just guesses based on route names — and produces a compliance-readiness score against
+          NDPA, PCI, and HIPAA, the frameworks that govern how Nigerian fintech and healthtech companies are
+          expected to handle sensitive data.
+        </p>
+
+        <p>
+          This website, and every service delivered through it, is owned and operated by Astro Rescue Ventures.
+          All payments for Shepherd AI's plans are processed on behalf of Astro Rescue Ventures.
+        </p>
+      </div>
+
+      <div class="mt-12 bg-gray-900 border border-gray-800 rounded-2xl p-6">
+        <p class="mono text-xs text-emerald-400 uppercase tracking-widest mb-4">Company Details</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-300" style="font-family: sans-serif;">
+          <div>
+            <p class="mono text-xs text-gray-500 mb-1">Registered Company</p>
+            <p class="font-medium">Astro Rescue Ventures</p>
+          </div>
+          <div>
+            <p class="mono text-xs text-gray-500 mb-1">RC Number</p>
+            <p class="font-medium">RC - 8597868</p>
+          </div>
+          <div>
+            <p class="mono text-xs text-gray-500 mb-1">Product</p>
+            <p class="font-medium">Shepherd AI — API Compliance Scanner</p>
+          </div>
+          <div>
+            <p class="mono text-xs text-gray-500 mb-1">Contact</p>
+            <p class="font-medium">astrorescue50@gmail.com</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-10">
+        <a href="index.html" class="mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-3 rounded-lg transition inline-flex items-center gap-2">
+          Go to Scanner &rarr;
+        </a>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 bg-black px-6 py-6">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      <p class="mono text-xs text-gray-500">© 2026 Astro Rescue Ventures. All rights reserved.</p>
+      <p class="mono text-xs text-gray-500">
+        Shepherd AI is a product of
+        <a href="about.html" class="text-emerald-400 hover:text-emerald-300 underline">Astro Rescue Ventures</a>.
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>
