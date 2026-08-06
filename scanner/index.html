@@ -7,7 +7,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
   <style>
-    /* FIX 1: Hide body instantly — prevents scanner flashing to logged-out users */
     body { display: none; font-family: 'Syne', sans-serif; background: #0a0a0a; color: #f0f0f0; }
     .mono { font-family: 'DM Mono', monospace; }
     .spinner { animation: spin 0.7s linear infinite; }
@@ -15,7 +14,6 @@
     .fade-in { animation: fadeIn 0.4s ease forwards; }
     @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 
-    /* Glow effect for scan button */
     .scan-glow {
       box-shadow: 0 0 30px rgba(52, 211, 153, 0.15), 0 0 60px rgba(52, 211, 153, 0.05);
       transition: all 0.3s ease;
@@ -25,7 +23,6 @@
       transform: translateY(-2px);
     }
 
-    /* Custom dropdown styling */
     .service-selector {
       position: relative;
       min-width: 160px;
@@ -65,25 +62,12 @@
       font-size: 0.7rem;
       pointer-events: none;
     }
-
-    /* Option styling */
     .service-selector select option {
       background: #1a1a1a;
       color: #e0e0e0;
       padding: 0.5rem;
     }
 
-    /* Service badge in dropdown */
-    .option-badge {
-      display: inline-block;
-      padding: 0.1rem 0.5rem;
-      border-radius: 9999px;
-      font-size: 0.6rem;
-      font-weight: 700;
-      margin-left: 0.5rem;
-    }
-
-    /* Price display animation */
     .price-pulse {
       animation: pricePulse 2s ease-in-out infinite;
     }
@@ -92,7 +76,6 @@
       50% { opacity: 0.6; }
     }
 
-    /* Service info card */
     .service-info {
       background: linear-gradient(135deg, rgba(26, 26, 26, 0.9), rgba(10, 10, 10, 0.9));
       border: 1px solid #1f1f1f;
@@ -120,16 +103,9 @@
       color: #9ca3af;
       font-family: 'DM Mono', monospace;
     }
-    .service-feature .check {
-      color: #34d399;
-      font-weight: 700;
-    }
-    .service-feature .cross {
-      color: #6b7280;
-      font-weight: 700;
-    }
+    .service-feature .check { color: #34d399; font-weight: 700; }
+    .service-feature .cross { color: #6b7280; font-weight: 700; }
 
-    /* Interactive scan button states */
     .scan-btn-ready {
       background: linear-gradient(135deg, #34d399, #10b981);
       color: #000;
@@ -148,16 +124,13 @@
       transform: translateY(-2px);
       box-shadow: 0 10px 40px rgba(52, 211, 153, 0.2);
     }
-    .scan-btn-ready:active {
-      transform: translateY(0);
-    }
+    .scan-btn-ready:active { transform: translateY(0); }
     .scan-btn-ready:disabled {
       opacity: 0.6;
       cursor: not-allowed;
       transform: none !important;
     }
 
-    /* Upgrade button on service card */
     .upgrade-badge {
       background: linear-gradient(135deg, #f59e0b, #d97706);
       color: #000;
@@ -176,7 +149,6 @@
       box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
     }
 
-    /* Tier indicator dots */
     .tier-dot {
       display: inline-block;
       width: 6px;
@@ -189,7 +161,6 @@
     .tier-dot.pro { background: #8b5cf6; }
     .tier-dot.enterprise { background: #34d399; }
 
-    /* Input group with dropdown */
     .scan-input-group {
       display: flex;
       flex-direction: column;
@@ -207,7 +178,6 @@
       flex: 1;
       min-width: 0;
     }
-
     .url-input-wrapper input {
       width: 100%;
       background: #111111;
@@ -225,22 +195,18 @@
       border-color: #34d399;
       box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.1);
     }
-    .url-input-wrapper input::placeholder {
-      color: #4a4a4a;
-    }
+    .url-input-wrapper input::placeholder { color: #4a4a4a; }
 
     .action-group {
       display: flex;
       gap: 0.75rem;
       flex-shrink: 0;
     }
-
     .service-selector {
       min-width: 160px;
       flex-shrink: 0;
     }
 
-    /* Responsive adjustments */
     @media (max-width: 640px) {
       .action-group {
         flex-direction: column;
@@ -255,7 +221,18 @@
       }
     }
 
-    /* Payment modal overlay */
+    /* Plan-specific result badges */
+    .plan-badge-free { background: #374151; color: #9ca3af; }
+    .plan-badge-starter { background: #1e3a5f; color: #60a5fa; }
+    .plan-badge-pro { background: #3b1e5f; color: #a78bfa; }
+    .plan-badge-enterprise { background: #064e3b; color: #34d399; }
+
+    /* Scan depth indicators */
+    .scan-depth-basic { border-left: 3px solid #6b7280; }
+    .scan-depth-standard { border-left: 3px solid #3b82f6; }
+    .scan-depth-advanced { border-left: 3px solid #8b5cf6; }
+    .scan-depth-comprehensive { border-left: 3px solid #34d399; }
+
     .payment-overlay {
       display: none;
       position: fixed;
@@ -270,9 +247,7 @@
       justify-content: center;
       padding: 1.5rem;
     }
-    .payment-overlay.active {
-      display: flex;
-    }
+    .payment-overlay.active { display: flex; }
     .payment-modal {
       background: #1a1a1a;
       border: 1px solid #2a2a2a;
@@ -311,13 +286,8 @@
       border-bottom: 1px solid #2a2a2a;
       font-family: 'DM Mono', monospace;
     }
-    .payment-modal .features-list li:last-child {
-      border-bottom: none;
-    }
-    .payment-modal .features-list li .icon {
-      color: #34d399;
-      font-size: 1.1rem;
-    }
+    .payment-modal .features-list li:last-child { border-bottom: none; }
+    .payment-modal .features-list li .icon { color: #34d399; font-size: 1.1rem; }
     .payment-actions {
       display: flex;
       gap: 0.75rem;
@@ -367,7 +337,6 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
-  <!-- NAVIGATION - UNCHANGED -->
   <nav class="border-b border-gray-800 bg-black px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
     <div class="mono text-lg font-bold text-emerald-400">SHEPHERD AI</div>
     <div class="flex gap-4 sm:gap-6 items-baseline flex-wrap">
@@ -378,7 +347,6 @@
     </div>
   </nav>
 
-  <!-- HERO SECTION - WITH ENHANCED SCANNER -->
   <section class="flex flex-col items-center justify-center px-6 py-24 text-center">
     <div class="mono text-xs text-emerald-400 border border-emerald-800 bg-emerald-950 px-4 py-1.5 rounded-full mb-6 flex items-center gap-2">
       <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
@@ -394,7 +362,6 @@
       live responses — not just guesses from route names — and gives you an audit-readiness score you can act on.
     </p>
 
-    <!-- CONSENT CHECKBOX - UNCHANGED -->
     <div class="w-full max-w-xl mb-4">
       <label class="flex items-start gap-3 text-left cursor-pointer group">
         <input type="checkbox" id="authConsent"
@@ -406,33 +373,21 @@
       </label>
     </div>
 
-    <!-- SCAN INPUT GROUP WITH SERVICE SELECTOR -->
     <div class="w-full max-w-xl">
       <div class="scan-input-group">
-        <!-- URL Input -->
         <div class="url-input-wrapper">
-          <input
-            id="urlInput"
-            type="text"
-            placeholder="https://your-fastapi-app.com"
-            onclick="this.select()"
-            onkeydown="if(event.key==='Enter') runScan()"
-          />
+          <input id="urlInput" type="text" placeholder="https://your-fastapi-app.com"
+            onclick="this.select()" onkeydown="if(event.key==='Enter') runScan()" />
         </div>
-
-        <!-- Action Group: Dropdown + Scan Button -->
         <div class="action-group">
-          <!-- Service Selector Dropdown -->
           <div class="service-selector">
             <select id="serviceSelect" onchange="updateServiceInfo()">
-              <option value="free" data-price="$0" data-color="gray">🆓 Free Scan</option>
-              <option value="starter" data-price="$49/mo" data-color="blue">🚀 Starter</option>
-              <option value="pro" data-price="$149/mo" data-color="purple">⚡ Pro</option>
-              <option value="enterprise" data-price="Custom" data-color="emerald">🏢 Enterprise</option>
+              <option value="free" data-price="$0">🆓 Free Scan</option>
+              <option value="starter" data-price="$49/mo">🚀 Starter</option>
+              <option value="pro" data-price="$149/mo">⚡ Pro</option>
+              <option value="enterprise" data-price="Custom">🏢 Enterprise</option>
             </select>
           </div>
-
-          <!-- Scan Button -->
           <button id="scanBtn" onclick="runScan()" class="scan-btn-ready">
             <svg id="spinner" class="spinner hidden w-4 h-4" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -443,7 +398,6 @@
         </div>
       </div>
 
-      <!-- Service Info Card (UPDATED with Upgrade button) -->
       <div id="serviceInfo" class="service-info active" onclick="handleCardClick()">
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div class="flex items-center gap-3">
@@ -462,18 +416,23 @@
             </button>
           </div>
         </div>
+        <!-- Scan Depth Indicator -->
+        <div id="scanDepthIndicator" class="mt-2 flex items-center gap-2">
+          <span class="text-[10px] mono text-gray-500">Scan depth:</span>
+          <span id="scanDepthLabel" class="text-[10px] mono text-gray-400">Basic</span>
+          <div class="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
+            <div id="scanDepthBar" class="h-full bg-gray-500 rounded-full" style="width: 25%"></div>
+          </div>
+        </div>
       </div>
 
-      <!-- NOTE - UNCHANGED -->
       <p class="mono text-left text-[11px] text-gray-500 mt-2 px-1 opacity-80">
         Note: Your API target must explicitly expose <span class="text-gray-400">/openapi.json</span>
       </p>
     </div>
 
-    <!-- ERROR MESSAGE - UNCHANGED -->
     <p id="errorMsg" class="mono text-red-400 text-xs mt-3 hidden"></p>
 
-    <!-- API KEY CARD - UNCHANGED -->
     <div class="mt-12 w-full max-w-xl mx-auto border-t border-gray-900 pt-8">
       <div id="apiKeyCard" class="bg-gray-900 border border-gray-800/60 rounded-xl p-4 mb-3">
         <div class="flex items-center justify-between mb-2">
@@ -483,18 +442,13 @@
           </div>
           <div class="flex gap-2">
             <button onclick="toggleKeyVisibility()" id="toggleKeyBtn"
-              class="mono text-[10px] text-gray-400 hover:text-white transition px-2 py-1 bg-gray-800 rounded">
-              Show
-            </button>
+              class="mono text-[10px] text-gray-400 hover:text-white transition px-2 py-1 bg-gray-800 rounded">Show</button>
             <button onclick="copyApiKey()" id="copyKeyBtn"
-              class="mono text-[10px] text-gray-400 hover:text-emerald-400 transition px-2 py-1 bg-gray-800 rounded">
-              Copy
-            </button>
+              class="mono text-[10px] text-gray-400 hover:text-emerald-400 transition px-2 py-1 bg-gray-800 rounded">Copy</button>
           </div>
         </div>
         <input id="apiKeyInput" type="password" readonly onclick="this.select()"
-          class="mono w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-xs text-gray-400 focus:outline-none focus:border-emerald-500 transition cursor-pointer"
-        />
+          class="mono w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-xs text-gray-400 focus:outline-none focus:border-emerald-500 transition cursor-pointer" />
         <div class="flex items-center justify-between mt-2">
           <p id="userEmailDisplay" class="mono text-[10px] text-gray-500"></p>
           <a href="settings.html" class="mono text-[10px] text-emerald-500 hover:text-emerald-400 transition font-medium">Upgrade plan →</a>
@@ -502,7 +456,6 @@
       </div>
     </div>
 
-    <!-- USAGE BAR - UNCHANGED -->
     <div id="usageBar" class="hidden mt-4 w-full max-w-xl mx-auto">
       <div class="flex justify-between items-center mb-1.5">
         <span class="mono text-xs text-gray-500">Scans used this month</span>
@@ -517,31 +470,20 @@
     </div>
   </section>
 
-  <!-- PAYMENT MODAL (NEW) -->
-  <div id="paymentModal" class="payment-overlay" onclick="if(event.target===this) closePaymentModal()">
-    <div class="payment-modal">
-      <div class="flex items-center justify-between mb-2">
-        <h2 id="modalPlanName">Upgrade to Starter</h2>
-        <button onclick="closePaymentModal()" class="text-gray-500 hover:text-white transition text-xl">✕</button>
-      </div>
-      <p class="text-gray-400 text-sm mb-1 font-mono">One-time payment · Instant access</p>
-      <div class="price-tag" id="modalPrice">$49</div>
-      <ul class="features-list" id="modalFeatures">
-        <li><span class="icon">✓</span> 100 scans per month</li>
-        <li><span class="icon">✓</span> Full PHI/PII/PCI detection</li>
-        <li><span class="icon">✓</span> Email alerts</li>
-        <li><span class="icon">✗</span> Slack integration</li>
-      </ul>
-      <div class="payment-actions">
-        <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
-        <button class="btn-pay" onclick="proceedToPayment()">💰 Pay Now</button>
-      </div>
-      <p class="text-center text-gray-600 text-xs mt-4 font-mono">🔒 Secure payment processed via Stripe</p>
-    </div>
-  </div>
-
-  <!-- RESULTS SECTION - COMPLETELY UNCHANGED -->
+  <!-- RESULTS SECTION -->
   <section id="resultsSection" class="hidden px-6 pb-20 max-w-6xl mx-auto w-full fade-in">
+    <!-- Plan-specific banner -->
+    <div id="planBanner" class="mb-6 rounded-xl p-4 border flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center gap-3">
+        <span id="planBadge" class="mono text-xs px-3 py-1.5 rounded-full font-bold">Free Scan</span>
+        <span id="scanDepthBadge" class="mono text-[10px] text-gray-500">Basic Analysis</span>
+      </div>
+      <div id="planFeaturesDisplay" class="flex flex-wrap gap-2">
+        <span class="mono text-[10px] text-gray-400">✓ 10 scans/mo</span>
+        <span class="mono text-[10px] text-gray-400">✓ Basic PHI/PII</span>
+      </div>
+    </div>
+
     <div id="complianceBanner" class="mb-6 rounded-xl p-5 border">
       <div class="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -634,7 +576,7 @@
     </div>
   </section>
 
-  <!-- HISTORY SECTION - UNCHANGED -->
+  <!-- HISTORY SECTION -->
   <section class="px-6 pb-20 max-w-6xl mx-auto w-full">
     <div class="flex justify-center mb-6">
       <button id="historyBtn" onclick="loadHistory()"
@@ -645,7 +587,6 @@
         View Audit History
       </button>
     </div>
-
     <div id="historySection" class="hidden fade-in">
       <div class="flex items-center justify-between mb-4">
         <p class="mono text-xs text-gray-500 uppercase tracking-widest">Audit History</p>
@@ -669,56 +610,163 @@
     </div>
   </section>
 
-  <!-- JAVASCRIPT - ALL ORIGINAL FUNCTIONS + PAYMENT INTEGRATION -->
+  <!-- PAYMENT MODAL -->
+  <div id="paymentModal" class="payment-overlay" onclick="if(event.target===this) closePaymentModal()">
+    <div class="payment-modal">
+      <div class="flex items-center justify-between mb-2">
+        <h2 id="modalPlanName">Upgrade to Starter</h2>
+        <button onclick="closePaymentModal()" class="text-gray-500 hover:text-white transition text-xl">✕</button>
+      </div>
+      <p class="text-gray-400 text-sm mb-1 font-mono">One-time payment · Instant access</p>
+      <div class="price-tag" id="modalPrice">$49</div>
+      <ul class="features-list" id="modalFeatures">
+        <li><span class="icon">✓</span> 100 scans per month</li>
+        <li><span class="icon">✓</span> Full PHI/PII/PCI detection</li>
+        <li><span class="icon">✓</span> Email alerts</li>
+        <li><span class="icon">✗</span> Slack integration</li>
+      </ul>
+      <div class="payment-actions">
+        <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
+        <button class="btn-pay" onclick="proceedToPayment()">💰 Pay Now</button>
+      </div>
+      <p class="text-center text-gray-600 text-xs mt-4 font-mono">🔒 Secure payment processed via Stripe</p>
+    </div>
+  </div>
+
   <script>
     "use strict";
 
-    // FIX 4: API_BASE defined as a global — results.js can reference window.API_BASE
     const API_BASE = "https://api-security-scanner-55gm.onrender.com/api";
 
-    const TIER_COLORS = {
-      free:       "bg-gray-800 text-gray-400",
-      starter:    "bg-blue-950 text-blue-400",
-      pro:        "bg-purple-950 text-purple-400",
-      enterprise: "bg-emerald-950 text-emerald-400",
-    };
-
-    const TIER_FEATURES = {
+    // ── PLAN CONFIGURATION ──
+    const PLAN_CONFIG = {
       free: {
         name: "Free Scan",
         price: "$0",
         dot: "free",
-        priceDisplay: "Free",
-        features: ["10 scans/mo", "Basic PHI/PII", "✗ Slack alerts", "✗ Email alerts"],
-        modalFeatures: ["10 scans per month", "Basic PHI/PII detection", "✗ Email alerts", "✗ Slack integration"]
+        tier: "free",
+        badgeClass: "plan-badge-free",
+        scanDepth: "Basic",
+        scanDepthPercent: 25,
+        features: [
+          { text: "10 scans/mo", included: true },
+          { text: "Basic PHI/PII", included: true },
+          { text: "Email alerts", included: false },
+          { text: "Slack alerts", included: false }
+        ],
+        // What the scan actually delivers
+        scanCapabilities: {
+          detectPHI: true,
+          detectPII: true,
+          detectPCI: false,
+          detectHIPAA: false,
+          detectNDPA: false,
+          generateReport: true,
+          slackAlerts: false,
+          emailAlerts: false,
+          whiteLabel: false,
+          customKeywords: false,
+          remediationRoadmap: false,
+          executiveReports: false,
+          continuousMonitoring: false
+        }
       },
       starter: {
         name: "Starter",
         price: "$49/mo",
         dot: "starter",
-        priceDisplay: "$49",
-        features: ["100 scans/mo", "Full PHI/PII/PCI", "✓ Email alerts", "✗ Slack alerts"],
-        modalFeatures: ["100 scans per month", "Full PHI/PII/PCI detection", "✓ Email alerts", "✗ Slack integration"]
+        badgeClass: "plan-badge-starter",
+        scanDepth: "Standard",
+        scanDepthPercent: 50,
+        features: [
+          { text: "100 scans/mo", included: true },
+          { text: "Full PHI/PII/PCI", included: true },
+          { text: "Email alerts", included: true },
+          { text: "Slack alerts", included: false }
+        ],
+        scanCapabilities: {
+          detectPHI: true,
+          detectPII: true,
+          detectPCI: true,
+          detectHIPAA: false,
+          detectNDPA: false,
+          generateReport: true,
+          slackAlerts: false,
+          emailAlerts: true,
+          whiteLabel: false,
+          customKeywords: false,
+          remediationRoadmap: false,
+          executiveReports: false,
+          continuousMonitoring: false
+        }
       },
       pro: {
         name: "Pro",
         price: "$149/mo",
         dot: "pro",
-        priceDisplay: "$149",
-        features: ["Unlimited scans", "Full HIPAA/NDPA", "✓ Slack alerts", "✓ Email alerts"],
-        modalFeatures: ["Unlimited scans", "Full HIPAA/NDPA compliance", "✓ Slack alerts", "✓ Email alerts"]
+        badgeClass: "plan-badge-pro",
+        scanDepth: "Advanced",
+        scanDepthPercent: 75,
+        features: [
+          { text: "Unlimited scans", included: true },
+          { text: "Full HIPAA/NDPA", included: true },
+          { text: "Email alerts", included: true },
+          { text: "Slack alerts", included: true }
+        ],
+        scanCapabilities: {
+          detectPHI: true,
+          detectPII: true,
+          detectPCI: true,
+          detectHIPAA: true,
+          detectNDPA: true,
+          generateReport: true,
+          slackAlerts: true,
+          emailAlerts: true,
+          whiteLabel: false,
+          customKeywords: false,
+          remediationRoadmap: true,
+          executiveReports: true,
+          continuousMonitoring: false
+        }
       },
       enterprise: {
         name: "Enterprise",
         price: "Custom",
         dot: "enterprise",
-        priceDisplay: "Custom",
-        features: ["Unlimited scans", "White-label reports", "✓ Custom PHI keywords", "✓ Priority support"],
-        modalFeatures: ["Unlimited scans", "White-label reports", "Custom PHI keywords", "Priority support"]
+        badgeClass: "plan-badge-enterprise",
+        scanDepth: "Comprehensive",
+        scanDepthPercent: 100,
+        features: [
+          { text: "Unlimited scans", included: true },
+          { text: "White-label reports", included: true },
+          { text: "Custom PHI keywords", included: true },
+          { text: "Priority support", included: true }
+        ],
+        scanCapabilities: {
+          detectPHI: true,
+          detectPII: true,
+          detectPCI: true,
+          detectHIPAA: true,
+          detectNDPA: true,
+          generateReport: true,
+          slackAlerts: true,
+          emailAlerts: true,
+          whiteLabel: true,
+          customKeywords: true,
+          remediationRoadmap: true,
+          executiveReports: true,
+          continuousMonitoring: true
+        }
       }
     };
 
-    // FIX 2: replace() prevents Back-button redirect loop after logout
+    const TIER_COLORS = {
+      free: "bg-gray-800 text-gray-400",
+      starter: "bg-blue-950 text-blue-400",
+      pro: "bg-purple-950 text-purple-400",
+      enterprise: "bg-emerald-950 text-emerald-400"
+    };
+
     function logout() {
       localStorage.removeItem("shepherd_api_key");
       localStorage.removeItem("shepherd_email");
@@ -726,26 +774,35 @@
       window.location.replace("login.html");
     }
 
-    // Update service info card based on dropdown selection
+    // ── Update Service Info ──
     function updateServiceInfo() {
       const select = document.getElementById("serviceSelect");
       const tier = select.value;
-      const info = TIER_FEATURES[tier];
-      if (!info) return;
+      const config = PLAN_CONFIG[tier];
+      if (!config) return;
 
-      // Update card
-      document.getElementById("serviceNameDisplay").textContent = info.name;
-      document.getElementById("servicePriceDisplay").textContent = info.price;
-      document.getElementById("tierDot").className = `tier-dot ${info.dot}`;
+      document.getElementById("serviceNameDisplay").textContent = config.name;
+      document.getElementById("servicePriceDisplay").textContent = config.price;
+      document.getElementById("tierDot").className = `tier-dot ${config.dot}`;
 
       // Update features
       const featuresContainer = document.getElementById("serviceFeatures");
-      featuresContainer.innerHTML = info.features.map(f => {
-        const isCheck = f.startsWith("✓");
-        return `<span class="service-feature"><span class="${isCheck ? 'check' : 'cross'}">${isCheck ? '✓' : '✗'}</span> ${f.replace(/[✓✗]\s*/, '')}</span>`;
+      featuresContainer.innerHTML = config.features.map(f => {
+        const icon = f.included ? '✓' : '✗';
+        const cls = f.included ? 'check' : 'cross';
+        return `<span class="service-feature"><span class="${cls}">${icon}</span> ${f.text}</span>`;
       }).join('');
 
-      // Update badge color
+      // Update scan depth indicator
+      document.getElementById("scanDepthLabel").textContent = config.scanDepth;
+      document.getElementById("scanDepthBar").style.width = `${config.scanDepthPercent}%`;
+      
+      // Color the scan depth bar based on plan
+      const bar = document.getElementById("scanDepthBar");
+      const colors = { free: 'bg-gray-500', starter: 'bg-blue-500', pro: 'bg-purple-500', enterprise: 'bg-emerald-500' };
+      bar.className = `h-full rounded-full ${colors[tier] || 'bg-gray-500'}`;
+
+      // Update badge
       const badge = document.getElementById("tierBadge");
       if (badge) {
         badge.textContent = tier.toUpperCase();
@@ -754,77 +811,59 @@
 
       // Show/hide upgrade button
       const upgradeBtn = document.getElementById("upgradeBtn");
-      if (tier === "free") {
-        upgradeBtn.style.display = "block";
-      } else {
-        upgradeBtn.style.display = "none";
-      }
+      upgradeBtn.style.display = tier === "free" ? "block" : "none";
 
-      // Store selected tier for scan
       localStorage.setItem("selected_tier", tier);
     }
 
-    // Handle click on service info card
     function handleCardClick() {
       const select = document.getElementById("serviceSelect");
       const tier = select.value;
-      if (tier !== "free") {
-        showPaymentModal();
-      }
+      if (tier !== "free") showPaymentModal();
     }
 
-    // Show payment modal
+    // ── Payment Modal ──
     function showPaymentModal() {
       const select = document.getElementById("serviceSelect");
       const tier = select.value;
-      const info = TIER_FEATURES[tier];
-      if (!info || tier === "free") {
-        // If free, redirect to settings
+      const config = PLAN_CONFIG[tier];
+      if (!config || tier === "free") {
         window.location.href = "settings.html";
         return;
       }
 
-      document.getElementById("modalPlanName").textContent = `Upgrade to ${info.name}`;
-      document.getElementById("modalPrice").textContent = info.priceDisplay;
+      document.getElementById("modalPlanName").textContent = `Upgrade to ${config.name}`;
+      document.getElementById("modalPrice").textContent = config.price;
 
       const featuresList = document.getElementById("modalFeatures");
-      featuresList.innerHTML = info.modalFeatures.map(f => {
-        const isCheck = f.startsWith("✓");
-        return `<li><span class="icon">${isCheck ? '✓' : '✗'}</span> ${f.replace(/[✓✗]\s*/, '')}</li>`;
-      }).join('');
+      featuresList.innerHTML = config.features.map(f => 
+        `<li><span class="icon">${f.included ? '✓' : '✗'}</span> ${f.text}</li>`
+      ).join('');
 
       document.getElementById("paymentModal").classList.add("active");
       document.body.style.overflow = "hidden";
     }
 
-    // Close payment modal
     function closePaymentModal() {
       document.getElementById("paymentModal").classList.remove("active");
       document.body.style.overflow = "";
     }
 
-    // Proceed to payment - redirect to settings page with payment intent
     function proceedToPayment() {
       const select = document.getElementById("serviceSelect");
       const tier = select.value;
-      
-      // Store the plan they want to purchase
       localStorage.setItem("pending_purchase", tier);
-      
-      // Redirect to settings page where payment processing happens
-      window.location.href = "settings.html?action=payment&plan=" + tier;
+      window.location.href = `settings.html?action=payment&plan=${tier}`;
     }
 
-    // FIX 3: Single DOMContentLoaded
     document.addEventListener("DOMContentLoaded", function () {
-      const key   = localStorage.getItem("shepherd_api_key");
+      const key = localStorage.getItem("shepherd_api_key");
       const email = localStorage.getItem("shepherd_email");
-      const tier  = localStorage.getItem("shepherd_tier") || "free";
+      const tier = localStorage.getItem("shepherd_tier") || "free";
 
-      if (key)   document.getElementById("apiKeyInput").value = key;
+      if (key) document.getElementById("apiKeyInput").value = key;
       if (email) document.getElementById("userEmailDisplay").textContent = email;
 
-      // Set dropdown to match user's tier
       const select = document.getElementById("serviceSelect");
       if (tier && select.querySelector(`option[value="${tier}"]`)) {
         select.value = tier;
@@ -835,28 +874,20 @@
       badge.textContent = tier.toUpperCase();
       badge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
 
-      // FIX 5: Fetch and display usage bar on every page load
       fetchUsage();
 
-      // Check if user was redirected from payment
+      // Check for payment success
       const urlParams = new URLSearchParams(window.location.search);
       const paymentStatus = urlParams.get('payment');
       if (paymentStatus === 'success') {
-        // Show success message
         const errorMsg = document.getElementById("errorMsg");
         errorMsg.textContent = "✅ Payment successful! Your plan has been upgraded.";
         errorMsg.className = "mono text-emerald-400 text-xs mt-3";
         errorMsg.classList.remove("hidden");
-        // Refresh user tier
         const newTier = localStorage.getItem("shepherd_tier") || "free";
         select.value = newTier;
         updateServiceInfo();
         fetchUsage();
-      } else if (paymentStatus === 'cancel') {
-        const errorMsg = document.getElementById("errorMsg");
-        errorMsg.textContent = "⚠️ Payment was cancelled. You can try again anytime.";
-        errorMsg.className = "mono text-yellow-400 text-xs mt-3";
-        errorMsg.classList.remove("hidden");
       }
     });
 
@@ -870,15 +901,14 @@
         if (!res.ok) return;
         const data = await res.json();
 
-        const used  = data.scans_used  ?? 0;
+        const used = data.scans_used ?? 0;
         const limit = data.scans_limit ?? 0;
         const unlimited = limit >= 999999;
-        const pct   = (!unlimited && limit > 0) ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+        const pct = (!unlimited && limit > 0) ? Math.min(100, Math.round((used / limit) * 100)) : 0;
 
-        document.getElementById("usageText").textContent    = `${used} / ${unlimited ? "∞" : limit}`;
+        document.getElementById("usageText").textContent = `${used} / ${unlimited ? "∞" : limit}`;
         document.getElementById("usageBarFill").style.width = `${pct}%`;
 
-        // Turn bar red when 90%+ used
         if (pct >= 90) {
           document.getElementById("usageBarFill").classList.replace("bg-emerald-500", "bg-red-500");
         } else {
@@ -892,17 +922,15 @@
         } else {
           document.getElementById("upgradePrompt").classList.add("hidden");
         }
-      } catch (_) {
-        // Non-critical — usage bar stays hidden on network error
-      }
+      } catch (_) {}
     }
 
     function toggleKeyVisibility() {
-      const input    = document.getElementById("apiKeyInput");
-      const btn      = document.getElementById("toggleKeyBtn");
+      const input = document.getElementById("apiKeyInput");
+      const btn = document.getElementById("toggleKeyBtn");
       const isHidden = input.type === "password";
-      input.type      = isHidden ? "text"  : "password";
-      btn.textContent = isHidden ? "Hide"  : "Show";
+      input.type = isHidden ? "text" : "password";
+      btn.textContent = isHidden ? "Hide" : "Show";
     }
 
     function copyApiKey() {
@@ -914,7 +942,7 @@
       });
     }
 
-    // ENHANCED runScan with payment check
+    // ── ENHANCED RUN SCAN with Plan-Specific Analysis ──
     window.runScan = async function() {
       const urlInput = document.getElementById("urlInput");
       const url = urlInput.value.trim();
@@ -942,15 +970,15 @@
 
       const tier = document.getElementById("serviceSelect").value;
       const userTier = localStorage.getItem("shepherd_tier") || "free";
+      const config = PLAN_CONFIG[tier];
 
-      // Check if user is trying to use a paid plan without paying
+      // Check if user has paid for this plan
       if (tier !== "free" && userTier !== tier) {
-        // Show payment modal
         showPaymentModal();
         return;
       }
 
-      // Check if free user has exceeded limits
+      // Check free user limits
       if (tier === "free") {
         try {
           const res = await fetch(`${API_BASE}/usage`, {
@@ -977,13 +1005,19 @@
       spinner.classList.remove("hidden");
 
       try {
+        // Send the scan request with plan info
         const res = await fetch(`${API_BASE}/scan`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "x-api-key": localStorage.getItem("shepherd_api_key") || "",
           },
-          body: JSON.stringify({ url, tier }),
+          body: JSON.stringify({ 
+            url, 
+            tier,
+            // Send plan capabilities so backend knows what to analyze
+            capabilities: config.scanCapabilities
+          }),
         });
 
         const data = await res.json();
@@ -992,27 +1026,32 @@
           throw new Error(data.error || "Scan failed");
         }
 
-        // Store results
+        // Store results with plan info
         window._lastScan = data;
         window._lastUrl = url;
+        window._lastPlan = tier;
 
-        // Show results
-        renderResults(data, url);
+        // Show results with plan context
+        renderResults(data, url, tier);
 
         // Show download row
         document.getElementById("downloadRow").classList.remove("hidden");
         document.getElementById("downloadTarget").textContent = url;
 
-        // Show alert/slack/enterprise rows based on tier
-        document.getElementById("alertsRow").classList.remove("hidden");
-        if (tier === "pro" || tier === "enterprise") {
+        // Show plan-specific features in results
+        showPlanFeatures(tier);
+
+        // Show alert/slack/enterprise rows based on plan
+        if (config.scanCapabilities.emailAlerts) {
+          document.getElementById("alertsRow").classList.remove("hidden");
+        }
+        if (config.scanCapabilities.slackAlerts) {
           document.getElementById("slackRow").classList.remove("hidden");
         }
-        if (tier === "enterprise") {
+        if (config.scanCapabilities.whiteLabel || config.scanCapabilities.customKeywords) {
           document.getElementById("enterpriseRow").classList.remove("hidden");
         }
 
-        // Refresh usage after scan
         fetchUsage();
 
       } catch (err) {
@@ -1025,7 +1064,26 @@
       }
     };
 
-    function renderResults(data, url) {
+    // ── Show Plan Features in Results ──
+    function showPlanFeatures(tier) {
+      const config = PLAN_CONFIG[tier];
+      if (!config) return;
+
+      const banner = document.getElementById("planBanner");
+      banner.classList.remove("hidden");
+
+      document.getElementById("planBadge").textContent = config.name;
+      document.getElementById("planBadge").className = `mono text-xs px-3 py-1.5 rounded-full font-bold ${config.badgeClass}`;
+      document.getElementById("scanDepthBadge").textContent = `${config.scanDepth} Analysis`;
+
+      const featuresDisplay = document.getElementById("planFeaturesDisplay");
+      featuresDisplay.innerHTML = config.features.map(f => 
+        `<span class="mono text-[10px] ${f.included ? 'text-gray-400' : 'text-gray-600'}">${f.included ? '✓' : '✗'} ${f.text}</span>`
+      ).join('');
+    }
+
+    // ── Render Results with Plan Context ──
+    function renderResults(data, url, tier) {
       const section = document.getElementById("resultsSection");
       section.classList.remove("hidden");
 
@@ -1051,32 +1109,64 @@
         badge.className = "mono text-xs px-4 py-2 rounded-full font-bold bg-red-950 text-red-400";
       }
 
+      // Get plan capabilities for filtering what to show
+      const config = PLAN_CONFIG[tier] || PLAN_CONFIG.free;
+      const caps = config.scanCapabilities;
+
       const tbody = document.getElementById("resultsBody");
-      tbody.innerHTML = routes.map(route => `
-        <tr>
-          <td class="mono text-xs text-gray-300 px-4 py-3 truncate">${route.path || '/'}</td>
-          <td class="mono text-xs text-gray-500 px-4 py-3">${route.method || 'GET'}</td>
-          <td class="mono text-xs px-4 py-3">
-            <span class="${route.secured ? 'text-emerald-400' : 'text-red-400'}">
-              ${route.secured ? '🟢 Secured' : '🔴 Unprotected'}
-            </span>
-          </td>
-          <td class="mono text-xs px-4 py-3">
-            <span class="px-2 py-1 rounded-full text-xs font-bold
-              ${route.risk === 'critical' ? 'bg-red-950 text-red-400' :
-                route.risk === 'high' ? 'bg-orange-950 text-orange-400' :
-                route.risk === 'medium' ? 'bg-yellow-950 text-yellow-400' :
-                'bg-emerald-950 text-emerald-400'}">
-              ${route.risk || 'low'}
-            </span>
-          </td>
-          <td class="mono text-xs text-gray-500 px-4 py-3">${(route.frameworks || []).join(', ') || '—'}</td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = routes.map(route => {
+        // Filter frameworks based on plan capabilities
+        let frameworks = route.frameworks || [];
+        if (!caps.detectHIPAA) frameworks = frameworks.filter(f => f !== 'HIPAA');
+        if (!caps.detectPCI) frameworks = frameworks.filter(f => f !== 'PCI');
+        if (!caps.detectNDPA) frameworks = frameworks.filter(f => f !== 'NDPA');
+        if (!caps.detectPHI) frameworks = frameworks.filter(f => f !== 'PHI');
+        if (!caps.detectPII) frameworks = frameworks.filter(f => f !== 'PII');
+
+        return `
+          <tr>
+            <td class="mono text-xs text-gray-300 px-4 py-3 truncate">${route.path || '/'}</td>
+            <td class="mono text-xs text-gray-500 px-4 py-3">${route.method || 'GET'}</td>
+            <td class="mono text-xs px-4 py-3">
+              <span class="${route.secured ? 'text-emerald-400' : 'text-red-400'}">
+                ${route.secured ? '🟢 Secured' : '🔴 Unprotected'}
+              </span>
+            </td>
+            <td class="mono text-xs px-4 py-3">
+              <span class="px-2 py-1 rounded-full text-xs font-bold
+                ${route.risk === 'critical' ? 'bg-red-950 text-red-400' :
+                  route.risk === 'high' ? 'bg-orange-950 text-orange-400' :
+                  route.risk === 'medium' ? 'bg-yellow-950 text-yellow-400' :
+                  'bg-emerald-950 text-emerald-400'}">
+                ${route.risk || 'low'}
+              </span>
+            </td>
+            <td class="mono text-xs text-gray-500 px-4 py-3">${frameworks.length > 0 ? frameworks.join(', ') : '—'}</td>
+          </tr>
+        `;
+      }).join('');
+
+      // Show plan-specific warning for missing capabilities
+      if (!caps.detectHIPAA && !caps.detectPCI && !caps.detectNDPA) {
+        const warning = document.getElementById("overlapWarning");
+        warning.textContent = "ℹ️ Upgrade to Pro or Enterprise for HIPAA, PCI, and NDPA compliance detection.";
+        warning.className = "mt-3 mono text-xs text-blue-400 bg-blue-950/40 border border-blue-900/50 rounded-lg p-3";
+        warning.classList.remove("hidden");
+      } else if (!caps.detectHIPAA) {
+        const warning = document.getElementById("overlapWarning");
+        warning.textContent = "ℹ️ Upgrade to Pro for HIPAA compliance detection.";
+        warning.className = "mt-3 mono text-xs text-blue-400 bg-blue-950/40 border border-blue-900/50 rounded-lg p-3";
+        warning.classList.remove("hidden");
+      } else {
+        document.getElementById("overlapWarning").classList.add("hidden");
+      }
     }
 
+    // ── Utility Functions ──
     function downloadPDF() {
-      alert("📄 PDF download will be available in the full implementation.");
+      const tier = window._lastPlan || 'free';
+      const config = PLAN_CONFIG[tier];
+      alert(`📄 PDF Report (${config.name}): Includes ${config.scanDepth} analysis with ${config.features.filter(f => f.included).length} features.`);
     }
 
     function configureAlerts() {
@@ -1118,13 +1208,11 @@
     }
   </script>
 
-  <!-- EXTERNAL SCRIPT - PRESERVED -->
   <script
     src="results.js"
     onerror="document.getElementById('errorMsg').textContent='Scanner failed to load (results.js missing). Please refresh.'; document.getElementById('errorMsg').classList.remove('hidden');"
   ></script>
 
-  <!-- FOOTER - UNCHANGED -->
   <footer class="border-t border-gray-800 bg-black px-6 py-6">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
       <p class="mono text-xs text-gray-500">© 2026 Astro Rescue Ventures. All rights reserved.</p>
