@@ -383,7 +383,69 @@
         </span>
       </label>
     </div>
+    <div class="w-full max-w-4xl mb-8 px-2">
+      <p class="mono text-xs text-gray-400 mb-3 text-left">Choose your scan tier</p>
+      <div id="tierSelector" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
 
+        <button type="button" data-tier="free" onclick="selectScanTier('free')"
+          class="tier-select-card group relative text-left bg-gray-900 border-2 border-gray-800 rounded-xl p-4 transition-all hover:border-emerald-700">
+          <p class="mono text-sm font-bold text-white mb-1">Starter</p>
+          <p class="mono text-xs text-emerald-400 font-bold mb-3">Free</p>
+          <ul class="text-[11px] text-gray-400 space-y-1 mono">
+            <li>✓ Compliance scan</li>
+            <li>✓ Basic findings</li>
+          </ul>
+          <div class="tier-check hidden absolute top-3 right-3 w-5 h-5 bg-emerald-500 rounded-full items-center justify-center">
+            <svg class="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </div>
+        </button>
+
+        <button type="button" data-tier="starter" onclick="selectScanTier('starter')"
+          class="tier-select-card group relative text-left bg-gray-900 border-2 border-gray-800 rounded-xl p-4 transition-all hover:border-emerald-700">
+          <p class="mono text-sm font-bold text-white mb-1">Professional</p>
+          <p class="mono text-xs text-emerald-400 font-bold mb-3">NGN 450,000</p>
+          <ul class="text-[11px] text-gray-400 space-y-1 mono">
+            <li>✓ Full audit</li>
+            <li>✓ PDF report</li>
+            <li>✓ Severity ratings</li>
+          </ul>
+          <div class="tier-check hidden absolute top-3 right-3 w-5 h-5 bg-emerald-500 rounded-full items-center justify-center">
+            <svg class="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </div>
+        </button>
+
+        <button type="button" data-tier="pro" onclick="selectScanTier('pro')"
+          class="tier-select-card group relative text-left bg-gray-900 border-2 border-emerald-800 rounded-xl p-4 transition-all hover:border-emerald-500">
+          <span class="absolute -top-2.5 right-3 mono text-[9px] bg-emerald-500 text-black font-bold px-2 py-0.5 rounded-full">POPULAR</span>
+          <p class="mono text-sm font-bold text-white mb-1">Business</p>
+          <p class="mono text-xs text-emerald-400 font-bold mb-3">NGN 1,500,000</p>
+          <ul class="text-[11px] text-gray-400 space-y-1 mono">
+            <li>✓ Everything in Pro</li>
+            <li>✓ Remediation roadmap</li>
+            <li>✓ Slack alerts</li>
+          </ul>
+          <div class="tier-check hidden absolute top-3 right-3 w-5 h-5 bg-emerald-500 rounded-full items-center justify-center">
+            <svg class="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </div>
+        </button>
+
+        <button type="button" data-tier="enterprise" onclick="selectScanTier('enterprise')"
+          class="tier-select-card group relative text-left bg-gray-900 border-2 border-gray-800 rounded-xl p-4 transition-all hover:border-emerald-700">
+          <p class="mono text-sm font-bold text-white mb-1">Enterprise</p>
+          <p class="mono text-xs text-emerald-400 font-bold mb-3">NGN 3,500,000/mo</p>
+          <ul class="text-[11px] text-gray-400 space-y-1 mono">
+            <li>✓ Unlimited scans</li>
+            <li>✓ Continuous monitoring</li>
+            <li>✓ Dedicated engineer</li>
+          </ul>
+          <div class="tier-check hidden absolute top-3 right-3 w-5 h-5 bg-emerald-500 rounded-full items-center justify-center">
+            <svg class="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </div>
+        </button>
+
+      </div>
+      <p id="tierUpgradeNote" class="hidden mono text-xs text-yellow-400 mt-3 bg-yellow-950/30 border border-yellow-900/50 rounded-lg p-3 text-left"></p>
+    </div> 
     <div class="w-full max-w-xl">
       <div class="scan-input-group">
         <div class="url-input-wrapper">
