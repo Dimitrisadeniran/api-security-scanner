@@ -947,7 +947,12 @@
       badge.textContent = tier.toUpperCase();
       badge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
 
+      // FIX 5: Fetch and display usage bar on every page load
       fetchUsage();
+
+      // Pre-select the card matching the user's current plan
+      selectScanTier(tier);
+    });
 
       // Check for payment success
       const urlParams = new URLSearchParams(window.location.search);
