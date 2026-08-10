@@ -1280,6 +1280,26 @@
       }
     }
   </script>
+  const TIER_RANK = { free: 0, starter: 1, pro: 2, enterprise: 3 };
+  const TIER_DISPLAY_NAMES = { free: "Starter (Free)", starter: "Professional", pro: "Business", enterprise: "Enterprise" };
+  let selectedScanTier = null;
+
+  function selectScanTier(tier) {
+    selectedScanTier = tier;
+    document.querySelectorAll('.tier-select-card').forEach(card => {
+      card.classList.toggle('selected', card.dataset.tier === tier);
+    });
+
+    const currentTier = localStorage.getItem("shepherd_tier") || "free";
+    const note = document.getElementById("tierUpgradeNote");
+
+    if (TIER_RANK[tier] > TIER_RANK[currentTier]) {
+      note.innerHTML = `You're currently on <strong>${TIER_DISPLAY_NAMES[currentTier]}</strong>. Upgrade to <strong>${TIER_DISPLAY_NAMES[tier]}</strong> to unlock this tier — <a href="settings.html" class="underline text-yellow-300">Upgrade now →</a>`;
+      note.classList.remove("hidden");
+    } else {
+      note.classList.add("hidden");
+    }
+  }
 
   <script
     src="results.js"
