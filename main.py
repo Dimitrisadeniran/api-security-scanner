@@ -1,4 +1,4 @@
-# main.py — Shepherd AI v0.7 — with 2FA Support
+# main.py — Shepherd AI v0.7 — with 2FA & Cookie Support
 import io
 import json
 import hmac
@@ -11,10 +11,11 @@ from base64 import b64encode
 from io import BytesIO
 from datetime import datetime, timedelta, timezone
 
-from fastapi import FastAPI, HTTPException, Header, Request, Depends
+from fastapi import FastAPI, HTTPException, Header, Request, Depends, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -38,7 +39,7 @@ logger = logging.getLogger("ShepherdAI")
 limiter = Limiter(key_func=get_remote_address)
 
 # ─────────────────────────────────────────────
-#  App Init
+#  App Init & CORS Configuration
 # ─────────────────────────────────────────────
 app = FastAPI(
     title="Shepherd AI - Scanner API",
@@ -48,10 +49,18 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Explicit origins are REQUIRED when allow_credentials=True
+ALLOWED_ORIGINS = [
+    "https://api-security-scanner-1-rxnh.onrender.com",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "http://localhost:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -62,7 +71,7 @@ def on_startup():
     logger.info("🚀 Shepherd AI ready with 2FA support.")
 
 # ─────────────────────────────────────────────
-#  ALL Models — defined together before any route
+#  ALL Models
 # ─────────────────────────────────────────────
 class ScanRequest(BaseModel):
     target_url: str
@@ -95,7 +104,6 @@ class EnterpriseSettingsRequest(BaseModel):
 class BillingUpgradeRequest(BaseModel):
     new_tier: str
 
-# NEW: 2FA Models
 class TwoFactorVerifyRequest(BaseModel):
     otp_code: str
 
@@ -111,15 +119,9 @@ class LoginWith2FARequest(BaseModel):
 #  Auth Dependency (API Key)
 # ─────────────────────────────────────────────
 async def verify_api_key(x_api_key: str = Header(None)):
-    print("API KEY RECEIVED:", x_api_key)
-
     user = database.get_user_by_api_key(x_api_key)
-
-    print("USER FOUND:", user)
-
     if not user:
         raise HTTPException(status_code=401, detail="Invalid API key.")
-
     return user
 
 # ─────────────────────────────────────────────
@@ -151,8 +153,9 @@ def home():
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
 # ─────────────────────────────────────────────
-#  Auth Routes (Updated with 2FA)
+#  Auth Routes
 # ─────────────────────────────────────────────
 @app.post("/api/auth/register")
 def register(body: RegisterRequest):
@@ -171,18 +174,13 @@ def register(body: RegisterRequest):
     return {"message": "Account created.", "api_key": result["api_key"], "tier": body.tier}
 
 @app.post("/api/auth/login")
-def login(body: LoginWith2FARequest):
+def login(body: LoginWith2FARequest, response: Response):
     logger.info(f"LOGIN ATTEMPT: {body.email}")
 
     try:
         user = database.get_user_by_email(body.email, body.password)
-
-        logger.info(f"USER LOOKUP RESULT: {user}")
-
         if not user:
             raise HTTPException(status_code=401, detail="Invalid credentials.")
-
-        # rest of login code...
 
     except Exception as e:
         logger.exception("LOGIN ERROR")
@@ -191,14 +189,12 @@ def login(body: LoginWith2FARequest):
     # Check if 2FA is enabled
     if user.get("is_2fa_enabled", False):
         if not body.otp_code:
-            # Return that 2FA is required but don't authenticate yet
             return {
                 "requires_2fa": True,
                 "message": "2FA code required",
                 "user_id": user["id"]
             }
         
-        # Verify OTP code
         user_data = database.get_user_by_id(user["id"])
         if not user_data or not user_data.get("otp_secret"):
             raise HTTPException(status_code=401, detail="2FA not properly configured")
@@ -206,15 +202,22 @@ def login(body: LoginWith2FARequest):
         if not database.verify_otp(user_data["otp_secret"], body.otp_code):
             raise HTTPException(status_code=401, detail="Invalid 2FA code")
     
-    # Create session for web login
+    # Create session
     session_token = str(uuid.uuid4())
     expires_at = (datetime.now() + timedelta(days=7)).isoformat()
-    database.create_session(
-    user["id"],
-    session_token,
-    expires_at
-    )
+    database.create_session(user["id"], session_token, expires_at)
     
+    # Attach HTTP-only session cookie for cross-domain browser requests
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        samesite="none",
+        secure=True,
+        max_age=7 * 24 * 3600,
+        path="/"
+    )
+
     return {
         "id": user["id"],
         "email": user["email"],
@@ -225,48 +228,40 @@ def login(body: LoginWith2FARequest):
     }
 
 @app.post("/api/auth/logout")
-async def logout(request: Request):
+async def logout(request: Request, response: Response):
     """Logout and clear session"""
     session_token = request.cookies.get("session_token")
     if session_token:
         database.delete_session(session_token)
-    return JSONResponse({"message": "Logged out"})
+    
+    response.delete_cookie(key="session_token", path="/", samesite="none", secure=True)
+    return {"message": "Logged out"}
 
 # ─────────────────────────────────────────────
-#  NEW: 2FA Routes
+#  2FA Routes
 # ─────────────────────────────────────────────
 @app.post("/api/auth/setup-2fa")
-async def setup_2fa(
-    user: dict = Depends(verify_api_key)
-):
+async def setup_2fa(user: dict = Depends(verify_api_key)):
     """Generate 2FA secret and QR code for setup"""
-    # Check if 2FA is already enabled
     status = database.get_user_2fa_status(user["id"])
-
-    print("2FA status:", status)
-
     if status is None:
         raise HTTPException(status_code=500, detail="get_user_2fa_status returned None")
 
     if status.get("enabled", False):
         raise HTTPException(status_code=400, detail="2FA already enabled")
     
-    # Generate new secret
     secret = database.generate_otp_secret()
     uri = database.get_otp_uri(user["email"], secret, issuer="Shepherd AI")
     
-    # Generate QR code
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
     qr.add_data(uri)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
     
-    # Convert QR code to base64
     buffered = BytesIO()
     img.save(buffered, format="PNG")
     qr_base64 = b64encode(buffered.getvalue()).decode()
     
-    # Store secret temporarily (not enabled yet)
     database.store_otp_secret_temp(user["id"], secret)
     
     return {
@@ -281,7 +276,6 @@ async def verify_2fa(
     user: dict = Depends(verify_api_key)
 ):
     """Verify 2FA code and enable 2FA for the user"""
-    # Get user's secret
     user_data = database.get_user_by_id(user["id"])
     if not user_data or not user_data.get("otp_secret"):
         raise HTTPException(status_code=400, detail="2FA not set up")
@@ -289,11 +283,9 @@ async def verify_2fa(
     if user_data.get("is_2fa_enabled", False):
         raise HTTPException(status_code=400, detail="2FA already enabled")
     
-    # Verify the OTP code
     if not database.verify_otp(user_data["otp_secret"], body.otp_code):
         raise HTTPException(status_code=400, detail="Invalid 2FA code")
     
-    # Enable 2FA
     if database.enable_2fa_for_user(user["id"], user_data["otp_secret"]):
         return {"message": "2FA enabled successfully"}
     else:
@@ -304,8 +296,7 @@ async def disable_2fa(
     body: TwoFactorDisableRequest,
     user: dict = Depends(verify_api_key)
 ):
-    """Disable 2FA for the user (requires OTP verification)"""
-    # Get user's secret
+    """Disable 2FA for the user"""
     user_data = database.get_user_by_id(user["id"])
     if not user_data or not user_data.get("otp_secret"):
         raise HTTPException(status_code=400, detail="2FA not enabled")
@@ -313,7 +304,6 @@ async def disable_2fa(
     if not user_data.get("is_2fa_enabled", False):
         raise HTTPException(status_code=400, detail="2FA not enabled")
     
-    # Verify OTP code before disabling
     if not database.verify_otp(user_data["otp_secret"], body.otp_code):
         raise HTTPException(status_code=400, detail="Invalid 2FA code")
     
@@ -334,10 +324,7 @@ async def get_current_user_info(user: dict = Depends(require_current_user)):
     }
 
 @app.get("/api/auth/2fa-status")
-@app.get("/api/auth/2fa-status")
-async def get_2fa_status(
-    user: dict = Depends(verify_api_key)
-):
+async def get_2fa_status(user: dict = Depends(verify_api_key)):
     """Get 2FA status for the current user"""
     return database.get_user_2fa_status(user["id"])
 
@@ -370,7 +357,6 @@ async def run_scan(
 
         unsecured_routes, score, compliance_summary = engine.find_unsecured_routes(schema, custom_keywords)
 
-        # v2.0: live-probe unsecured GET routes for actual confirmed leaks
         compliance_summary = await engine.probe_for_leaks(
             base_url=body.target_url,
             unsecured=unsecured_routes,
@@ -387,7 +373,6 @@ async def run_scan(
             confirmed_leak_count=compliance_summary["confirmed_leak_count"],
         )
 
-        # Email alert
         alert_settings = database.get_alert_settings(user["id"])
         if alert_settings and alert_settings["email_alerts"]:
             email_service.send_scan_alert(
@@ -399,7 +384,6 @@ async def run_scan(
                 findings=unsecured_routes,
             )
 
-        # Slack alert
         slack_settings = database.get_slack_settings(user["id"])
         if slack_settings and slack_settings["slack_alerts"] and slack_settings["slack_webhook"]:
             slack_service.send_slack_alert(
@@ -442,7 +426,7 @@ async def run_scan(
         raise HTTPException(status_code=500, detail="Internal scan error.")
 
 # ─────────────────────────────────────────────
-#  Usage
+#  Usage & Configuration Routes
 # ─────────────────────────────────────────────
 @app.get("/api/usage")
 def get_usage(user: dict = Depends(verify_api_key)):
@@ -455,9 +439,6 @@ def get_usage(user: dict = Depends(verify_api_key)):
         "scans_remaining": max(0, usage["limit"] - usage["used"])
     }
 
-# ─────────────────────────────────────────────
-#  Email Alerts
-# ─────────────────────────────────────────────
 @app.post("/api/alerts/configure")
 def configure_alerts(body: AlertSettingsRequest, user: dict = Depends(verify_api_key)):
     if body.email_alerts and user["tier"] == "free":
@@ -492,9 +473,6 @@ def get_alert_settings_route(user: dict = Depends(verify_api_key)):
     settings = database.get_alert_settings(user["id"])
     return settings or {"email_alerts": False, "alert_email": user["email"]}
 
-# ─────────────────────────────────────────────
-#  Slack Alerts
-# ─────────────────────────────────────────────
 @app.post("/api/slack/configure")
 def configure_slack(body: SlackSettingsRequest, user: dict = Depends(verify_api_key)):
     if user["tier"] not in {"pro", "enterprise"}:
@@ -527,9 +505,6 @@ def get_slack_settings_route(user: dict = Depends(verify_api_key)):
     settings = database.get_slack_settings(user["id"])
     return settings or {"slack_alerts": False, "slack_webhook": ""}
 
-# ─────────────────────────────────────────────
-#  Enterprise Settings
-# ─────────────────────────────────────────────
 @app.post("/api/enterprise/settings")
 def save_enterprise(body: EnterpriseSettingsRequest, user: dict = Depends(verify_api_key)):
     if user["tier"] != "enterprise":
@@ -553,7 +528,7 @@ def get_enterprise(user: dict = Depends(verify_api_key)):
     return database.get_enterprise_settings(user["id"])
 
 # ─────────────────────────────────────────────
-#  PDF Report
+#  PDF Report & Audit History
 # ─────────────────────────────────────────────
 @app.post("/api/report/download")
 async def download_report(body: ReportRequest, user: dict = Depends(verify_api_key)):
@@ -585,9 +560,6 @@ async def download_report(body: ReportRequest, user: dict = Depends(verify_api_k
         logger.error(f"PDF Error: {e}")
         raise HTTPException(status_code=500, detail="PDF generation failed.")
 
-# ─────────────────────────────────────────────
-#  Audit History
-# ─────────────────────────────────────────────
 @app.get("/api/history")
 def get_history(user: dict = Depends(verify_api_key)):
     if user["tier"] == "free":
@@ -595,19 +567,6 @@ def get_history(user: dict = Depends(verify_api_key)):
     history = database.get_scan_history(user["id"])
     return {"email": user["email"], "tier": user["tier"], "count": len(history), "history": history}
 
-# ─────────────────────────────────────────────
-#  Billing: Paystack
-# ─────────────────────────────────────────────
-def verify_paystack_webhook(request_data: bytes, signature: str) -> bool:
-    if not PAYSTACK_SECRET_KEY or "sk_test_your_key" in PAYSTACK_SECRET_KEY:
-        logger.warning("⚠️ PAYSTACK_SECRET_KEY not configured.")
-        return False
-    computed = hmac.new(
-        PAYSTACK_SECRET_KEY.encode("utf-8"),
-        request_data,
-        hashlib.sha256
-    ).hexdigest()
-    return hmac.compare_digest(computed, signature)
 @app.get("/api/history/{scan_id}/report")
 async def download_history_report(scan_id: int, user: dict = Depends(verify_api_key)):
     if user["tier"] == "free":
@@ -643,6 +602,21 @@ async def download_history_report(scan_id: int, user: dict = Depends(verify_api_
     except Exception as e:
         logger.error(f"History PDF Error: {e}")
         raise HTTPException(status_code=500, detail="PDF generation failed.")
+
+# ─────────────────────────────────────────────
+#  Billing: Paystack
+# ─────────────────────────────────────────────
+def verify_paystack_webhook(request_data: bytes, signature: str) -> bool:
+    if not PAYSTACK_SECRET_KEY or "sk_test_your_key" in PAYSTACK_SECRET_KEY:
+        logger.warning("⚠️ PAYSTACK_SECRET_KEY not configured.")
+        return False
+    computed = hmac.new(
+        PAYSTACK_SECRET_KEY.encode("utf-8"),
+        request_data,
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(computed, signature)
+
 @app.post("/api/billing/upgrade")
 def create_upgrade_link(body: BillingUpgradeRequest, user: dict = Depends(verify_api_key)):
     if body.new_tier not in {"starter", "pro", "enterprise"}:
@@ -714,63 +688,13 @@ async def paystack_webhook(request: Request):
 
     return JSONResponse(content={"message": "OK"})
 
-
-@app.get("/debug/schema")
-def debug_schema():
-    import sqlite3
-
-    conn = sqlite3.connect(database.DATABASE_PATH)
-    conn.row_factory = sqlite3.Row
-
-    cur = conn.cursor()
-
-    cur.execute("PRAGMA table_info(users)")
-    users = [dict(row) for row in cur.fetchall()]
-
-    cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    tables = [row["name"] for row in cur.fetchall()]
-
-    conn.close()
-
-    return {
-        "database": str(database.DATABASE_PATH),
-        "tables": tables,
-        "users_table": users,
-    }
-# TEMP DEBUG ROUTE
-# ==========================================
-
-@app.get("/debug/user/{email}")
-def debug_user(email: str):
-    import sqlite3
-
-    conn = sqlite3.connect(database.DATABASE_PATH)
-    conn.row_factory = sqlite3.Row
-
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT email, password FROM users WHERE email=?",
-        (email,)
-    )
-
-    row = cur.fetchone()
-    conn.close()
-
-    if not row:
-        return {"found": False}
-
-    return dict(row)    
 # ─────────────────────────────────────────────
-#  Web UI Routes (with 2FA)
+#  Web UI Routes
 # ─────────────────────────────────────────────
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
-
 templates = Jinja2Templates(directory="templates")
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    """Login page with 2FA support"""
     user = await get_current_user(request)
     if user:
         return RedirectResponse(url="/dashboard", status_code=302)
@@ -778,12 +702,10 @@ async def login_page(request: Request):
 
 @app.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request):
-    """Settings page with 2FA management"""
     user = await get_current_user(request)
     if not user:
         return RedirectResponse(url="/login", status_code=302)
     
-    # Get 2FA status
     status = database.get_user_2fa_status(user["id"])
     user["is_2fa_enabled"] = status["enabled"]
     
@@ -794,7 +716,6 @@ async def settings_page(request: Request):
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page(request: Request):
-    """Dashboard page"""
     user = await get_current_user(request)
     if not user:
         return RedirectResponse(url="/login", status_code=302)
@@ -804,6 +725,6 @@ async def dashboard_page(request: Request):
     })
 
 # ─────────────────────────────────────────────
-#  Static Files — MUST be last
+#  Static Files
 # ─────────────────────────────────────────────
 app.mount("/scanner", StaticFiles(directory="scanner", html=True), name="scanner")
