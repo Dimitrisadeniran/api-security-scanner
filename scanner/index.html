@@ -791,7 +791,6 @@
           { text: "Email alerts", included: false },
           { text: "Slack alerts", included: false }
         ],
-        // What the scan actually delivers
         scanCapabilities: {
           detectPHI: true,
           detectPII: true,
@@ -933,7 +932,7 @@
       // Update scan depth indicator
       document.getElementById("scanDepthLabel").textContent = config.scanDepth;
       document.getElementById("scanDepthBar").style.width = `${config.scanDepthPercent}%`;
-      
+
       // Color the scan depth bar based on plan
       const bar = document.getElementById("scanDepthBar");
       const colors = { free: 'bg-gray-500', starter: 'bg-blue-500', pro: 'bg-purple-500', enterprise: 'bg-emerald-500' };
@@ -973,7 +972,7 @@
       document.getElementById("modalPrice").textContent = config.price;
 
       const featuresList = document.getElementById("modalFeatures");
-      featuresList.innerHTML = config.features.map(f => 
+      featuresList.innerHTML = config.features.map(f =>
         `<li><span class="icon">${f.included ? '✓' : '✗'}</span> ${f.text}</li>`
       ).join('');
 
@@ -993,6 +992,30 @@
       window.location.href = `settings.html?action=payment&plan=${tier}`;
     }
 
+    // ── TIER SELECTION CARDS ──
+    const TIER_RANK = { free: 0, starter: 1, pro: 2, enterprise: 3 };
+    const TIER_DISPLAY_NAMES = { free: "Starter (Free)", starter: "Professional", pro: "Business", enterprise: "Enterprise" };
+    let selectedScanTier = null;
+
+    function selectScanTier(tier) {
+      selectedScanTier = tier;
+      document.querySelectorAll('.tier-select-card').forEach(card => {
+        card.classList.toggle('selected', card.dataset.tier === tier);
+      });
+
+      const currentTier = localStorage.getItem("shepherd_tier") || "free";
+      const note = document.getElementById("tierUpgradeNote");
+
+      if (TIER_RANK[tier] > TIER_RANK[currentTier]) {
+        note.innerHTML = `You're currently on <strong>${TIER_DISPLAY_NAMES[currentTier]}</strong>. Upgrade to <strong>${TIER_DISPLAY_NAMES[tier]}</strong> to unlock this tier — <a href="settings.html" class="underline text-yellow-300">Upgrade now →</a>`;
+        note.classList.remove("hidden");
+      } else {
+        note.classList.add("hidden");
+      }
+    }
+
+    // ── Single DOMContentLoaded handler (was previously split into two,
+    //    with a stray unmatched closing brace that broke the whole script) ──
     document.addEventListener("DOMContentLoaded", function () {
       const key = localStorage.getItem("shepherd_api_key");
       const email = localStorage.getItem("shepherd_email");
@@ -1011,14 +1034,14 @@
       badge.textContent = tier.toUpperCase();
       badge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
 
-      // FIX 5: Fetch and display usage bar on every page load
+      // Fetch and display usage bar on every page load
       fetchUsage();
 
       // Pre-select the card matching the user's current plan
       selectScanTier(tier);
-    });
 
-      // Check for payment success
+      // Check for payment success (moved inside this handler so `select`
+      // is in scope, and merged so there's no dangling extra `});`)
       const urlParams = new URLSearchParams(window.location.search);
       const paymentStatus = urlParams.get('payment');
       if (paymentStatus === 'success') {
@@ -1154,8 +1177,8 @@
             "Content-Type": "application/json",
             "x-api-key": localStorage.getItem("shepherd_api_key") || "",
           },
-          body: JSON.stringify({ 
-            url, 
+          body: JSON.stringify({
+            url,
             tier,
             // Send plan capabilities so backend knows what to analyze
             capabilities: config.scanCapabilities
@@ -1219,7 +1242,7 @@
       document.getElementById("scanDepthBadge").textContent = `${config.scanDepth} Analysis`;
 
       const featuresDisplay = document.getElementById("planFeaturesDisplay");
-      featuresDisplay.innerHTML = config.features.map(f => 
+      featuresDisplay.innerHTML = config.features.map(f =>
         `<span class="mono text-[10px] ${f.included ? 'text-gray-400' : 'text-gray-600'}">${f.included ? '✓' : '✗'} ${f.text}</span>`
       ).join('');
     }
@@ -1349,26 +1372,6 @@
       }
     }
   </script>
-  const TIER_RANK = { free: 0, starter: 1, pro: 2, enterprise: 3 };
-  const TIER_DISPLAY_NAMES = { free: "Starter (Free)", starter: "Professional", pro: "Business", enterprise: "Enterprise" };
-  let selectedScanTier = null;
-
-  function selectScanTier(tier) {
-    selectedScanTier = tier;
-    document.querySelectorAll('.tier-select-card').forEach(card => {
-      card.classList.toggle('selected', card.dataset.tier === tier);
-    });
-
-    const currentTier = localStorage.getItem("shepherd_tier") || "free";
-    const note = document.getElementById("tierUpgradeNote");
-
-    if (TIER_RANK[tier] > TIER_RANK[currentTier]) {
-      note.innerHTML = `You're currently on <strong>${TIER_DISPLAY_NAMES[currentTier]}</strong>. Upgrade to <strong>${TIER_DISPLAY_NAMES[tier]}</strong> to unlock this tier — <a href="settings.html" class="underline text-yellow-300">Upgrade now →</a>`;
-      note.classList.remove("hidden");
-    } else {
-      note.classList.add("hidden");
-    }
-  }
 
   <script
     src="results.js"
