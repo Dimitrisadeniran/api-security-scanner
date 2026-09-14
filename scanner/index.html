@@ -6,6 +6,7 @@
   <title>Shepherd AI — PHI/PII SCAN · OPENAPI VALIDATION · HIPAA/PCI/NDPR TAGGING LIVE LEAK CONFIRMATION</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+  
   <style>
     body { display: none; font-family: 'Syne', sans-serif; background: #0a0a0a; color: #f0f0f0; }
     .mono { font-family: 'DM Mono', monospace; }
@@ -62,16 +63,16 @@
       font-size: 0.7rem;
       pointer-events: none;
     }
-     .tier-select-card {
+    .tier-select-card {
       cursor: pointer;
-     }
-     .tier-select-card.selected {
-     border-color: #10b981;
-     box-shadow: 0 0 0 1px #10b981, 0 8px 24px rgba(16,185,129,0.15);
-     transform: translateY(-2px);
-     }
+    }
+    .tier-select-card.selected {
+      border-color: #10b981;
+      box-shadow: 0 0 0 1px #10b981, 0 8px 24px rgba(16,185,129,0.15);
+      transform: translateY(-2px);
+    }
     .tier-select-card.selected .tier-check {
-    display: flex !important;
+      display: flex !important;
     }
     .service-selector select option {
       background: #1a1a1a;
@@ -334,81 +335,80 @@
   </style>
 
   <script>
-(function () {
-    "use strict";
+    (function () {
+      "use strict";
 
-    const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com";
+      const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com";
 
-    // -----------------------------
-    // Authentication helpers
-    // -----------------------------
+      // -----------------------------
+      // Authentication helpers
+      // -----------------------------
 
-    function clearLocalAuth() {
+      function clearLocalAuth() {
         localStorage.removeItem("shepherd_api_key");
         localStorage.removeItem("shepherd_email");
         localStorage.removeItem("shepherd_tier");
-    }
+      }
 
-    function redirectToLogin() {
+      function redirectToLogin() {
         clearLocalAuth();
         window.location.replace("login.html");
-    }
+      }
 
-    function showPage() {
+      function showPage() {
         document.body.style.display = "";
-    }
+      }
 
-    // -----------------------------
-    // Session validation
-    // -----------------------------
+      // -----------------------------
+      // Session validation
+      // -----------------------------
 
-    async function checkSession() {
+      async function checkSession() {
         try {
-            const response = await fetch(
-                `${API_BASE}/api/auth/me`,
-                {
-                    method: "GET",
-                    credentials: "include",
-                    headers: {
-                        "Accept": "application/json"
-                    }
-                }
-            );
-
-            if (!response.ok) {
-                redirectToLogin();
-                return;
+          const response = await fetch(
+            `${API_BASE}/api/auth/me`,
+            {
+              method: "GET",
+              credentials: "include",
+              headers: {
+                "Accept": "application/json"
+              }
             }
+          );
 
-            const user = await response.json();
+          if (!response.ok) {
+            redirectToLogin();
+            return;
+          }
 
-            console.log("Authenticated user:", user.email);
+          const user = await response.json();
+          console.log("Authenticated user:", user.email);
 
-            // Session is valid
-            showPage();
+          // Session is valid
+          showPage();
 
         } catch (error) {
-            console.error("Session check failed:", error);
-            redirectToLogin();
+          console.error("Session check failed:", error);
+          redirectToLogin();
         }
-    }
+      }
 
-    // -----------------------------
-    // Page initialization
-    // -----------------------------
+      // -----------------------------
+      // Page initialization
+      // -----------------------------
 
-    if (document.readyState === "loading") {
+      if (document.readyState === "loading") {
         document.addEventListener(
-            "DOMContentLoaded",
-            checkSession,
-            { once: true }
+          "DOMContentLoaded",
+          checkSession,
+          { once: true }
         );
-    } else {
+      } else {
         checkSession();
-    }
+      }
 
-})();
-</script>
+    })();
+  </script>
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -447,6 +447,7 @@
         </span>
       </label>
     </div>
+
     <div class="w-full max-w-4xl mb-8 px-2">
       <p class="mono text-xs text-gray-400 mb-3 text-left">Choose your scan tier</p>
       <div id="tierSelector" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -510,6 +511,7 @@
       </div>
       <p id="tierUpgradeNote" class="hidden mono text-xs text-yellow-400 mt-3 bg-yellow-950/30 border border-yellow-900/50 rounded-lg p-3 text-left"></p>
     </div> 
+
     <div class="w-full max-w-xl">
       <div class="scan-input-group">
         <div class="url-input-wrapper">
@@ -1014,8 +1016,7 @@
       }
     }
 
-    // ── Single DOMContentLoaded handler (was previously split into two,
-    //    with a stray unmatched closing brace that broke the whole script) ──
+    // ── DOM Initialization ──
     document.addEventListener("DOMContentLoaded", function () {
       const key = localStorage.getItem("shepherd_api_key");
       const email = localStorage.getItem("shepherd_email");
@@ -1040,8 +1041,7 @@
       // Pre-select the card matching the user's current plan
       selectScanTier(tier);
 
-      // Check for payment success (moved inside this handler so `select`
-      // is in scope, and merged so there's no dangling extra `});`)
+      // Check for payment success
       const urlParams = new URLSearchParams(window.location.search);
       const paymentStatus = urlParams.get('payment');
       if (paymentStatus === 'success') {
