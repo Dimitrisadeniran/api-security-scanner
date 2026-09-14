@@ -338,12 +338,7 @@
     (function () {
       "use strict";
 
-      // Base API route configuration
-      const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com/api";
-
-      // -----------------------------
-      // Authentication Helpers
-      // -----------------------------
+      const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com";
 
       function clearLocalAuth() {
         localStorage.removeItem("shepherd_api_key");
@@ -360,58 +355,47 @@
         document.body.style.display = "";
       }
 
-      // -----------------------------
-      // Session Validation
-      // -----------------------------
-
       async function checkSession() {
-        const apiKey = localStorage.getItem("shepherd_api_key");
-
-        // Guard: Redirect immediately if no token exists locally
-        if (!apiKey) {
-          redirectToLogin();
-          return;
-        }
-
         try {
-          const response = await fetch(`${API_BASE}/auth/me`, {
-           method: "GET",
-           headers: {
-             "Accept": "application/json",
-             "x-api-key": apiKey
-           }
-         });
+          const response = await fetch(
+            `${API_BASE}/api/auth/me`,
+            {
+              method: "GET",
+              credentials: "include",
+              headers: {
+                "Accept": "application/json"
+              }
+            }
+          );
 
-         if (!response.ok) {
-           redirectToLogin();
-           return;
-         }
+          if (!response.ok) {
+            redirectToLogin();
+            return;
+          }
 
-         const user = await response.json();
-      
-         // Update local storage state if provided by the server
-         if (user.email) localStorage.setItem("shepherd_email", user.email);
-         if (user.tier) localStorage.setItem("shepherd_tier", user.tier);
+          const user = await response.json();
+          if (user.email) localStorage.setItem("shepherd_email", user.email);
+          if (user.tier) localStorage.setItem("shepherd_tier", user.tier);
 
-         // Render page content upon successful authentication
-         showPage();
+          showPage();
 
-      } catch (error) {
-        console.error("Session verification error:", error);
-        redirectToLogin();
+        } catch (error) {
+          console.error("Session check failed:", error);
+          redirectToLogin();
+        }
       }
-    }
 
-    // -----------------------------
-    // Execution & Page Init
-    // -----------------------------
+      if (document.readyState === "loading") {
+        document.addEventListener(
+          "DOMContentLoaded",
+          checkSession,
+          { once: true }
+        );
+      } else {
+        checkSession();
+      }
 
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", checkSession, { once: true });
-    } else {
-      checkSession();
-    }
-  })();
+    })();
   </script>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -524,11 +508,11 @@
         </div>
         <div class="action-group">
           <div class="service-selector">
-            <select id="serviceSelect" onchange="updateServiceInfo()">
-              <option value="free" data-price="$0">🆓 Free Scan</option>
-              <option value="starter" data-price="$49/mo">🚀 Starter</option>
-              <option value="pro" data-price="$149/mo">⚡ Pro</option>
-              <option value="enterprise" data-price="Custom">🏢 Enterprise</option>
+            <select id="serviceSelect" onchange="syncTierSelection(this.value)">
+              <option value="free" data-price="Free">🆓 Starter (Free)</option>
+              <option value="starter" data-price="NGN 450k">🚀 Professional</option>
+              <option value="pro" data-price="NGN 1.5M">⚡ Business</option>
+              <option value="enterprise" data-price="NGN 3.5M/mo">🏢 Enterprise</option>
             </select>
           </div>
           <button id="scanBtn" onclick="runScan()" class="scan-btn-ready">
@@ -545,8 +529,8 @@
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div class="flex items-center gap-3">
             <span class="tier-dot free" id="tierDot"></span>
-            <span class="mono font-bold text-sm text-white" id="serviceNameDisplay">Free Scan</span>
-            <span class="mono text-xs text-emerald-400 price-pulse" id="servicePriceDisplay">$0</span>
+            <span class="mono font-bold text-sm text-white" id="serviceNameDisplay">Starter (Free)</span>
+            <span class="mono text-xs text-emerald-400 price-pulse" id="servicePriceDisplay">Free</span>
           </div>
           <div class="flex items-center gap-3">
             <div class="flex flex-wrap gap-3" id="serviceFeatures">
@@ -559,7 +543,6 @@
             </button>
           </div>
         </div>
-        <!-- Scan Depth Indicator -->
         <div id="scanDepthIndicator" class="mt-2 flex items-center gap-2">
           <span class="text-[10px] mono text-gray-500">Scan depth:</span>
           <span id="scanDepthLabel" class="text-[10px] mono text-gray-400">Basic</span>
@@ -615,7 +598,6 @@
 
   <!-- RESULTS SECTION -->
   <section id="resultsSection" class="hidden px-6 pb-20 max-w-6xl mx-auto w-full fade-in">
-    <!-- Plan-specific banner -->
     <div id="planBanner" class="mb-6 rounded-xl p-4 border flex items-center justify-between flex-wrap gap-3">
       <div class="flex items-center gap-3">
         <span id="planBadge" class="mono text-xs px-3 py-1.5 rounded-full font-bold">Free Scan</span>
@@ -673,7 +655,7 @@
           class="mono text-xs bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg transition whitespace-nowrap w-full sm:w-auto">Enable Alerts</button>
       </div>
       <p id="alertStatus" class="hidden mono text-xs text-emerald-400 mt-2"></p>
-      <p class="mono text-xs text-gray-600 mt-2">⚠️ Available on Starter ($49/mo) and above.</p>
+      <p class="mono text-xs text-gray-600 mt-2">⚠️ Available on Starter (NGN 450k) and above.</p>
     </div>
 
     <div id="slackRow" class="hidden mt-4 bg-gray-900 border border-gray-800 rounded-xl p-5">
@@ -685,7 +667,7 @@
           class="mono text-xs bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg transition whitespace-nowrap w-full sm:w-auto">Connect Slack</button>
       </div>
       <p id="slackStatus" class="hidden mono text-xs text-emerald-400 mt-2"></p>
-      <p class="mono text-xs text-gray-600 mt-2">⚠️ Available on Pro ($149/mo). <a href="https://api.slack.com/messaging/webhooks" target="_blank" class="text-gray-500 underline">Webhook URL →</a></p>
+      <p class="mono text-xs text-gray-600 mt-2">⚠️ Available on Business (NGN 1.5M). <a href="https://api.slack.com/messaging/webhooks" target="_blank" class="text-gray-500 underline">Webhook URL →</a></p>
     </div>
 
     <div id="enterpriseRow" class="hidden mt-4 bg-gray-900 border border-gray-800 rounded-xl p-5">
@@ -749,7 +731,7 @@
           <tbody id="historyBody" class="divide-y divide-gray-800 bg-black"></tbody>
         </table>
       </div>
-      <p class="mono text-xs text-gray-600 mt-3 text-center">⚠️ Full history on Starter ($49/mo) and above.</p>
+      <p class="mono text-xs text-gray-600 mt-3 text-center">⚠️ Full history on Starter (NGN 450k) and above.</p>
     </div>
   </section>
 
@@ -757,11 +739,11 @@
   <div id="paymentModal" class="payment-overlay" onclick="if(event.target===this) closePaymentModal()">
     <div class="payment-modal">
       <div class="flex items-center justify-between mb-2">
-        <h2 id="modalPlanName">Upgrade to Starter</h2>
+        <h2 id="modalPlanName">Upgrade to Professional</h2>
         <button onclick="closePaymentModal()" class="text-gray-500 hover:text-white transition text-xl">✕</button>
       </div>
       <p class="text-gray-400 text-sm mb-1 font-mono">One-time payment · Instant access</p>
-      <div class="price-tag" id="modalPrice">$49</div>
+      <div class="price-tag" id="modalPrice">NGN 450,000</div>
       <ul class="features-list" id="modalFeatures">
         <li><span class="icon">✓</span> 100 scans per month</li>
         <li><span class="icon">✓</span> Full PHI/PII/PCI detection</li>
@@ -772,20 +754,19 @@
         <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
         <button class="btn-pay" onclick="proceedToPayment()">💰 Pay Now</button>
       </div>
-      <p class="text-center text-gray-600 text-xs mt-4 font-mono">🔒 Secure payment processed via Stripe</p>
+      <p class="text-center text-gray-600 text-xs mt-4 font-mono">🔒 Secure payment processed safely</p>
     </div>
   </div>
 
   <script>
     "use strict";
 
-    const API_BASE = "api-security-scanner-1-rxnh.onrender.com/api";
+    const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com/api";
 
-    // ── PLAN CONFIGURATION ──
     const PLAN_CONFIG = {
       free: {
-        name: "Free Scan",
-        price: "$0",
+        name: "Starter (Free)",
+        price: "Free",
         dot: "free",
         tier: "free",
         badgeClass: "plan-badge-free",
@@ -814,8 +795,8 @@
         }
       },
       starter: {
-        name: "Starter",
-        price: "$49/mo",
+        name: "Professional",
+        price: "NGN 450,000",
         dot: "starter",
         badgeClass: "plan-badge-starter",
         scanDepth: "Standard",
@@ -843,8 +824,8 @@
         }
       },
       pro: {
-        name: "Pro",
-        price: "$149/mo",
+        name: "Business",
+        price: "NGN 1,500,000",
         dot: "pro",
         badgeClass: "plan-badge-pro",
         scanDepth: "Advanced",
@@ -873,7 +854,7 @@
       },
       enterprise: {
         name: "Enterprise",
-        price: "Custom",
+        price: "NGN 3,500,000/mo",
         dot: "enterprise",
         badgeClass: "plan-badge-enterprise",
         scanDepth: "Comprehensive",
@@ -916,7 +897,13 @@
       window.location.replace("login.html");
     }
 
-    // ── Update Service Info ──
+    function syncTierSelection(tier) {
+      const select = document.getElementById("serviceSelect");
+      if (select.value !== tier) select.value = tier;
+      selectScanTier(tier);
+      updateServiceInfo();
+    }
+
     function updateServiceInfo() {
       const select = document.getElementById("serviceSelect");
       const tier = select.value;
@@ -927,7 +914,6 @@
       document.getElementById("servicePriceDisplay").textContent = config.price;
       document.getElementById("tierDot").className = `tier-dot ${config.dot}`;
 
-      // Update features
       const featuresContainer = document.getElementById("serviceFeatures");
       featuresContainer.innerHTML = config.features.map(f => {
         const icon = f.included ? '✓' : '✗';
@@ -935,25 +921,21 @@
         return `<span class="service-feature"><span class="${cls}">${icon}</span> ${f.text}</span>`;
       }).join('');
 
-      // Update scan depth indicator
       document.getElementById("scanDepthLabel").textContent = config.scanDepth;
       document.getElementById("scanDepthBar").style.width = `${config.scanDepthPercent}%`;
 
-      // Color the scan depth bar based on plan
       const bar = document.getElementById("scanDepthBar");
       const colors = { free: 'bg-gray-500', starter: 'bg-blue-500', pro: 'bg-purple-500', enterprise: 'bg-emerald-500' };
       bar.className = `h-full rounded-full ${colors[tier] || 'bg-gray-500'}`;
 
-      // Update badge
       const badge = document.getElementById("tierBadge");
       if (badge) {
         badge.textContent = tier.toUpperCase();
         badge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
       }
 
-      // Show/hide upgrade button
       const upgradeBtn = document.getElementById("upgradeBtn");
-      upgradeBtn.style.display = tier === "free" ? "block" : "none";
+      upgradeBtn.style.display = tier === "free" ? "none" : "block";
 
       localStorage.setItem("selected_tier", tier);
     }
@@ -964,7 +946,6 @@
       if (tier !== "free") showPaymentModal();
     }
 
-    // ── Payment Modal ──
     function showPaymentModal() {
       const select = document.getElementById("serviceSelect");
       const tier = select.value;
@@ -998,7 +979,6 @@
       window.location.href = `settings.html?action=payment&plan=${tier}`;
     }
 
-    // ── TIER SELECTION CARDS ──
     const TIER_RANK = { free: 0, starter: 1, pro: 2, enterprise: 3 };
     const TIER_DISPLAY_NAMES = { free: "Starter (Free)", starter: "Professional", pro: "Business", enterprise: "Enterprise" };
     let selectedScanTier = null;
@@ -1008,6 +988,12 @@
       document.querySelectorAll('.tier-select-card').forEach(card => {
         card.classList.toggle('selected', card.dataset.tier === tier);
       });
+
+      const select = document.getElementById("serviceSelect");
+      if (select.value !== tier) {
+        select.value = tier;
+        updateServiceInfo();
+      }
 
       const currentTier = localStorage.getItem("shepherd_tier") || "free";
       const note = document.getElementById("tierUpgradeNote");
@@ -1020,7 +1006,6 @@
       }
     }
 
-    // ── DOM Initialization ──
     document.addEventListener("DOMContentLoaded", function () {
       const key = localStorage.getItem("shepherd_api_key");
       const email = localStorage.getItem("shepherd_email");
@@ -1039,13 +1024,9 @@
       badge.textContent = tier.toUpperCase();
       badge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
 
-      // Fetch and display usage bar on every page load
       fetchUsage();
-
-      // Pre-select the card matching the user's current plan
       selectScanTier(tier);
 
-      // Check for payment success
       const urlParams = new URLSearchParams(window.location.search);
       const paymentStatus = urlParams.get('payment');
       if (paymentStatus === 'success') {
@@ -1111,7 +1092,6 @@
       });
     }
 
-    // ── ENHANCED RUN SCAN with Plan-Specific Analysis ──
     window.runScan = async function() {
       const urlInput = document.getElementById("urlInput");
       const url = urlInput.value.trim();
@@ -1141,13 +1121,11 @@
       const userTier = localStorage.getItem("shepherd_tier") || "free";
       const config = PLAN_CONFIG[tier];
 
-      // Check if user has paid for this plan
       if (tier !== "free" && userTier !== tier) {
         showPaymentModal();
         return;
       }
 
-      // Check free user limits
       if (tier === "free") {
         try {
           const res = await fetch(`${API_BASE}/usage`, {
@@ -1168,13 +1146,11 @@
         } catch (_) {}
       }
 
-      // UI feedback
       scanBtn.disabled = true;
       btnLabel.textContent = "Scanning...";
       spinner.classList.remove("hidden");
 
       try {
-        // Send the scan request with plan info
         const res = await fetch(`${API_BASE}/scan`, {
           method: "POST",
           headers: {
@@ -1184,7 +1160,6 @@
           body: JSON.stringify({
             url,
             tier,
-            // Send plan capabilities so backend knows what to analyze
             capabilities: config.scanCapabilities
           }),
         });
@@ -1195,22 +1170,17 @@
           throw new Error(data.error || "Scan failed");
         }
 
-        // Store results with plan info
         window._lastScan = data;
         window._lastUrl = url;
         window._lastPlan = tier;
 
-        // Show results with plan context
         renderResults(data, url, tier);
 
-        // Show download row
         document.getElementById("downloadRow").classList.remove("hidden");
         document.getElementById("downloadTarget").textContent = url;
 
-        // Show plan-specific features in results
         showPlanFeatures(tier);
 
-        // Show alert/slack/enterprise rows based on plan
         if (config.scanCapabilities.emailAlerts) {
           document.getElementById("alertsRow").classList.remove("hidden");
         }
@@ -1233,7 +1203,6 @@
       }
     };
 
-    // ── Show Plan Features in Results ──
     function showPlanFeatures(tier) {
       const config = PLAN_CONFIG[tier];
       if (!config) return;
@@ -1251,7 +1220,6 @@
       ).join('');
     }
 
-    // ── Render Results with Plan Context ──
     function renderResults(data, url, tier) {
       const section = document.getElementById("resultsSection");
       section.classList.remove("hidden");
@@ -1278,13 +1246,11 @@
         badge.className = "mono text-xs px-4 py-2 rounded-full font-bold bg-red-950 text-red-400";
       }
 
-      // Get plan capabilities for filtering what to show
       const config = PLAN_CONFIG[tier] || PLAN_CONFIG.free;
       const caps = config.scanCapabilities;
 
       const tbody = document.getElementById("resultsBody");
       tbody.innerHTML = routes.map(route => {
-        // Filter frameworks based on plan capabilities
         let frameworks = route.frameworks || [];
         if (!caps.detectHIPAA) frameworks = frameworks.filter(f => f !== 'HIPAA');
         if (!caps.detectPCI) frameworks = frameworks.filter(f => f !== 'PCI');
@@ -1315,15 +1281,14 @@
         `;
       }).join('');
 
-      // Show plan-specific warning for missing capabilities
       if (!caps.detectHIPAA && !caps.detectPCI && !caps.detectNDPA) {
         const warning = document.getElementById("overlapWarning");
-        warning.textContent = "ℹ️ Upgrade to Pro or Enterprise for HIPAA, PCI, and NDPA compliance detection.";
+        warning.textContent = "ℹ️ Upgrade to Business or Enterprise for HIPAA, PCI, and NDPA compliance detection.";
         warning.className = "mt-3 mono text-xs text-blue-400 bg-blue-950/40 border border-blue-900/50 rounded-lg p-3";
         warning.classList.remove("hidden");
       } else if (!caps.detectHIPAA) {
         const warning = document.getElementById("overlapWarning");
-        warning.textContent = "ℹ️ Upgrade to Pro for HIPAA compliance detection.";
+        warning.textContent = "ℹ️ Upgrade to Business for HIPAA compliance detection.";
         warning.className = "mt-3 mono text-xs text-blue-400 bg-blue-950/40 border border-blue-900/50 rounded-lg p-3";
         warning.classList.remove("hidden");
       } else {
@@ -1331,11 +1296,37 @@
       }
     }
 
-    // ── Utility Functions ──
-    function downloadPDF() {
-      const tier = window._lastPlan || 'free';
-      const config = PLAN_CONFIG[tier];
-      alert(`📄 PDF Report (${config.name}): Includes ${config.scanDepth} analysis with ${config.features.filter(f => f.included).length} features.`);
+    async function downloadPDF() {
+      const apiKey = localStorage.getItem("shepherd_api_key");
+      const scanData = window._lastScan;
+      if (!scanData) {
+        alert("No scan data available to generate PDF.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/export/pdf`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey || ""
+          },
+          body: JSON.stringify(scanData)
+        });
+
+        if (!response.ok) throw new Error("Failed to download PDF report");
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Shepherd_AI_Audit_Report.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } catch (err) {
+        alert(`Export failed: ${err.message}`);
+      }
     }
 
     function configureAlerts() {
@@ -1365,11 +1356,33 @@
       document.getElementById("enterpriseStatus").classList.remove("hidden");
     }
 
-    function loadHistory() {
+    async function loadHistory() {
       const section = document.getElementById("historySection");
       section.classList.toggle("hidden");
       if (!section.classList.contains("hidden")) {
         const tbody = document.getElementById("historyBody");
+        const apiKey = localStorage.getItem("shepherd_api_key");
+        try {
+          const res = await fetch(`${API_BASE}/history`, {
+            headers: { "x-api-key": apiKey || "" }
+          });
+          if (res.ok) {
+            const history = await res.json();
+            if (history && history.length > 0) {
+              tbody.innerHTML = history.map(item => `
+                <tr>
+                  <td class="mono text-xs text-gray-400 px-4 py-3">${new Date(item.created_at).toLocaleDateString()}</td>
+                  <td class="mono text-xs text-gray-300 px-4 py-3 truncate">${item.target_url}</td>
+                  <td class="mono text-xs text-emerald-400 px-4 py-3 font-bold">${item.score}%</td>
+                  <td class="mono text-xs text-gray-400 px-4 py-3">${item.status}</td>
+                  <td class="mono text-xs text-emerald-500 px-4 py-3 cursor-pointer underline" onclick="renderResults(${JSON.stringify(item.scan_data)}, '${item.target_url}', '${item.tier}')">View</td>
+                </tr>
+              `).join('');
+              return;
+            }
+          }
+        } catch (_) {}
+
         tbody.innerHTML = `
           <tr><td colspan="5" class="text-center text-gray-500 py-8 mono text-xs">📋 No scan history yet. Run your first scan!</td></tr>
         `;
