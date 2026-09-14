@@ -338,10 +338,11 @@
     (function () {
       "use strict";
 
-      const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com";
+      // Base API route configuration
+      const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com/api";
 
       // -----------------------------
-      // Authentication helpers
+      // Authentication Helpers
       // -----------------------------
 
       function clearLocalAuth() {
@@ -360,54 +361,57 @@
       }
 
       // -----------------------------
-      // Session validation
+      // Session Validation
       // -----------------------------
 
       async function checkSession() {
-        try {
-          const response = await fetch(
-            `${API_BASE}/api/auth/me`,
-            {
-              method: "GET",
-              credentials: "include",
-              headers: {
-                "Accept": "application/json"
-              }
-            }
-          );
+        const apiKey = localStorage.getItem("shepherd_api_key");
 
-          if (!response.ok) {
-            redirectToLogin();
-            return;
-          }
-
-          const user = await response.json();
-          console.log("Authenticated user:", user.email);
-
-          // Session is valid
-          showPage();
-
-        } catch (error) {
-          console.error("Session check failed:", error);
+        // Guard: Redirect immediately if no token exists locally
+        if (!apiKey) {
           redirectToLogin();
+          return;
         }
+
+        try {
+          const response = await fetch(`${API_BASE}/auth/me`, {
+           method: "GET",
+           headers: {
+             "Accept": "application/json",
+             "x-api-key": apiKey
+           }
+         });
+
+         if (!response.ok) {
+           redirectToLogin();
+           return;
+         }
+
+         const user = await response.json();
+      
+         // Update local storage state if provided by the server
+         if (user.email) localStorage.setItem("shepherd_email", user.email);
+         if (user.tier) localStorage.setItem("shepherd_tier", user.tier);
+
+         // Render page content upon successful authentication
+         showPage();
+
+      } catch (error) {
+        console.error("Session verification error:", error);
+        redirectToLogin();
       }
+    }
 
-      // -----------------------------
-      // Page initialization
-      // -----------------------------
+    // -----------------------------
+    // Execution & Page Init
+    // -----------------------------
 
-      if (document.readyState === "loading") {
-        document.addEventListener(
-          "DOMContentLoaded",
-          checkSession,
-          { once: true }
-        );
-      } else {
-        checkSession();
-      }
-
-    })();
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", checkSession, { once: true });
+    } else {
+      checkSession();
+    }
+  })();
   </script>
 </head>
 <body class="min-h-screen flex flex-col">
