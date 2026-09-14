@@ -334,17 +334,81 @@
   </style>
 
   <script>
-    (function () {
-      const key = localStorage.getItem("shepherd_api_key");
-      if (!key) {
+(function () {
+    "use strict";
+
+    const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com";
+
+    // -----------------------------
+    // Authentication helpers
+    // -----------------------------
+
+    function clearLocalAuth() {
+        localStorage.removeItem("shepherd_api_key");
+        localStorage.removeItem("shepherd_email");
+        localStorage.removeItem("shepherd_tier");
+    }
+
+    function redirectToLogin() {
+        clearLocalAuth();
         window.location.replace("login.html");
-      } else {
-        document.addEventListener("DOMContentLoaded", function () {
-          document.body.style.display = "";
-        });
-      }
-    })();
-  </script>
+    }
+
+    function showPage() {
+        document.body.style.display = "";
+    }
+
+    // -----------------------------
+    // Session validation
+    // -----------------------------
+
+    async function checkSession() {
+        try {
+            const response = await fetch(
+                `${API_BASE}/api/auth/me`,
+                {
+                    method: "GET",
+                    credentials: "include",
+                    headers: {
+                        "Accept": "application/json"
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                redirectToLogin();
+                return;
+            }
+
+            const user = await response.json();
+
+            console.log("Authenticated user:", user.email);
+
+            // Session is valid
+            showPage();
+
+        } catch (error) {
+            console.error("Session check failed:", error);
+            redirectToLogin();
+        }
+    }
+
+    // -----------------------------
+    // Page initialization
+    // -----------------------------
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            checkSession,
+            { once: true }
+        );
+    } else {
+        checkSession();
+    }
+
+})();
+</script>
 </head>
 <body class="min-h-screen flex flex-col">
 
