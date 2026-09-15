@@ -951,7 +951,12 @@
       }
 
       const upgradeBtn = document.getElementById("upgradeBtn");
-      upgradeBtn.style.display = tier === "free" ? "none" : "block";
+      // Hide the upgrade button for both Free and Enterprise tiers
+      if (tier === "free" || tier === "enterprise") {
+        upgradeBtn.style.display = "none";
+      } else {
+        upgradeBtn.style.display = "block";
+      }
 
       localStorage.setItem("selected_tier", tier);
     }
@@ -959,7 +964,8 @@
     function handleCardClick() {
       const select = document.getElementById("serviceSelect");
       const tier = select.value;
-      if (tier !== "free") showPaymentModal();
+      // Do not open payment modal if user is on Free or Enterprise
+      if (tier !== "free" && tier !== "enterprise") showPaymentModal();
     }
 
     function showPaymentModal() {
