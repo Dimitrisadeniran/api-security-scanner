@@ -951,7 +951,7 @@
       }
 
       const upgradeBtn = document.getElementById("upgradeBtn");
-      // Hide the upgrade button for both Free and Enterprise tiers
+      // Hide the upgrade button only on Enterprise; show it on Free and middle tiers
       if (tier === "enterprise") {
         upgradeBtn.style.display = "none";
       } else {
@@ -964,8 +964,8 @@
     function handleCardClick() {
       const select = document.getElementById("serviceSelect");
       const tier = select.value;
-      // Do not open payment modal if user is on Free or Enterprise
-      if (tier !== "free" && tier !== "enterprise") showPaymentModal();
+      // Allow payment/upgrade modal for Free and middle tiers, but disable it for Enterprise
+      if (tier !== "enterprise") showPaymentModal();
     }
 
     function showPaymentModal() {
