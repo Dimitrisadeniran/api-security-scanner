@@ -937,44 +937,33 @@
         return `<span class="service-feature"><span class="${cls}">${icon}</span> ${f.text}</span>`;
       }).join('');
 
-      document.getElementById("scanDepthLabel").textContent = config.scanDepth;
-      document.getElementById("scanDepthBar").style.width = `${config.scanDepthPercent}%`;
+      // Update scan depth indicators if present
+      const scanDepthLabel = document.getElementById("scanDepthLabel");
+      const scanDepthBar = document.getElementById("scanDepthBar");
+      if (scanDepthLabel) scanDepthLabel.textContent = config.scanDepth;
+      if (scanDepthBar) scanDepthBar.style.width = `${config.scanDepthPercent}%`;
 
-      const bar = document.getElementById("scanDepthBar");
-      const colors = { free: 'bg-gray-500', starter: 'bg-blue-500', pro: 'bg-purple-500', enterprise: 'bg-emerald-500' };
-      bar.className = `h-full rounded-full ${colors[tier] || 'bg-gray-500'}`;
-
+      // Update active tier badge on dashboard
       const badge = document.getElementById("tierBadge");
       if (badge) {
         badge.textContent = tier.toUpperCase();
-        badge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
+        if (typeof TIER_COLORS !== "undefined") {
+          badge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
+        }
       }
 
-      let upgradeBtn = document.getElementById("upgradeBtn");
-      
-      if (tier === "enterprise") {
-        // Completely remove button when on Enterprise
-        if (upgradeBtn) {
-          upgradeBtn.remove();
+      // Hide Upgrade button on Enterprise, show for Free and middle tiers
+      const upgradeBtn = document.getElementById("upgradeBtn");
+      if (upgradeBtn) {
+        if (tier === "enterprise") {
+          upgradeBtn.style.display = "none";
+        } else {
+          upgradeBtn.style.display = "block";
         }
-      } else {
-        // If switching back to Free/other tiers and button was removed, recreate it
-        if (!upgradeBtn) {
-          upgradeBtn = document.createElement("button");
-          upgradeBtn.id = "upgradeBtn";
-          upgradeBtn.innerText = "Upgrade Plan";
-          upgradeBtn.onclick = showPaymentModal; // Rebind click handler
-          
-          // Append to your desired container element
-          const cardContainer = document.querySelector(".card-container") || document.body;
-          cardContainer.appendChild(upgradeBtn);
-        }
-        upgradeBtn.style.display = "block";
       }
 
       localStorage.setItem("selected_tier", tier);
     }
-
     function handleCardClick() {
       const select = document.getElementById("serviceSelect");
       const tier = select.value;
