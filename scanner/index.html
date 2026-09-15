@@ -951,11 +951,17 @@
       }
 
       const upgradeBtn = document.getElementById("upgradeBtn");
-      // Hide the upgrade button only on Enterprise; show it on Free and middle tiers
+      
       if (tier === "enterprise") {
-        upgradeBtn.style.display = "none";
+        // Remove button completely if user is on Enterprise / has full feature access
+        if (upgradeBtn) {
+          upgradeBtn.remove();
+        }
       } else {
-        upgradeBtn.style.display = "block";
+        // Ensure button exists and is visible for Free/lower tiers
+        if (upgradeBtn) {
+          upgradeBtn.style.display = "block";
+        }
       }
 
       localStorage.setItem("selected_tier", tier);
@@ -964,8 +970,11 @@
     function handleCardClick() {
       const select = document.getElementById("serviceSelect");
       const tier = select.value;
-      // Allow payment/upgrade modal for Free and middle tiers, but disable it for Enterprise
-      if (tier !== "enterprise") showPaymentModal();
+      
+      // Only open upgrade payment modal if not already on Enterprise
+      if (tier !== "enterprise") {
+        showPaymentModal();
+      }
     }
 
     function showPaymentModal() {
