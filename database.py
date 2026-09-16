@@ -230,21 +230,21 @@ def init_db():
 # User Management & Authentication
 ###############################################################################
 
-def create_user(email: str, password: str, tier: str = "free"):
+def create_user(email: str, password: str, tier: str = "free", security_pin: str = "1234"):
     """
-    Creates a new Shepherd AI user.
+    Creates a new Shepherd AI user and provisions default settings.
 
     Returns:
-        {"id": ..., "email": ..., "tier": ..., "api_key": ...}
-
-    Returns None if email already exists.
+        dict: {"id": ..., "email": ..., "tier": ..., "api_key": ..., "security_pin": ...}
+        None: If email already exists or transaction fails.
     """
-
     email = email.strip().lower()
+    pin_to_store = security_pin.strip() if security_pin and security_pin.strip() else "1234"
 
     with get_connection() as conn:
         cursor = conn.cursor()
 
+        # Check existing user
         cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
         if cursor.fetchone():
             return None
@@ -254,41 +254,49 @@ def create_user(email: str, password: str, tier: str = "free"):
         hashed_password = hash_password(password)
         created = now()
 
-        cursor.execute("""
-            INSERT INTO users(id, email, password, tier, created_at, otp_secret, is_2fa_enabled)
-            VALUES(%s,%s,%s,%s,%s,%s,%s)
-        """, (user_id, email, hashed_password, tier, created, None, 0))
+        try:
+            # 1. Insert primary user record (including security_pin)
+            cursor.execute("""
+                INSERT INTO users (id, email, password, tier, security_pin, created_at, otp_secret, is_2fa_enabled)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (user_id, email, hashed_password, tier, pin_to_store, created, None, 0))
 
-        cursor.execute("""
-            INSERT INTO api_keys(api_key, user_id, created_at)
-            VALUES(%s,%s,%s)
-        """, (api_key, user_id, created))
+            # 2. Insert API key record
+            cursor.execute("""
+                INSERT INTO api_keys (api_key, user_id, created_at)
+                VALUES (%s, %s, %s)
+            """, (api_key, user_id, created))
 
-        cursor.execute("""
-            INSERT INTO alert_settings(user_id, email_alerts, alert_email)
-            VALUES(%s,%s,%s)
-        """, (user_id, 1, email))
+            # 3. Insert default settings
+            cursor.execute("""
+                INSERT INTO alert_settings (user_id, email_alerts, alert_email)
+                VALUES (%s, %s, %s)
+            """, (user_id, 1, email))
 
-        cursor.execute("""
-            INSERT INTO slack_settings(user_id, slack_webhook, slack_alerts)
-            VALUES(%s,%s,%s)
-        """, (user_id, "", 0))
+            cursor.execute("""
+                INSERT INTO slack_settings (user_id, slack_webhook, slack_alerts)
+                VALUES (%s, %s, %s)
+            """, (user_id, "", 0))
 
-        cursor.execute("""
-            INSERT INTO enterprise_settings(user_id, company_name, logo_url, custom_keywords)
-            VALUES(%s,%s,%s,%s)
-        """, (user_id, "Shepherd AI", "", ""))
+            cursor.execute("""
+                INSERT INTO enterprise_settings (user_id, company_name, logo_url, custom_keywords)
+                VALUES (%s, %s, %s, %s)
+            """, (user_id, "Shepherd AI", "", ""))
 
-        conn.commit()
+            # Commit all inserts together atomically
+            conn.commit()
 
-        return {
-            "id": user_id,
-            "email": email,
-            "tier": tier,
-            "api_key": api_key
-        }
+            return {
+                "id": user_id,
+                "email": email,
+                "tier": tier,
+                "api_key": api_key,
+                "security_pin": pin_to_store
+            }
 
-
+        except Exception as e:
+            conn.rollback()
+            raise e
 ###############################################################################
 
 def get_user_by_email(email: str, password: str):
