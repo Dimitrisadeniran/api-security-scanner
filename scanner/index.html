@@ -376,22 +376,35 @@
           const user = await response.json();
           if (user.email) localStorage.setItem("shepherd_email", user.email);
           if (user.tier) localStorage.setItem("shepherd_tier", user.tier);
+          if (user.api_key) localStorage.setItem("shepherd_api_key", user.api_key);
+
+          showPage();
     
           // Save API key and auto-fill the input field
           if (user.api_key) {
             localStorage.setItem("shepherd_api_key", user.api_key);
-      
-            const apiKeyInput = document.getElementById("apiKeyInput");
-            if (apiKeyInput) {
-              apiKeyInput.value = user.api_key;
-            }
           }
 
           showPage();
 
+          // Safely populate input after DOM is fully loaded
+          if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", populateApiKeyInput, { once: true });
+          } else {
+            populateApiKeyInput();
+          }
+
         } catch (error) {
           console.error("Session check failed:", error);
           redirectToLogin();
+        }
+      }
+
+      function populateApiKeyInput() {
+        const key = localStorage.getItem("shepherd_api_key");
+        const apiKeyInput = document.getElementById("apiKeyInput");
+        if (apiKeyInput && key) {
+          apiKeyInput.value = key;
         }
       }
 
@@ -400,13 +413,13 @@
           "DOMContentLoaded",
           checkSession,
           { once: true }
-         );
+        );
       } else {
         checkSession();
       }
 
-      })();
-      </script>
+    })();
+  </script>
 </head>
 <body class="min-h-screen flex flex-col">
 
