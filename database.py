@@ -176,6 +176,19 @@ def init_db():
         )
         """)
 
+        # Add this inside database.py -> init_db()
+        cursor.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS security_pin TEXT DEFAULT '1234'")
+
+        # Add this new helper function at the end of database.py:
+        def verify_pin(user_id: str, pin: str) -> bool:
+            """Verifies user's security PIN against stored PIN."""
+            user = get_user_by_id(user_id)
+            if not user:
+                return False
+            # Defaults to '1234' if security_pin is null
+            stored_pin = user.get("security_pin") or "1234"
+            return str(stored_pin).strip() == str(pin).strip()
+
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS enterprise_settings(
             user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
