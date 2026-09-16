@@ -233,18 +233,24 @@ def login(body: LoginWith2FARequest, response: Response):
         "session_token": session_token
     }
 @app.post("/api/auth/reveal-key")
+@limiter.limit("5/minute")
 async def reveal_api_key(
+    request: Request,
     body: RevealKeyPayload, 
     user: dict = Depends(require_current_user)
 ):
-    """Verify security PIN and return the logged-in user's API key"""
-    # Verify the provided PIN against user record
-    # Note: Replace user.get("pin") or verify_pin() with your database's exact PIN check function/field
+    """Verify security PIN and return the logged-in user's API key."""
+    # Ensure PIN is verified correctly
     if not database.verify_pin(user["id"], body.pin):
         raise HTTPException(status_code=401, detail="Invalid security PIN.")
     
+    # Re-fetch full user record to guarantee api_key presence
+    full_user = database.get_user_by_id(user["id"])
+    if not full_user or "api_key" not in full_user:
+        raise HTTPException(status_code=404, detail="API Key not found.")
+
     return {
-        "api_key": user["api_key"]
+        "api_key": full_user["api_key"]
     }
 @app.post("/api/auth/logout")
 async def logout(request: Request, response: Response):
