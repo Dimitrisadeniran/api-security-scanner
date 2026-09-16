@@ -1488,6 +1488,38 @@
       errEl.classList.remove('hidden');
     }
   "></script>
+  <!-- index.html structure -->
+  <input type="password" id="apiKeyInput" value="••••••••••••••••" readonly />
+  <button id="revealKeyBtn">Reveal Key</button>
+
+  <script>
+    document.getElementById('revealKeyBtn').addEventListener('click', async () => {
+      const pin = prompt("Please enter your Security PIN to reveal your API Key:");
+      if (!pin) return;
+
+      try {
+        const response = await fetch('/api/auth/reveal-key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include', // Sends session cookies to FastAPI
+          body: JSON.stringify({ pin: pin })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.api_key) {
+          const apiKeyInput = document.getElementById('apiKeyInput');
+          apiKeyInput.type = 'text';
+          apiKeyInput.value = data.api_key;
+        } else {
+          alert(data.detail || 'Failed to reveal API key. Incorrect PIN.');
+        }
+      } catch (error) {
+        console.error('Error revealing key:', error);
+        alert('An error occurred while connecting to the server.');
+      }
+    });
+  </script>
   <script>
     // Dynamic Base URL (uses current origin dynamically instead of hardcoded Render URL)
     const API_BASE = window.location.origin;
@@ -1563,6 +1595,7 @@
     document.addEventListener("DOMContentLoaded", () => {
       updateServiceInfo();
     });
+    
   </script>
 
   <footer class="border-t border-gray-800 bg-black px-6 py-6">
