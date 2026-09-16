@@ -922,10 +922,18 @@
 
     function updateServiceInfo() {
       const select = document.getElementById("serviceSelect");
-      const tier = select.value;
-      const config = PLAN_CONFIG[tier];
+      const selectedTier = select.value;
+      const config = PLAN_CONFIG[selectedTier];
       if (!config) return;
 
+      // 1. Fetch User's Actual Owned Tier & Current Usage
+      const userTier = localStorage.getItem("shepherd_tier") || "free";
+      const scansUsed = parseInt(localStorage.getItem("scans_used") || "0", 10);
+      const scansLimit = parseInt(localStorage.getItem("scans_limit") || "10", 10);
+      
+      const TIER_RANK = { free: 0, starter: 1, pro: 2, enterprise: 3 };
+
+      // 2. Update Display Text & Specs
       document.getElementById("serviceNameDisplay").textContent = config.name;
       document.getElementById("servicePriceDisplay").textContent = config.price;
       document.getElementById("tierDot").className = `tier-dot ${config.dot}`;
@@ -937,32 +945,40 @@
         return `<span class="service-feature"><span class="${cls}">${icon}</span> ${f.text}</span>`;
       }).join('');
 
-      // Update scan depth indicators if present
       const scanDepthLabel = document.getElementById("scanDepthLabel");
       const scanDepthBar = document.getElementById("scanDepthBar");
       if (scanDepthLabel) scanDepthLabel.textContent = config.scanDepth;
       if (scanDepthBar) scanDepthBar.style.width = `${config.scanDepthPercent}%`;
 
-      // Update active tier badge on dashboard
+      // 3. Update API Key Card Badge to reflect owned account tier
       const badge = document.getElementById("tierBadge");
       if (badge) {
-        badge.textContent = tier.toUpperCase();
+        badge.textContent = userTier.toUpperCase();
         if (typeof TIER_COLORS !== "undefined") {
-          badge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
+          badge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[userTier] || TIER_COLORS.free}`;
         }
       }
 
-      // Hide Upgrade button on Enterprise, show for Free and middle tiers
+      // 4. Smart Upgrade Button Logic
       const upgradeBtn = document.getElementById("upgradeBtn");
       if (upgradeBtn) {
-        if (tier === "enterprise") {
+        const isLookingAtHigherTier = TIER_RANK[selectedTier] > TIER_RANK[userTier];
+        const isLimitReached = (userTier !== "enterprise") && (scansUsed >= scansLimit);
+
+        if (userTier === "enterprise") {
+          // Enterprise users never need upgrades
           upgradeBtn.style.display = "none";
-        } else {
+        } else if (isLookingAtHigherTier || isLimitReached) {
+          // Show upgrade if viewing a higher plan OR if user exhausted their scans
           upgradeBtn.style.display = "block";
+          upgradeBtn.textContent = isLimitReached && !isLookingAtHigherTier ? "↑ Upgrade (Limit Reached)" : "↑ Upgrade";
+        } else {
+          // Hide button when viewing current/lower plan with active remaining scans
+          upgradeBtn.style.display = "none";
         }
       }
 
-      localStorage.setItem("selected_tier", tier);
+      localStorage.setItem("selected_tier", selectedTier);
     }
     function handleCardClick() {
       const select = document.getElementById("serviceSelect");
@@ -1079,29 +1095,16 @@
         const data = await res.json();
 
         const used = data.scans_used ?? 0;
-        const limit = data.scans_limit ?? 0;
-        const unlimited = limit >= 999999;
-        const pct = (!unlimited && limit > 0) ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+        const limit = data.scans_limit ?? 10;
+        
+        // Cache usage stats locally for UI checks
+        localStorage.setItem("scans_used", used);
+        localStorage.setItem("scans_limit", limit);
 
-        document.getElementById("usageText").textContent = `${used} / ${unlimited ? "∞" : limit}`;
-        document.getElementById("usageBarFill").style.width = `${pct}%`;
-
-        if (pct >= 90) {
-          document.getElementById("usageBarFill").classList.replace("bg-emerald-500", "bg-red-500");
-        } else {
-          document.getElementById("usageBarFill").classList.replace("bg-red-500", "bg-emerald-500");
-        }
-
-        document.getElementById("usageBar").classList.remove("hidden");
-
-        if (!unlimited && used >= limit) {
-          document.getElementById("upgradePrompt").classList.remove("hidden");
-        } else {
-          document.getElementById("upgradePrompt").classList.add("hidden");
-        }
+        // Refresh UI state
+        updateServiceInfo();
       } catch (_) {}
     }
-
     function toggleKeyVisibility() {
       const input = document.getElementById("apiKeyInput");
       const btn = document.getElementById("toggleKeyBtn");
