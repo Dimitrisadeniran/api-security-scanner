@@ -1444,12 +1444,13 @@
     }
   </script>
 
-  <script>
-    
-  </script>
-    src="results.js"
-    onerror="document.getElementById('errorMsg').textContent='Scanner failed to load (results.js missing). Please refresh.'; document.getElementById('errorMsg').classList.remove('hidden');"
-  ></script>
+  <script src="/results.js?v=1" onerror="
+    const errEl = document.getElementById('errorMsg');
+    if (errEl) {
+      errEl.textContent = 'Scanner failed to load (results.js missing). Please refresh.';
+      errEl.classList.remove('hidden');
+    }
+  "></script>
   <script>
     // Dynamic Base URL (uses current origin dynamically instead of hardcoded Render URL)
     const API_BASE = window.location.origin;
