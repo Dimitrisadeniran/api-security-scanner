@@ -95,6 +95,12 @@ class TestAlertRequest(BaseModel):
 class SlackSettingsRequest(BaseModel):
     webhook_url:  str
     slack_alerts: bool = True
+    
+class ScanRequest(BaseModel):
+    target_url: str
+
+class RevealKeyPayload(BaseModel):
+    pin: str
 
 class EnterpriseSettingsRequest(BaseModel):
     company_name:    str = "Shepherd AI"
@@ -226,7 +232,20 @@ def login(body: LoginWith2FARequest, response: Response):
         "is_2fa_enabled": user.get("is_2fa_enabled", False),
         "session_token": session_token
     }
-
+@app.post("/api/auth/reveal-key")
+async def reveal_api_key(
+    body: RevealKeyPayload, 
+    user: dict = Depends(require_current_user)
+):
+    """Verify security PIN and return the logged-in user's API key"""
+    # Verify the provided PIN against user record
+    # Note: Replace user.get("pin") or verify_pin() with your database's exact PIN check function/field
+    if not database.verify_pin(user["id"], body.pin):
+        raise HTTPException(status_code=401, detail="Invalid security PIN.")
+    
+    return {
+        "api_key": user["api_key"]
+    }
 @app.post("/api/auth/logout")
 async def logout(request: Request, response: Response):
     """Logout and clear session"""
