@@ -420,6 +420,57 @@
 
     })();
   </script>
+  <script>
+    async function promptSecurityPin() {
+      const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com";
+      const input = document.getElementById("apiKeyInput");
+      const btn = document.getElementById("toggleKeyBtn");
+
+      if (!input) return;
+
+      if (input.type === "text" && input.value) {
+        input.type = "password";
+        if (btn) btn.textContent = "Reveal Key";
+        return;
+      }
+
+      const pin = prompt("Enter your Security PIN to reveal your API key:");
+      if (!pin) return;
+
+      try {
+        const response = await fetch(`${API_BASE}/api/auth/reveal-key`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({ pin: pin })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          alert(errData.detail || "Incorrect PIN. Access denied.");
+          return;
+        }
+
+        const data = await response.json();
+        const unmaskedKey = data.api_key || data.key || data.apiKey;
+
+        if (unmaskedKey) {
+          input.value = unmaskedKey;
+          input.type = "text";
+          if (btn) btn.textContent = "Hide Key";
+          localStorage.setItem("shepherd_api_key", unmaskedKey);
+        } else {
+          alert("PIN verified, but no API key was returned.");
+        }
+      } catch (err) {
+        console.error("Failed to reveal API key:", err);
+        alert("Connection error while validating PIN.");
+      }
+    }
+  </script>
 </head>
 <body class="min-h-screen flex flex-col">
 
