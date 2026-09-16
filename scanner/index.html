@@ -1503,16 +1503,10 @@
 
     // Security PIN verification prompt & key retrieval
     async function promptSecurityPin() {
-      const pin = prompt("Enter your security PIN to reveal your API key:");
-      if (!pin) return; // User cancelled
-
-      const btn = document.getElementById("toggleKeyBtn");
       const input = document.getElementById("apiKeyInput");
+      const btn = document.getElementById("toggleKeyBtn");
 
-      if (!input) {
-        console.error("Target input #apiKeyInput was not found in the DOM.");
-        return;
-      }
+      if (!input) return;
 
       // If already revealed, toggle back to masked password mode
       if (input.type === "text" && input.value) {
@@ -1520,6 +1514,9 @@
         if (btn) btn.textContent = "Reveal Key";
         return;
       }
+
+      const pin = prompt("Enter your security PIN to reveal your API key:");
+      if (!pin) return;
 
       try {
         const response = await fetch(`${API_BASE}/api/auth/reveal-key`, {
@@ -1534,27 +1531,25 @@
 
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}));
-          alert(errData.detail || "Incorrect security PIN or request failed.");
+          alert(errData.detail || "Incorrect PIN. Access denied.");
           return;
         }
 
         const data = await response.json();
-    
-        // Fallback checks across common API key payload keys
-        const unmaskedKey = data.api_key || data.key || data.apiKey || data.raw_key;
+        const unmaskedKey = data.api_key || data.key || data.apiKey;
 
         if (unmaskedKey) {
           input.value = unmaskedKey;
-          input.type = "text"; // Unmasks dots into text
+          input.type = "text"; // Unmasks password dots to text
           if (btn) btn.textContent = "Hide Key";
           localStorage.setItem("shepherd_api_key", unmaskedKey);
         } else {
-          alert("PIN verified, but no key was returned from the server.");
-        }
+          alert("PIN verified, but no API key was returned.");
+       }
 
       } catch (err) {
         console.error("Failed to reveal API key:", err);
-        alert("An error occurred while revealing the key. Please check your connection.");
+        alert("Connection error while validating PIN.");
       }
     }
     // Tier upgrade action handler
