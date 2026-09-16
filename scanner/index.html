@@ -1551,7 +1551,7 @@
       if (!pin) return;
 
       try {
-        const response = await fetch(`${API_BASE}/api/auth/reveal-key`, {
+        const response = await fetch(`${API_BASE}/auth/reveal-key`, {
           method: "POST",
           credentials: "include",
           headers: {
