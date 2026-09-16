@@ -621,6 +621,20 @@
             </button>
           </div>
         </div>
+        <!-- MISSING INPUT ELEMENT ADDED HERE -->
+        <input 
+          type="password" 
+          id="apiKeyInput" 
+          readonly 
+          placeholder="••••••••••••••••••••••••••••••••"
+          value="••••••••••••••••••••••••••••••••"
+          class="w-full bg-gray-950 text-gray-200 border border-gray-800/80 rounded px-3 py-1.5 text-xs mono focus:outline-none"
+        />
+
+        <p class="mono text-[10px] text-gray-500 mt-2" id="userEmailDisplay">
+          aladedimitris@gmail.com
+       </p>
+      </div>
 
         <!-- API Key Input Field -->
         <div class="api-key-container">
@@ -1490,10 +1504,22 @@
     // Security PIN verification prompt & key retrieval
     async function promptSecurityPin() {
       const pin = prompt("Enter your security PIN to reveal your API key:");
-      if (!pin) return; // User cancelled or entered nothing
+      if (!pin) return; // User cancelled
 
       const btn = document.getElementById("toggleKeyBtn");
       const input = document.getElementById("apiKeyInput");
+
+      if (!input) {
+        console.error("Target input #apiKeyInput was not found in the DOM.");
+        return;
+      }
+
+      // If already revealed, toggle back to masked password mode
+      if (input.type === "text" && input.value) {
+        input.type = "password";
+        if (btn) btn.textContent = "Reveal Key";
+        return;
+      }
 
       try {
         const response = await fetch(`${API_BASE}/api/auth/reveal-key`, {
@@ -1508,32 +1534,29 @@
 
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}));
-          alert(errData.detail || "Incorrect security PIN. Access denied.");
+          alert(errData.detail || "Incorrect security PIN or request failed.");
           return;
         }
 
         const data = await response.json();
     
-        // Assuming backend returns { api_key: "..." } or { key: "..." }
-        const unmaskedKey = data.api_key || data.key;
+        // Fallback checks across common API key payload keys
+        const unmaskedKey = data.api_key || data.key || data.apiKey || data.raw_key;
 
-        if (unmaskedKey && input) {
+        if (unmaskedKey) {
           input.value = unmaskedKey;
-          input.type = "text"; // Reveal the text characters
-      
-          // Update button state
+          input.type = "text"; // Unmasks dots into text
           if (btn) btn.textContent = "Hide Key";
-      
-          // Save locally as backup
           localStorage.setItem("shepherd_api_key", unmaskedKey);
+        } else {
+          alert("PIN verified, but no key was returned from the server.");
         }
 
       } catch (err) {
         console.error("Failed to reveal API key:", err);
-        alert("An error occurred while revealing the key. Please try again.");
+        alert("An error occurred while revealing the key. Please check your connection.");
       }
     }
-
     // Tier upgrade action handler
     function handleTierUpgrade(tier) {
       localStorage.setItem("shepherd_tier", tier);
