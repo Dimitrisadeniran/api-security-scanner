@@ -240,13 +240,11 @@ async def reveal_api_key(
     user: dict = Depends(require_current_user)
 ):
     """Verify security PIN and return the logged-in user's API key."""
-    # Ensure PIN is verified correctly
     if not database.verify_pin(user["id"], body.pin):
         raise HTTPException(status_code=401, detail="Invalid security PIN.")
     
-    # Re-fetch full user record to guarantee api_key presence
     full_user = database.get_user_by_id(user["id"])
-    if not full_user or "api_key" not in full_user:
+    if not full_user or not full_user.get("api_key"):
         raise HTTPException(status_code=404, detail="API Key not found.")
 
     return {
