@@ -637,14 +637,8 @@
       </div>
 
         <!-- API Key Input Field -->
-        <div class="api-key-container">
-          <input id="apiKeyInput" type="password" value="••••••••••••••••••••••••••••" readonly onclick="this.select()"
-            class="mono w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-xs text-gray-400 focus:outline-none focus:border-emerald-500 transition cursor-pointer" />
-        </div>
-
         <div class="flex items-center justify-between mt-3">
           <p id="userEmailDisplay" class="mono text-[10px] text-gray-500"></p>
-    
           <!-- Tier Upgrade Actions (Hidden until key is revealed) -->
           <div id="tierActions" class="tier-actions flex gap-2 hidden">
             <button type="button" onclick="handleTierUpgrade('pro')" 
@@ -1488,116 +1482,6 @@
       errEl.classList.remove('hidden');
     }
   "></script>
-  <!-- index.html structure -->
-  <input type="password" id="apiKeyInput" value="••••••••••••••••" readonly />
-  <button id="revealKeyBtn">Reveal Key</button>
-
-  <script>
-    document.getElementById('revealKeyBtn').addEventListener('click', async () => {
-      const pin = prompt("Please enter your Security PIN to reveal your API Key:");
-      if (!pin) return;
-
-      try {
-        const response = await fetch('/api/auth/reveal-key', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include', // Sends session cookies to FastAPI
-          body: JSON.stringify({ pin: pin })
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.api_key) {
-          const apiKeyInput = document.getElementById('apiKeyInput');
-          apiKeyInput.type = 'text';
-          apiKeyInput.value = data.api_key;
-        } else {
-          alert(data.detail || 'Failed to reveal API key. Incorrect PIN.');
-        }
-      } catch (error) {
-        console.error('Error revealing key:', error);
-        alert('An error occurred while connecting to the server.');
-      }
-    });
-  </script>
-  <script>
-    // Dynamic Base URL (uses current origin dynamically instead of hardcoded Render URL)
-    const API_BASE = window.location.origin;
-
-    // Global state refresh helper
-    function updateServiceInfo() {
-      const currentTier = localStorage.getItem("shepherd_tier") || "free";
-      const tierBadge = document.getElementById("currentTierBadge");
-      if (tierBadge) {
-        tierBadge.textContent = currentTier.toUpperCase();
-      }
-    }
-
-    // Security PIN verification prompt & key retrieval
-    async function promptSecurityPin() {
-      const input = document.getElementById("apiKeyInput");
-      const btn = document.getElementById("toggleKeyBtn");
-
-      if (!input) return;
-
-      // If already revealed, toggle back to masked password mode
-      if (input.type === "text" && input.value) {
-        input.type = "password";
-        if (btn) btn.textContent = "Reveal Key";
-        return;
-      }
-
-      const pin = prompt("Enter your security PIN to reveal your API key:");
-      if (!pin) return;
-
-      try {
-        const response = await fetch(`${API_BASE}/auth/reveal-key`, {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-          },
-          body: JSON.stringify({ pin: pin })
-        });
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          alert(errData.detail || "Incorrect PIN. Access denied.");
-          return;
-        }
-
-        const data = await response.json();
-        const unmaskedKey = data.api_key || data.key || data.apiKey;
-
-        if (unmaskedKey) {
-          input.value = unmaskedKey;
-          input.type = "text"; // Unmasks password dots to text
-          if (btn) btn.textContent = "Hide Key";
-          localStorage.setItem("shepherd_api_key", unmaskedKey);
-        } else {
-          alert("PIN verified, but no API key was returned.");
-       }
-
-      } catch (err) {
-        console.error("Failed to reveal API key:", err);
-        alert("Connection error while validating PIN.");
-      }
-    }
-    // Tier upgrade action handler
-    function handleTierUpgrade(tier) {
-      localStorage.setItem("shepherd_tier", tier);
-      updateServiceInfo();
-      alert(`Successfully initiated upgrade to ${tier.toUpperCase()} tier.`);
-    }
-
-    // Initialize state on page load
-    document.addEventListener("DOMContentLoaded", () => {
-      updateServiceInfo();
-    });
-    
-  </script>
-
   <footer class="border-t border-gray-800 bg-black px-6 py-6">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
       <p class="mono text-xs text-gray-500">© 2026 Astro Rescue Ventures. All rights reserved.</p>
