@@ -1490,33 +1490,47 @@
     // Security PIN verification prompt & key retrieval
     async function promptSecurityPin() {
       const pin = prompt("Enter your security PIN to reveal your API key:");
-      if (!pin) return;
+      if (!pin) return; // User cancelled or entered nothing
+
+      const btn = document.getElementById("toggleKeyBtn");
+      const input = document.getElementById("apiKeyInput");
 
       try {
         const response = await fetch(`${API_BASE}/api/auth/reveal-key`, {
           method: "POST",
-          headers: { 
+          credentials: "include",
+          headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem("token") || ""}`
+            "Accept": "application/json"
           },
-          body: JSON.stringify({ pin })
+          body: JSON.stringify({ pin: pin })
         });
 
         if (!response.ok) {
-          throw new Error("Invalid security PIN");
+          const errData = await response.json().catch(() => ({}));
+          alert(errData.detail || "Incorrect security PIN. Access denied.");
+          return;
         }
 
         const data = await response.json();
-        const keyInput = document.getElementById("apiKeyInput");
     
-        if (keyInput && data.apiKey) {
-          keyInput.type = "text";
-          keyInput.value = data.apiKey;
-          document.getElementById("toggleKeyBtn").textContent = "Hide Key";
+        // Assuming backend returns { api_key: "..." } or { key: "..." }
+        const unmaskedKey = data.api_key || data.key;
+
+        if (unmaskedKey && input) {
+          input.value = unmaskedKey;
+          input.type = "text"; // Reveal the text characters
+      
+          // Update button state
+          if (btn) btn.textContent = "Hide Key";
+      
+          // Save locally as backup
+          localStorage.setItem("shepherd_api_key", unmaskedKey);
         }
+
       } catch (err) {
         console.error("Failed to reveal API key:", err);
-        alert(err.message || "Failed to verify security PIN.");
+        alert("An error occurred while revealing the key. Please try again.");
       }
     }
 
