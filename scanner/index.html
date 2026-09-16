@@ -1443,10 +1443,70 @@
     }
   </script>
 
-  <script
+  <script>
+    
+  </script>
     src="results.js"
     onerror="document.getElementById('errorMsg').textContent='Scanner failed to load (results.js missing). Please refresh.'; document.getElementById('errorMsg').classList.remove('hidden');"
   ></script>
+  <script>
+    // Dynamic Base URL (uses current origin dynamically instead of hardcoded Render URL)
+    const API_BASE = window.location.origin;
+
+    // Global state refresh helper
+    function updateServiceInfo() {
+      const currentTier = localStorage.getItem("shepherd_tier") || "free";
+      const tierBadge = document.getElementById("currentTierBadge");
+      if (tierBadge) {
+        tierBadge.textContent = currentTier.toUpperCase();
+      }
+    }
+
+    // Security PIN verification prompt & key retrieval
+    async function promptSecurityPin() {
+      const pin = prompt("Enter your security PIN to reveal your API key:");
+      if (!pin) return;
+
+      try {
+        const response = await fetch(`${API_BASE}/api/auth/reveal-key`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("token") || ""}`
+          },
+          body: JSON.stringify({ pin })
+        });
+
+        if (!response.ok) {
+          throw new Error("Invalid security PIN");
+        }
+
+        const data = await response.json();
+        const keyInput = document.getElementById("apiKeyInput");
+    
+        if (keyInput && data.apiKey) {
+          keyInput.type = "text";
+          keyInput.value = data.apiKey;
+          document.getElementById("toggleKeyBtn").textContent = "Hide Key";
+        }
+      } catch (err) {
+        console.error("Failed to reveal API key:", err);
+        alert(err.message || "Failed to verify security PIN.");
+      }
+    }
+
+    // Tier upgrade action handler
+    function handleTierUpgrade(tier) {
+      localStorage.setItem("shepherd_tier", tier);
+      updateServiceInfo();
+      alert(`Successfully initiated upgrade to ${tier.toUpperCase()} tier.`);
+    }
+
+    // Initialize state on page load
+    document.addEventListener("DOMContentLoaded", () => {
+      updateServiceInfo();
+    });
+  </script>
 
   <footer class="border-t border-gray-800 bg-black px-6 py-6">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
