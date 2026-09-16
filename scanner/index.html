@@ -576,24 +576,47 @@
     <p id="errorMsg" class="mono text-red-400 text-xs mt-3 hidden"></p>
 
     <div class="mt-12 w-full max-w-xl mx-auto border-t border-gray-900 pt-8">
-      <div id="apiKeyCard" class="bg-gray-900 border border-gray-800/60 rounded-xl p-4 mb-3">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-2">
-            <span class="mono text-xs text-gray-500">Your API Key</span>
-            <span id="tierBadge" class="mono text-[10px] px-2 py-0.5 rounded-full font-bold"></span>
-          </div>
-          <div class="flex gap-2">
-            <button onclick="toggleKeyVisibility()" id="toggleKeyBtn"
-              class="mono text-[10px] text-gray-400 hover:text-white transition px-2 py-1 bg-gray-800 rounded">Show</button>
-            <button onclick="copyApiKey()" id="copyKeyBtn"
-              class="mono text-[10px] text-gray-400 hover:text-emerald-400 transition px-2 py-1 bg-gray-800 rounded">Copy</button>
-          </div>
+      <!-- API Key & Service Card -->
+    <div id="apiKeyCard" class="bg-gray-900 border border-gray-800/60 rounded-xl p-4 mb-3">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="mono text-xs text-gray-500">Your API Key</span>
+          <span id="currentTierBadge" class="mono text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            FREE
+          </span>
         </div>
-        <input id="apiKeyInput" type="password" readonly onclick="this.select()"
-          class="mono w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-xs text-gray-400 focus:outline-none focus:border-emerald-500 transition cursor-pointer" />
-        <div class="flex items-center justify-between mt-2">
-          <p id="userEmailDisplay" class="mono text-[10px] text-gray-500"></p>
-          <a href="settings.html" class="mono text-[10px] text-emerald-500 hover:text-emerald-400 transition font-medium">Upgrade plan →</a>
+        <div class="flex gap-2">
+          <!-- Security PIN Reveal Button -->
+          <button onclick="promptSecurityPin()" type="button" id="toggleKeyBtn" 
+           class="mono text-[10px] text-gray-400 hover:text-white transition px-2 py-1 bg-gray-800 rounded">
+           Reveal Key
+         </button>
+         <button onclick="copyApiKey()" id="copyKeyBtn" 
+           class="mono text-[10px] text-gray-400 hover:text-emerald-400 transition px-2 py-1 bg-gray-800 rounded">
+           Copy
+         </button>
+       </div>
+     </div>
+
+     <!-- API Key Input Field -->
+     <div class="api-key-container">
+       <input id="apiKeyInput" type="password" value="••••••••••••••••••••••••••••" readonly onclick="this.select()"
+         class="mono w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-xs text-gray-400 focus:outline-none focus:border-emerald-500 transition cursor-pointer" />
+     </div>
+
+     <div class="flex items-center justify-between mt-3">
+       <p id="userEmailDisplay" class="mono text-[10px] text-gray-500"></p>
+    
+       <!-- Tier Upgrade Trigger Actions -->
+       <div class="tier-actions flex gap-2">
+         <button type="button" onclick="handleTierUpgrade('pro')" 
+           class="mono text-[10px] bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded transition font-medium">
+           Upgrade Pro
+         </button>
+          <button type="button" onclick="handleTierUpgrade('enterprise')" 
+            class="mono text-[10px] bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border border-purple-500/30 px-2.5 py-1 rounded transition font-medium">
+            Upgrade Enterprise
+          </button>
         </div>
       </div>
     </div>
