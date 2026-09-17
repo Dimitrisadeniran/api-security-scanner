@@ -143,6 +143,9 @@ def init_db():
         )
         """)
 
+        # Migration: Ensure security_pin column exists
+        cursor.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS security_pin TEXT DEFAULT '1234'")
+
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS api_keys(
             api_key TEXT PRIMARY KEY,
@@ -176,19 +179,6 @@ def init_db():
         )
         """)
 
-        # Add this inside database.py -> init_db()
-        cursor.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS security_pin TEXT DEFAULT '1234'")
-
-        # Add this new helper function at the end of database.py:
-        def verify_pin(user_id: str, pin: str) -> bool:
-            """Verifies user's security PIN against stored PIN."""
-            user = get_user_by_id(user_id)
-            if not user:
-                return False
-            # Defaults to '1234' if security_pin is null
-            stored_pin = user.get("security_pin") or "1234"
-            return str(stored_pin).strip() == str(pin).strip()
-
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS enterprise_settings(
             user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -208,8 +198,6 @@ def init_db():
         )
         """)
 
-        # Migration: add v2.0 columns for storing full scan results, so a
-        # past audit can be reviewed and its PDF re-downloaded later.
         cursor.execute("ALTER TABLE scan_history ADD COLUMN IF NOT EXISTS findings TEXT")
         cursor.execute("ALTER TABLE scan_history ADD COLUMN IF NOT EXISTS compliance_score REAL")
         cursor.execute("ALTER TABLE scan_history ADD COLUMN IF NOT EXISTS audit_status TEXT")
@@ -225,6 +213,22 @@ def init_db():
         conn.commit()
 
         print("✓ Shepherd database initialized (Postgres/Supabase).")
+
+###############################################################################
+# PIN Verification Helper (Standalone Module Level)
+###############################################################################
+
+def verify_pin(user_id: str, pin: str) -> bool:
+    """Verifies user's security PIN against stored PIN with fallback protection."""
+    user = get_user_by_id(user_id)
+    if not user:
+        return False
+        
+    stored_pin = user.get("security_pin")
+    if not stored_pin or not str(stored_pin).strip():
+        stored_pin = "1234"
+
+    return str(stored_pin).strip() == str(pin).strip()
 
 ###############################################################################
 # User Management & Authentication
