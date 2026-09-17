@@ -1220,14 +1220,21 @@
     }
 
     function copyApiKey() {
-      const key = document.getElementById("apiKeyInput").value;
+      const keyInput = document.getElementById("apiKeyInput");
+      const key = keyInput.value ? keyInput.value.trim() : "";
+
+      // Block copying if the key is empty or still masked with bullets
+      if (!key || key.includes("•")) {
+        alert("Please reveal your API key first using your security PIN.");
+        return;
+      }
+
       navigator.clipboard.writeText(key).then(() => {
         const btn = document.getElementById("copyKeyBtn");
         btn.textContent = "Copied ✅";
         setTimeout(() => btn.textContent = "Copy", 2000);
       });
     }
-
     window.runScan = async function() {
       const urlInput = document.getElementById("urlInput");
       const url = urlInput.value.trim();
