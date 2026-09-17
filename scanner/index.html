@@ -1221,11 +1221,17 @@
 
     function copyApiKey() {
       const keyInput = document.getElementById("apiKeyInput");
+
+      // Check if the input is currently masked as a password field
+      if (keyInput.type === "password") {
+        alert("Please reveal your API key first using your security PIN.");
+        return;
+      }
+
       const key = keyInput.value ? keyInput.value.trim() : "";
 
-      // Block copying if the key is empty or still masked with bullets
-      if (!key || key.includes("•")) {
-        alert("Please reveal your API key first using your security PIN.");
+      if (!key) {
+        alert("No API key available to copy.");
         return;
       }
 
