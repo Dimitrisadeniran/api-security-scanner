@@ -823,40 +823,70 @@
         }
 
         // ── API Key Functions ──
-        function toggleApiKey() {
-            const input = document.getElementById("api-key-input");
-            const btn   = document.getElementById("show-api-key");
-            if (input.type === "password") {
-                input.type      = "text";
-                btn.innerText   = "Hide";
-                btn.classList.add("bg-emerald-600");
-                btn.classList.remove("bg-gray-800");
-            } else {
-                input.type      = "password";
-                btn.innerText   = "Show";
-                btn.classList.remove("bg-emerald-600");
-                btn.classList.add("bg-gray-800");
-            }
+         // ── Toggle API Key Visibility ──
+         function toggleApiKey(btn) {
+             const input = document.getElementById("api-key-input");
+             const showBtn = btn || document.getElementById("show-api-key");
+
+             if (input.dataset.revealed === "true") {
+                input.type = "password";
+                input.value = "••••••••••••••••••••••••••••••••";
+                input.dataset.revealed = "false";
+                if (showBtn) {
+                    showBtn.innerText = "Show";
+                    showBtn.classList.remove("bg-emerald-600");
+                    showBtn.classList.add("bg-gray-800");
+                }
+                return;
+             }
+
+             const realKey = localStorage.getItem("shepherd_api_key") || sessionStorage.getItem("shepherd_api_key");
+
+             if (!realKey) {
+                 alert("Session expired or API key not found. Please log in again.");
+                 return;
+             }
+
+             input.type = "text";
+             input.value = realKey;
+             input.dataset.revealed = "true";
+
+             if (showBtn) {
+                 showBtn.innerText = "Hide";
+                 showBtn.classList.add("bg-emerald-600");
+                 showBtn.classList.remove("bg-gray-800");
+             }
         }
 
+        // ── Copy API Key ──
         function copyApiKey() {
             const input = document.getElementById("api-key-input");
-            navigator.clipboard.writeText(input.value).then(() => {
-                const btn = document.querySelector('[onclick="copyApiKey()"]');
-                const originalText = btn.textContent;
-                btn.textContent = "Copied! ✅";
-                setTimeout(() => btn.textContent = originalText, 2000);
+
+            if (input.type === "password" || input.dataset.revealed !== "true") {
+                alert("Please click 'Show' to reveal your API key before copying.");
+                return;
+            }
+
+            const key = input.value ? input.value.trim() : "";
+            if (!key || key.includes("•")) {
+                alert("No valid API key available to copy.");
+                return;
+            }
+
+            navigator.clipboard.writeText(key).then(() => {
+                const copyBtn = document.querySelector('[onclick="copyApiKey()"]');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = "Copied! ✅";
+                setTimeout(() => copyBtn.textContent = originalText, 2000);
             });
         }
-
         // ── Load API Key ──
         function loadApiKey() {
-            const key = localStorage.getItem("shepherd_api_key");
-            if (key) {
-                document.getElementById("api-key-input").value = key;
-            }
+            const input = document.getElementById("api-key-input");
+            input.type = "password";
+            input.value = "••••••••••••••••••••••••••••••••";
+            input.dataset.revealed = "false";
         }
-
         // ── Load User Tier ──
         function loadUserTier() {
             const tier = localStorage.getItem("shepherd_tier") || "free";
