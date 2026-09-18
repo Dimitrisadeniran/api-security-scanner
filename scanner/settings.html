@@ -1,31 +1,71 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Account Settings — Shepherd AI</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700&display=swap" rel="stylesheet"/>
+
     <style>
-        body { font-family: 'Syne', sans-serif; background: #0a0a0a; color: #f0f0f0; }
-        .mono { font-family: 'DM Mono', monospace; }
-        .spinner { animation: spin 0.7s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .featured-card { border: 2px solid #0fac78; }
+        body {
+            font-family: 'Syne', sans-serif;
+            background: #0a0a0a;
+            color: #f0f0f0;
+        }
+
+        .mono {
+            font-family: 'DM Mono', monospace;
+        }
+
+        .spinner {
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .featured-card {
+            border: 2px solid #0fac78;
+        }
+
         .slide-down {
             animation: slideDown 0.3s ease forwards;
         }
+
         @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); max-height: 0; }
-            to { opacity: 1; transform: translateY(0); max-height: 500px; }
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+                max-height: 0;
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+                max-height: 500px;
+            }
         }
+
         .slide-up {
             animation: slideUp 0.3s ease forwards;
         }
+
         @keyframes slideUp {
-            from { opacity: 1; transform: translateY(0); max-height: 500px; }
-            to { opacity: 0; transform: translateY(-10px); max-height: 0; }
+            from {
+                opacity: 1;
+                transform: translateY(0);
+                max-height: 500px;
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+                max-height: 0;
+            }
         }
+
         .otp-input {
             letter-spacing: 0.5em;
             font-size: 1.25rem;
@@ -41,17 +81,21 @@
             width: 100%;
             max-width: 200px;
         }
+
         .otp-input:focus {
             border-color: #10b981;
         }
+
         .otp-input::placeholder {
             letter-spacing: normal;
             font-size: 0.875rem;
         }
+
         .otp-input:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
+
         .qr-container {
             background: #111827;
             border: 1px solid #374151;
@@ -59,6 +103,7 @@
             padding: 1.5rem;
             display: inline-block;
         }
+
         .qr-container img {
             display: block;
             margin: 0 auto;
@@ -66,6 +111,7 @@
             height: 200px;
             image-rendering: pixelated;
         }
+
         .status-badge {
             display: inline-block;
             padding: 0.25rem 0.75rem;
@@ -74,14 +120,17 @@
             font-weight: 600;
             font-family: 'DM Mono', monospace;
         }
+
         .status-enabled {
             background: #064e3b;
             color: #34d399;
         }
+
         .status-disabled {
             background: #451a1a;
             color: #f87171;
         }
+
         .secret-text {
             background: #111827;
             border: 1px solid #374151;
@@ -93,49 +142,53 @@
             word-break: break-all;
             max-width: 100%;
         }
+
         .alert {
             padding: 1rem;
             border-radius: 0.75rem;
             margin-bottom: 1rem;
             font-size: 0.875rem;
         }
+
         .alert-success {
             background: #064e3b;
             border: 1px solid #065f46;
             color: #34d399;
         }
+
         .alert-danger {
             background: #451a1a;
             border: 1px solid #7f1d1d;
             color: #f87171;
         }
+
         .alert-info {
             background: #1a365d;
             border: 1px solid #1e3a8a;
             color: #60a5fa;
         }
+
         .alert-warning {
             background: #451a1a;
             border: 1px solid #78350f;
             color: #fbbf24;
         }
+
         .hidden {
             display: none !important;
         }
-        .mt-4 { margin-top: 1rem; }
-        .mb-4 { margin-bottom: 1rem; }
-        .gap-4 { gap: 1rem; }
-        .flex-center { display: flex; align-items: center; justify-content: center; }
-        .flex-between { display: flex; align-items: center; justify-content: space-between; }
 
-        /* Payment Modal Styles */
+        .flex-between {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Payment Modal */
         .payment-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            inset: 0;
             background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(8px);
             z-index: 1000;
@@ -143,9 +196,11 @@
             justify-content: center;
             padding: 1.5rem;
         }
+
         .payment-overlay.active {
             display: flex;
         }
+
         .payment-modal {
             background: #1a1a1a;
             border: 1px solid #2a2a2a;
@@ -156,12 +211,14 @@
             animation: fadeIn 0.3s ease;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
         }
+
         .payment-modal h2 {
             font-size: 1.5rem;
             font-weight: 700;
             color: #f0f0f0;
             margin-bottom: 0.5rem;
         }
+
         .payment-modal .price-tag {
             font-size: 2.5rem;
             font-weight: 700;
@@ -169,11 +226,13 @@
             font-family: 'DM Mono', monospace;
             margin: 0.5rem 0 1rem 0;
         }
+
         .payment-modal .features-list {
             list-style: none;
             padding: 0;
             margin: 1rem 0 1.5rem 0;
         }
+
         .payment-modal .features-list li {
             padding: 0.5rem 0;
             color: #d1d5db;
@@ -184,18 +243,22 @@
             border-bottom: 1px solid #2a2a2a;
             font-family: 'DM Mono', monospace;
         }
+
         .payment-modal .features-list li:last-child {
             border-bottom: none;
         }
+
         .payment-modal .features-list li .icon {
             color: #34d399;
             font-size: 1.1rem;
         }
+
         .payment-actions {
             display: flex;
             gap: 0.75rem;
             margin-top: 1.5rem;
         }
+
         .payment-actions button {
             flex: 1;
             padding: 0.75rem 1.5rem;
@@ -207,906 +270,2190 @@
             border: none;
             cursor: pointer;
         }
+
         .btn-pay {
             background: linear-gradient(135deg, #34d399, #10b981);
             color: #000;
         }
+
         .btn-pay:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 30px rgba(52, 211, 153, 0.3);
         }
+
         .btn-cancel {
             background: #2a2a2a;
             color: #9ca3af;
         }
+
         .btn-cancel:hover {
             background: #3a3a3a;
             color: #f0f0f0;
         }
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
+
 <body class="min-h-screen flex flex-col">
+
+<!-- =========================================================
+     SESSION GUARD
+     Same authentication model as updated index.html.
+     No API key is read from localStorage/sessionStorage.
+========================================================= -->
 <script>
-  (function() {
-    const key = localStorage.getItem("shepherd_api_key") ||
-                sessionStorage.getItem("shepherd_api_key");
-    if (!key) {
-      window.location.href = "/scanner/login.html";
+(function () {
+    "use strict";
+
+    const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com";
+
+    async function checkSession() {
+        try {
+            const response = await fetch(`${API_BASE}/api/auth/me`, {
+                method: "GET",
+                credentials: "include",
+                headers: {
+                    "Accept": "application/json"
+                }
+            });
+
+            if (!response.ok) {
+                window.location.replace("/scanner/login.html");
+                return;
+            }
+
+            const user = await response.json();
+
+            /*
+             * These are only UI/cache values.
+             * They are NOT authentication credentials.
+             *
+             * The API key is deliberately NOT stored here.
+             */
+            if (user.email) {
+                localStorage.setItem("shepherd_email", user.email);
+            }
+
+            if (user.tier) {
+                localStorage.setItem("shepherd_tier", user.tier);
+            }
+
+            /*
+             * Never store:
+             *
+             * localStorage.setItem("shepherd_api_key", user.api_key)
+             *
+             * The backend should ideally not return api_key
+             * from /api/auth/me at all.
+             */
+
+            window.__SHEPHERD_USER__ = user;
+
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", initializeSettings, {
+                    once: true
+                });
+            } else {
+                initializeSettings();
+            }
+
+        } catch (error) {
+            console.error("Session check failed:", error);
+            window.location.replace("/scanner/login.html");
+        }
     }
-  })();
+
+    window.__checkShepherdSession = checkSession;
+
+    checkSession();
+})();
 </script>
 
-    <nav class="border-b border-gray-800 bg-black px-6 py-4 flex items-center justify-between">
-        <div class="mono text-lg font-bold text-emerald-400 tracking-tight">SHEPHERD AI</div>
-        <div class="flex gap-5 items-center">
-            <a href="about.html" class="mono text-xs text-gray-400 hover:text-emerald-400 transition font-medium">About</a>
-            <a href="index.html" class="mono text-xs text-gray-400 hover:text-emerald-400 transition">Scanner</a>
-            <a href="#" class="mono text-xs text-emerald-400 font-bold px-3 py-1 bg-gray-900 rounded-full">Settings</a>
-            <a href="#" onclick="localStorage.clear(); window.location.href='login.html'" class="mono text-xs text-gray-400 hover:text-red-400 transition">Log Out</a>
-        </div>
-    </nav>
 
-    <div class="container max-w-6xl mx-auto px-6 py-12 flex-1">
-        <h1 class="text-4xl font-bold mb-12 tracking-tight">Account Settings</h1>
+<!-- =========================================================
+     NAVIGATION
+========================================================= -->
+<nav class="border-b border-gray-800 bg-black px-6 py-4 flex items-center justify-between">
 
-        <!-- 2FA Section -->
-        <section id="2fa-section" class="bg-gray-900 border border-gray-800 rounded-2xl p-8 mb-10">
-            <div class="flex-between mb-6 flex-wrap gap-4">
-                <div>
-                    <p class="mono text-xs text-emerald-400 uppercase tracking-widest mb-1.5">Security</p>
-                    <h2 class="text-xl font-bold mb-2">Two-Factor Authentication</h2>
-                    <p class="text-sm text-gray-300 max-w-md" style="font-family:sans-serif;">
-                        Add an extra layer of security to your account with 2FA using an authenticator app.
-                    </p>
-                </div>
-                <div id="2fa-status-badge">
-                    <span class="status-badge status-disabled">✗ Disabled</span>
-                </div>
+    <div class="mono text-lg font-bold text-emerald-400 tracking-tight">
+        SHEPHERD AI
+    </div>
+
+    <div class="flex gap-5 items-center">
+
+        <a href="about.html"
+           class="mono text-xs text-gray-400 hover:text-emerald-400 transition font-medium">
+            About
+        </a>
+
+        <a href="index.html"
+           class="mono text-xs text-gray-400 hover:text-emerald-400 transition">
+            Scanner
+        </a>
+
+        <a href="#"
+           class="mono text-xs text-emerald-400 font-bold px-3 py-1 bg-gray-900 rounded-full">
+            Settings
+        </a>
+
+        <a href="#"
+           onclick="logout(); return false;"
+           class="mono text-xs text-gray-400 hover:text-red-400 transition">
+            Log Out
+        </a>
+
+    </div>
+</nav>
+
+
+<!-- =========================================================
+     MAIN
+========================================================= -->
+<div class="container max-w-6xl mx-auto px-6 py-12 flex-1">
+
+    <h1 class="text-4xl font-bold mb-12 tracking-tight">
+        Account Settings
+    </h1>
+
+
+    <!-- =====================================================
+         2FA
+    ====================================================== -->
+    <section id="2fa-section"
+             class="bg-gray-900 border border-gray-800 rounded-2xl p-8 mb-10">
+
+        <div class="flex-between mb-6 flex-wrap gap-4">
+
+            <div>
+                <p class="mono text-xs text-emerald-400 uppercase tracking-widest mb-1.5">
+                    Security
+                </p>
+
+                <h2 class="text-xl font-bold mb-2">
+                    Two-Factor Authentication
+                </h2>
+
+                <p class="text-sm text-gray-300 max-w-md"
+                   style="font-family:sans-serif;">
+                    Add an extra layer of security to your account with 2FA using an authenticator app.
+                </p>
             </div>
 
-            <!-- 2FA Status / Controls -->
-            <div id="2fa-controls">
-                <!-- 2FA Disabled - Show Enable Button -->
-                <div id="2fa-disabled-state">
-                    <p class="mono text-xs text-gray-400 mb-3">
-                        Secure your account with time-based one-time passwords (TOTP)
-                    </p>
-                    <button id="enable-2fa-btn" onclick="start2FASetup()"
+            <div id="2fa-status-badge">
+                <span class="status-badge status-disabled">
+                    ✗ Disabled
+                </span>
+            </div>
+
+        </div>
+
+
+        <!-- 2FA CONTROLS -->
+        <div id="2fa-controls">
+
+            <div id="2fa-disabled-state">
+
+                <p class="mono text-xs text-gray-400 mb-3">
+                    Secure your account with time-based one-time passwords (TOTP)
+                </p>
+
+                <button id="enable-2fa-btn"
+                        onclick="start2FASetup()"
                         class="mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-3 rounded-xl transition flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
-                        Enable 2FA
-                    </button>
-                </div>
 
-                <!-- 2FA Enabled - Show Disable Button -->
-                <div id="2fa-enabled-state" class="hidden">
-                    <div class="alert alert-success mb-4">
-                        ✅ Two-factor authentication is enabled for your account.
-                    </div>
-                    <button id="disable-2fa-btn" onclick="start2FADisable()"
-                        class="mono text-sm bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl transition flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
-                        Disable 2FA
-                    </button>
-                </div>
+                    <svg class="w-4 h-4"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+
+                    Enable 2FA
+                </button>
+
             </div>
 
-            <!-- 2FA Setup Flow -->
-            <div id="2fa-setup-flow" class="hidden mt-6 slide-down">
-                <div class="border-t border-gray-800 pt-6">
-                    <h3 class="text-lg font-bold mb-2">Set up Two-Factor Authentication</h3>
-                    <p class="text-sm text-gray-300 mb-4" style="font-family:sans-serif;">
-                        Scan the QR code with your authenticator app (Google Authenticator, Authy, etc.) 
-                        and enter the 6-digit code to enable 2FA.
+
+            <div id="2fa-enabled-state" class="hidden">
+
+                <div class="alert alert-success mb-4">
+                    ✅ Two-factor authentication is enabled for your account.
+                </div>
+
+                <button id="disable-2fa-btn"
+                        onclick="start2FADisable()"
+                        class="mono text-sm bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl transition flex items-center gap-2">
+
+                    <svg class="w-4 h-4"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+
+                    Disable 2FA
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- 2FA SETUP -->
+        <div id="2fa-setup-flow"
+             class="hidden mt-6 slide-down">
+
+            <div class="border-t border-gray-800 pt-6">
+
+                <h3 class="text-lg font-bold mb-2">
+                    Set up Two-Factor Authentication
+                </h3>
+
+                <p class="text-sm text-gray-300 mb-4"
+                   style="font-family:sans-serif;">
+                    Scan the QR code with your authenticator app
+                    and enter the 6-digit code to enable 2FA.
+                </p>
+
+
+                <div class="flex flex-col items-center mb-6">
+
+                    <div class="qr-container">
+                        <img id="qr-code-img"
+                             src=""
+                             alt="QR Code for 2FA setup"/>
+                    </div>
+
+                    <div class="mt-4 w-full max-w-md">
+
+                        <p class="mono text-xs text-gray-400 mb-1">
+                            Secret Key:
+                        </p>
+
+                        <div class="secret-text"
+                             id="secret-key-display">
+                            Loading...
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="flex flex-col items-center gap-4">
+
+                    <div class="w-full max-w-md">
+
+                        <label class="mono text-xs text-gray-400 block mb-1.5">
+                            Enter 6-digit code from your authenticator app
+                        </label>
+
+                        <div class="flex gap-3 items-center">
+
+                            <input type="text"
+                                   id="setup-otp-input"
+                                   maxlength="6"
+                                   placeholder="000000"
+                                   class="otp-input"
+                                   oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)"/>
+
+                            <button id="verify-2fa-btn"
+                                    onclick="verifyAndEnable2FA()"
+                                    class="mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-3 rounded-xl transition whitespace-nowrap">
+                                Verify & Enable
+                            </button>
+
+                        </div>
+
+                        <p id="setup-error"
+                           class="mono text-xs text-red-400 hidden mt-2">
+                        </p>
+
+                    </div>
+
+                    <button onclick="cancel2FASetup()"
+                            class="mono text-xs text-gray-400 hover:text-gray-300 transition">
+                        Cancel Setup
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- 2FA DISABLE -->
+        <div id="2fa-disable-flow"
+             class="hidden mt-6 slide-down">
+
+            <div class="border-t border-gray-800 pt-6">
+
+                <div class="alert alert-danger mb-4">
+                    ⚠️ <strong>Warning:</strong>
+                    Disabling 2FA will reduce the security of your account.
+                    Enter your current 2FA code to confirm.
+                </div>
+
+                <div class="flex flex-col items-center gap-4">
+
+                    <div class="w-full max-w-md">
+
+                        <label class="mono text-xs text-gray-400 block mb-1.5">
+                            Enter current 2FA code
+                        </label>
+
+                        <div class="flex gap-3 items-center">
+
+                            <input type="text"
+                                   id="disable-otp-input"
+                                   maxlength="6"
+                                   placeholder="000000"
+                                   class="otp-input"
+                                   oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)"/>
+
+                            <button id="disable-verify-btn"
+                                    onclick="verifyAndDisable2FA()"
+                                    class="mono text-sm bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl transition whitespace-nowrap">
+                                Disable 2FA
+                            </button>
+
+                        </div>
+
+                        <p id="disable-error"
+                           class="mono text-xs text-red-400 hidden mt-2">
+                        </p>
+
+                    </div>
+
+                    <button onclick="cancel2FADisable()"
+                            class="mono text-xs text-gray-400 hover:text-gray-300 transition">
+                        Cancel
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         API KEY
+    ====================================================== -->
+    <section id="api-key-section"
+             class="bg-gray-900 border border-gray-800 rounded-2xl p-8 mb-10">
+
+        <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
+
+            <div>
+
+                <p class="mono text-xs text-emerald-400 uppercase tracking-widest mb-1.5">
+                    API Access
+                </p>
+
+                <h2 class="text-xl font-bold mb-2">
+                    Your API Key
+                </h2>
+
+                <p class="text-sm text-gray-300 max-w-md"
+                   style="font-family:sans-serif;">
+
+                    Use this key in the header
+                    <code class="mono bg-gray-800 px-1 rounded">
+                        X-API-Key
+                    </code>
+                    to authenticate requests.
+
+                    Current Tier:
+                    <span id="current-tier-display"
+                          class="font-bold text-emerald-400">
+                        FREE
+                    </span>
+
+                </p>
+
+                <p id="account-email-display"
+                   class="mono text-xs text-gray-500 mt-2">
+                    Loading account...
+                </p>
+
+            </div>
+
+
+            <div class="flex gap-2 flex-wrap">
+
+                <button id="show-api-key"
+                        onclick="toggleApiKey(this)"
+                        class="mono text-xs bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition">
+                    Show
+                </button>
+
+                <button id="copy-api-key"
+                        onclick="copyApiKey()"
+                        class="mono text-xs bg-gray-800 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition">
+                    Copy
+                </button>
+
+                <button id="revoke-api-key"
+                        onclick="revokeApiKey()"
+                        class="mono text-xs border border-red-900 text-red-500 hover:bg-red-950 px-4 py-2 rounded-lg transition opacity-50 cursor-not-allowed"
+                        disabled>
+                    Revoke
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <input
+            type="password"
+            id="api-key-input"
+            value="••••••••••••••••••••••••••••••••"
+            readonly
+            data-revealed="false"
+            autocomplete="off"
+            class="mono w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-3 text-sm text-gray-300 focus:outline-none focus:border-emerald-500 transition"
+            placeholder="Loading..."
+        />
+
+        <p class="mono text-[10px] text-gray-600 mt-3">
+            Your API key is not stored in browser storage. Use “Show” to temporarily reveal it after security verification.
+        </p>
+
+    </section>
+
+
+    <!-- =====================================================
+         BILLING
+    ====================================================== -->
+    <section id="billing-section">
+
+        <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+
+            <div>
+
+                <p class="mono text-xs text-emerald-400 uppercase tracking-widest mb-1.5">
+                    Billing
+                </p>
+
+                <h2 class="text-3xl font-bold tracking-tight">
+                    Subscription Plan
+                </h2>
+
+            </div>
+
+            <div class="mono text-sm text-gray-300 bg-gray-950 px-5 py-3 rounded-xl border border-gray-800 flex items-center gap-2">
+
+                <span id="scans-used"
+                      class="text-white font-bold text-base">
+                    --
+                </span>
+
+                <span class="text-gray-600">
+                    /
+                </span>
+
+                <span id="scans-limit"
+                      class="text-gray-400">
+                    --
+                </span>
+
+                <span class="text-gray-400 ml-1">
+                    scans used this month
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div id="status-message"
+             class="hidden mono text-center mb-10 px-6 py-3 border rounded-xl text-sm">
+        </div>
+
+
+        <div class="space-y-8">
+
+            <!-- PROFESSIONAL + BUSINESS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                <!-- PROFESSIONAL -->
+                <div class="tier-card starter bg-gray-900 border border-gray-800 rounded-3xl p-10 flex flex-col hover:border-emerald-700 transition">
+
+                    <div class="flex justify-between items-start mb-8">
+
+                        <div>
+
+                            <h3 class="text-3xl font-bold tracking-tight mb-1">
+                                Professional
+                            </h3>
+
+                            <p class="text-gray-400 text-sm"
+                               style="font-family:sans-serif;">
+                                Perfect for Seed startups
+                            </p>
+
+                        </div>
+
+                        <p class="text-2xl font-bold mono text-emerald-400">
+                            NGN 450,000
+                            <span class="text-xs text-gray-400">
+                                /MONTH
+                            </span>
+                        </p>
+
+                    </div>
+
+
+                    <ul class="text-sm text-gray-200 space-y-4 mb-12 flex-1 leading-relaxed"
+                        style="font-family:sans-serif;">
+
+                        <li>✅ Complete compliance audit</li>
+                        <li>✅ PDF compliance report</li>
+                        <li>✅ API endpoint analysis</li>
+                        <li>✅ Evidence logs</li>
+                        <li>✅ Severity ratings</li>
+                        <li>✅ Email support</li>
+                        <li class="text-emerald-400 font-semibold">
+                            💎 30-day report validity
+                        </li>
+
+                    </ul>
+
+
+                    <button id="Professional-btn"
+                            onclick="handleUpgrade('starter')"
+                            class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 rounded-xl transition flex items-center justify-center gap-2">
+
+                        <svg class="w-4 h-4"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+
+                        Subscribe to Professional
+                    </button>
+
+                </div>
+
+
+                <!-- BUSINESS -->
+                <div class="tier-card pro featured-card bg-gray-900 rounded-3xl p-10 flex flex-col relative">
+
+                    <div class="absolute -top-3 right-6 bg-emerald-500 text-black text-xs font-bold px-3 py-1 rounded-full mono uppercase tracking-wider">
+                        ⭐ MOST POPULAR
+                    </div>
+
+                    <div class="flex justify-between items-start mb-8">
+
+                        <div>
+
+                            <h3 class="text-3xl font-bold tracking-tight mb-1">
+                                Business ⭐ MOST POPULAR
+                            </h3>
+
+                            <p class="text-gray-400 text-sm"
+                               style="font-family:sans-serif;">
+                                For growing startups
+                            </p>
+
+                        </div>
+
+                        <p class="text-2xl font-bold mono text-emerald-400">
+                            NGN 1,500,000
+                            <span class="text-xs text-gray-400">
+                                /MONTH
+                            </span>
+                        </p>
+
+                    </div>
+
+
+                    <ul class="text-sm text-gray-200 space-y-4 mb-12 flex-1 leading-relaxed"
+                        style="font-family:sans-serif;">
+
+                        <li>✅ Everything in Professional</li>
+                        <li>✅ PLUS</li>
+                        <li>✅ Remediation roadmap</li>
+                        <li>✅ Executive reports</li>
+                        <li>✅ Follow-up verification scan</li>
+                        <li>✅ Slack alerts</li>
+                        <li>✅ Priority support</li>
+                        <li class="text-emerald-400 font-semibold">
+                            💎 Compliance documentation
+                        </li>
+
+                    </ul>
+
+
+                    <button id="pro-btn"
+                            onclick="handleUpgrade('pro')"
+                            class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 rounded-xl transition flex items-center justify-center gap-2">
+
+                        <svg class="w-4 h-4"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+
+                        Subscribe to Business
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- ENTERPRISE -->
+            <div class="tier-card enterprise bg-gray-900 border border-gray-800 rounded-3xl p-10 hover:border-emerald-700 transition">
+
+                <div class="flex justify-between items-start mb-8 flex-wrap gap-4">
+
+                    <div>
+
+                        <h3 class="text-3xl font-bold tracking-tight mb-1">
+                            Enterprise
+                        </h3>
+
+                        <p class="text-gray-400 text-sm"
+                           style="font-family:sans-serif;">
+                            For high-volume production environments & critical infrastructure
+                        </p>
+
+                    </div>
+
+                    <p class="text-2xl font-bold mono text-emerald-400">
+                        NGN 3,500,000
+                        <span class="text-xs text-gray-400">
+                            /MONTH
+                        </span>
                     </p>
 
-                    <!-- QR Code -->
-                    <div class="flex flex-col items-center mb-6">
-                        <div class="qr-container">
-                            <img id="qr-code-img" src="" alt="QR Code for 2FA setup" />
-                        </div>
-                        <div class="mt-4 w-full max-w-md">
-                            <p class="mono text-xs text-gray-400 mb-1">Secret Key (if you can't scan the QR code):</p>
-                            <div class="secret-text" id="secret-key-display">Loading...</div>
-                        </div>
-                    </div>
-
-                    <!-- OTP Verification -->
-                    <div class="flex flex-col items-center gap-4">
-                        <div class="w-full max-w-md">
-                            <label class="mono text-xs text-gray-400 block mb-1.5">Enter 6-digit code from your authenticator app</label>
-                            <div class="flex gap-3 items-center">
-                                <input type="text" id="setup-otp-input" maxlength="6" placeholder="000000"
-                                    class="otp-input" 
-                                    oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)"
-                                    onkeydown="if(event.key==='Enter') verifyAndEnable2FA()"/>
-                                <button id="verify-2fa-btn" onclick="verifyAndEnable2FA()"
-                                    class="mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-3 rounded-xl transition whitespace-nowrap">
-                                    Verify & Enable
-                                </button>
-                            </div>
-                            <p id="setup-error" class="mono text-xs text-red-400 hidden mt-2"></p>
-                        </div>
-                        <button onclick="cancel2FASetup()" 
-                            class="mono text-xs text-gray-400 hover:text-gray-300 transition">
-                            Cancel Setup
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2FA Disable Flow -->
-            <div id="2fa-disable-flow" class="hidden mt-6 slide-down">
-                <div class="border-t border-gray-800 pt-6">
-                    <div class="alert alert-danger mb-4">
-                        ⚠️ <strong>Warning:</strong> Disabling 2FA will reduce the security of your account. 
-                        Enter your current 2FA code to confirm.
-                    </div>
-                    <div class="flex flex-col items-center gap-4">
-                        <div class="w-full max-w-md">
-                            <label class="mono text-xs text-gray-400 block mb-1.5">Enter current 2FA code</label>
-                            <div class="flex gap-3 items-center">
-                                <input type="text" id="disable-otp-input" maxlength="6" placeholder="000000"
-                                    class="otp-input"
-                                    oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)"
-                                    onkeydown="if(event.key==='Enter') verifyAndDisable2FA()"/>
-                                <button id="disable-verify-btn" onclick="verifyAndDisable2FA()"
-                                    class="mono text-sm bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl transition whitespace-nowrap">
-                                    Disable 2FA
-                                </button>
-                            </div>
-                            <p id="disable-error" class="mono text-xs text-red-400 hidden mt-2"></p>
-                        </div>
-                        <button onclick="cancel2FADisable()"
-                            class="mono text-xs text-gray-400 hover:text-gray-300 transition">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-       <!-- API Key Section -->
-       <section id="api-key-section" class="bg-gray-900 border border-gray-800 rounded-2xl p-8 mb-10">
-           <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-               <div>
-                   <p class="mono text-xs text-emerald-400 uppercase tracking-widest mb-1.5">API Access</p>
-                   <h2 class="text-xl font-bold mb-2">Your API Key</h2>
-                   <p class="text-sm text-gray-300 max-w-md" style="font-family:sans-serif;">
-                       Use this key in the header <code class="mono bg-gray-800 px-1 rounded">X-API-Key</code> to authenticate requests.
-                       Current Tier: <span id="current-tier-display" class="font-bold text-emerald-400">FREE</span>
-                   </p>
-               </div>
-               <div class="flex gap-2">
-                   <button id="show-api-key" onclick="toggleApiKey(this)"
-                     class="mono text-xs bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition">
-                     Show
-                   </button>
-                   <button id="copy-api-key" onclick="copyApiKey()"
-                     class="mono text-xs bg-gray-800 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition">
-                     Copy
-                   </button>
-                   <button class="mono text-xs border border-red-900 text-red-500 hover:bg-red-950 px-4 py-2 rounded-lg transition opacity-50 cursor-not-allowed">
-                     Revoke
-                   </button>
-               </div>
-           </div>
-           <input
-               type="password"
-               id="api-key-input"
-               value="••••••••••••••••••••••••••••••••"
-               readonly
-               data-revealed="false"
-               class="mono w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-3 text-sm text-gray-300 focus:outline-none focus:border-emerald-500 transition"
-               placeholder="Loading..."
-           />
-       </section>
-
-        <!-- Billing Section -->
-        <section id="billing-section">
-            <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
-                <div>
-                    <p class="mono text-xs text-emerald-400 uppercase tracking-widest mb-1.5">Billing</p>
-                    <h2 class="text-3xl font-bold tracking-tight">Subscription Plan</h2>
-                </div>
-                <div class="mono text-sm text-gray-300 bg-gray-950 px-5 py-3 rounded-xl border border-gray-800 flex items-center gap-2">
-                    <span id="scans-used" class="text-white font-bold text-base">--</span>
-                    <span class="text-gray-600"> / </span>
-                    <span id="scans-limit" class="text-gray-400">--</span>
-                    <span class="text-gray-400 ml-1">scans used this month</span>
-                </div>
-            </div>
-
-            <!-- Status message -->
-            <div id="status-message" class="hidden mono text-center mb-10 px-6 py-3 border rounded-xl text-sm"></div>
-
-            <div class="space-y-8">
-                <!-- Tier Grid: Professional -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-
-                    <!-- PROFESSIONAL -->
-                    <div class="tier-card starter bg-gray-900 border border-gray-800 rounded-3xl p-10 flex flex-col hover:border-emerald-700 transition">
-                        <div class="flex justify-between items-start mb-8">
-                            <div>
-                                <h3 class="text-3xl font-bold tracking-tight mb-1">Professional</h3>
-                                <p class="text-gray-400 text-sm" style="font-family:sans-serif;">Perfect for Seed startups</p>
-                            </div>
-                            <p class="text-2xl font-bold mono text-emerald-400">NGN 450,000<span class="text-xs text-gray-400"> /MONTH</span></p>
-                        </div>
-                        <ul class="text-sm text-gray-200 space-y-4 mb-12 flex-1 leading-relaxed" style="font-family:sans-serif;">
-                            <li class="flex items-center gap-3">✅ Complete compliance audit</li>
-                            <li class="flex items-center gap-3">✅ PDF compliance report</li>
-                            <li class="flex items-center gap-3">✅ API endpoint analysis</li>
-                            <li class="flex items-center gap-3">✅ Evidence logs</li>
-                            <li class="flex items-center gap-3">✅ Severity ratings</li>
-                            <li class="flex items-center gap-3">✅ Email support</li>
-                            <li class="flex items-center gap-3 text-emerald-400 font-semibold">💎 30-day report validity</li>
-                        </ul>
-                        <button id="Professional-btn"
-                          class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 rounded-xl transition flex items-center justify-center gap-2"
-                          onclick="handleUpgrade('starter')">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                            </svg>
-                            Subscribe to Professional
-                        </button>
-                    </div>
-
-                    <!-- BUSINESS ⭐ MOST POPULAR -->
-                    <div class="tier-card pro featured-card bg-gray-900 rounded-3xl p-10 flex flex-col relative">
-                        <div class="absolute -top-3 right-6 bg-emerald-500 text-black text-xs font-bold px-3 py-1 rounded-full mono uppercase tracking-wider">⭐ MOST POPULAR</div>
-                        <div class="flex justify-between items-start mb-8">
-                            <div>
-                                <h3 class="text-3xl font-bold tracking-tight mb-1">Business ⭐ MOST POPULAR</h3>
-                                <p class="text-gray-400 text-sm" style="font-family:sans-serif;">For growing startups</p>
-                            </div>
-                            <p class="text-2xl font-bold mono text-emerald-400">NGN 1,500,000<span class="text-xs text-gray-400"> /MONTH</span></p>
-                        </div>
-                        <ul class="text-sm text-gray-200 space-y-4 mb-12 flex-1 leading-relaxed" style="font-family:sans-serif;">
-                            <li class="flex items-center gap-3">✅ Everything in Professional</li>
-                            <li class="flex items-center gap-3">✅ PLUS</li>
-                            <li class="flex items-center gap-3">✅ Remediation roadmap</li>
-                            <li class="flex items-center gap-3">✅ Executive reports</li>
-                            <li class="flex items-center gap-3">✅ Follow-up verification scan</li>
-                            <li class="flex items-center gap-3">✅ Slack alerts</li>
-                            <li class="flex items-center gap-3">✅ Priority support</li>
-                            <li class="flex items-center gap-3 text-emerald-400 font-semibold">💎 Compliance documentation</li>
-                        </ul>
-                        <button id="pro-btn"
-                          class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 rounded-xl transition flex items-center justify-center gap-2"
-                          onclick="handleUpgrade('pro')">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                            </svg>
-                            Subscribe to Business
-                        </button>
-                    </div>
                 </div>
 
-                <!-- ENTERPRISE (full width, standout) -->
-                <div class="tier-card enterprise bg-gray-900 border border-gray-800 rounded-3xl p-10 hover:border-emerald-700 transition">
-                    <div class="flex justify-between items-start mb-8 flex-wrap gap-4">
-                        <div>
-                            <h3 class="text-3xl font-bold tracking-tight mb-1">Enterprise</h3>
-                            <p class="text-gray-400 text-sm" style="font-family:sans-serif;">For high-volume production environments & critical infrastructure</p>
-                        </div>
-                        <p class="text-2xl font-bold mono text-emerald-400">NGN 3,500,000<span class="text-xs text-gray-400"> /MONTH</span></p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm text-gray-200 mb-12"
+                     style="font-family:sans-serif;">
+
+                    <div class="space-y-4">
+                        <div>✅ Unlimited scans</div>
+                        <div>✅ Continuous monitoring</div>
+                        <div>✅ Executive dashboards</div>
+                        <div>✅ Custom compliance frameworks</div>
+                        <div>✅ Dedicated compliance engineer</div>
+                        <div>✅ Quarterly reviews</div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm text-gray-200 mb-12" style="font-family:sans-serif;">
-                        <div class="space-y-4">
-                            <div class="flex items-center gap-3">✅ Unlimited scans</div>
-                            <div class="flex items-center gap-3">✅ Continuous monitoring</div>
-                            <div class="flex items-center gap-3">✅ Executive dashboards</div>
-                            <div class="flex items-center gap-3">✅ Custom compliance frameworks</div>
-                            <div class="flex items-center gap-3">✅ Dedicated compliance engineer</div>
-                            <div class="flex items-center gap-3">✅ Quarterly reviews</div>
-                        </div>
-                        <div class="space-y-4">
-                            <div class="flex items-center gap-3">✅ Incident alerts</div>
-                            <div class="flex items-center gap-3">✅ 24/7 Support</div>
-                            <div class="flex items-center gap-3 text-emerald-400 font-semibold">💎 LIMIT: Unlimited Scans</div>
+
+                    <div class="space-y-4">
+                        <div>✅ Incident alerts</div>
+                        <div>✅ 24/7 Support</div>
+                        <div class="text-emerald-400 font-semibold">
+                            💎 LIMIT: Unlimited Scans
                         </div>
                     </div>
-                    <button id="enterprise-btn"
-                      class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 rounded-xl transition flex items-center justify-center gap-2"
-                      onclick="handleUpgrade('enterprise')">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
-                        Contact Sales
-                    </button>
+
                 </div>
+
+
+                <button id="enterprise-btn"
+                        onclick="handleUpgrade('enterprise')"
+                        class="w-full mono text-sm bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 rounded-xl transition flex items-center justify-center gap-2">
+
+                    <svg class="w-4 h-4"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+
+                    Contact Sales
+                </button>
+
             </div>
 
-            <p class="mono text-xs text-gray-400 mt-10 text-center tracking-wide">
-                Transactions processed securely via Paystack. Downgrade/Cancellation flows are available.
-            </p>
-        </section>
-    </div>
-
-    <!-- PAYMENT MODAL (NEW) -->
-    <div id="paymentModal" class="payment-overlay" onclick="if(event.target===this) closePaymentModal()">
-        <div class="payment-modal">
-            <div class="flex items-center justify-between mb-2">
-                <h2 id="modalPlanName">Upgrade to Starter</h2>
-                <button onclick="closePaymentModal()" class="text-gray-500 hover:text-white transition text-xl">✕</button>
-            </div>
-            <p class="text-gray-400 text-sm mb-1 font-mono">One-time payment · Instant access</p>
-            <div class="price-tag" id="modalPrice">$49</div>
-            <ul class="features-list" id="modalFeatures">
-                <li><span class="icon">✓</span> 100 scans per month</li>
-                <li><span class="icon">✓</span> Full PHI/PII/PCI detection</li>
-                <li><span class="icon">✓</span> Email alerts</li>
-                <li><span class="icon">✗</span> Slack integration</li>
-            </ul>
-            <div class="payment-actions">
-                <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
-                <button class="btn-pay" onclick="processPayment()">💰 Pay Now</button>
-            </div>
-            <p class="text-center text-gray-600 text-xs mt-4 font-mono">🔒 Secure payment processed via Paystack</p>
         </div>
+
+
+        <p class="mono text-xs text-gray-400 mt-10 text-center tracking-wide">
+            Transactions processed securely via Paystack.
+            Downgrade/Cancellation flows are available.
+        </p>
+
+    </section>
+
+</div>
+
+
+<!-- =========================================================
+     PAYMENT MODAL
+========================================================= -->
+<div id="paymentModal"
+     class="payment-overlay"
+     onclick="if(event.target===this) closePaymentModal()">
+
+    <div class="payment-modal">
+
+        <div class="flex items-center justify-between mb-2">
+
+            <h2 id="modalPlanName">
+                Upgrade
+            </h2>
+
+            <button onclick="closePaymentModal()"
+                    class="text-gray-500 hover:text-white transition text-xl">
+                ✕
+            </button>
+
+        </div>
+
+
+        <p class="text-gray-400 text-sm mb-1 font-mono">
+            Subscription payment · Instant access after verification
+        </p>
+
+
+        <div class="price-tag"
+             id="modalPrice">
+            --
+        </div>
+
+
+        <ul class="features-list"
+            id="modalFeatures">
+        </ul>
+
+
+        <div class="payment-actions">
+
+            <button class="btn-cancel"
+                    onclick="closePaymentModal()">
+                Cancel
+            </button>
+
+            <button class="btn-pay"
+                    onclick="processPayment()">
+                💰 Pay Now
+            </button>
+
+        </div>
+
+
+        <p class="text-center text-gray-600 text-xs mt-4 font-mono">
+            🔒 Secure payment processed via Paystack
+        </p>
+
+    </div>
+</div>
+
+
+<script src="billing.js"></script>
+
+
+<script>
+"use strict";
+
+/* =========================================================
+   API CONFIGURATION
+
+   IMPORTANT:
+   There is intentionally NO:
+       localStorage.getItem("shepherd_api_key")
+
+   Authentication is handled by the HttpOnly session cookie.
+========================================================= */
+
+const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com";
+
+
+/* =========================================================
+   ACCOUNT STATE
+========================================================= */
+
+let currentUser = null;
+let current2FAStatus = { enabled: false };
+let pendingPlan = null;
+
+
+/* =========================================================
+   PLAN DETAILS
+
+   These are DISPLAY values only.
+   Backend must determine the actual price/entitlement.
+========================================================= */
+
+const PLAN_DETAILS = {
+
+    starter: {
+        name: "Professional",
+        price: "NGN 450,000",
+        features: [
+            "Complete compliance audit",
+            "PDF compliance report",
+            "API endpoint analysis",
+            "Evidence logs",
+            "Severity ratings",
+            "Email support",
+            "30-day report validity"
+        ]
+    },
+
+    pro: {
+        name: "Business",
+        price: "NGN 1,500,000",
+        features: [
+            "Everything in Professional",
+            "Remediation roadmap",
+            "Executive reports",
+            "Follow-up verification scan",
+            "Slack alerts",
+            "Priority support",
+            "Compliance documentation"
+        ]
+    },
+
+    enterprise: {
+        name: "Enterprise",
+        price: "NGN 3,500,000",
+        features: [
+            "Unlimited scans",
+            "Continuous monitoring",
+            "Executive dashboards",
+            "Custom compliance frameworks",
+            "Dedicated compliance engineer",
+            "Quarterly reviews",
+            "24/7 Support"
+        ]
+    }
+
+};
+
+
+/* =========================================================
+   DOM ELEMENTS
+========================================================= */
+
+const twoFAStatusBadge =
+    document.getElementById("2fa-status-badge");
+
+const twoFADisabledState =
+    document.getElementById("2fa-disabled-state");
+
+const twoFAEnabledState =
+    document.getElementById("2fa-enabled-state");
+
+const twoFASetupFlow =
+    document.getElementById("2fa-setup-flow");
+
+const twoFADisableFlow =
+    document.getElementById("2fa-disable-flow");
+
+const qrCodeImg =
+    document.getElementById("qr-code-img");
+
+const secretKeyDisplay =
+    document.getElementById("secret-key-display");
+
+const setupOtpInput =
+    document.getElementById("setup-otp-input");
+
+const disableOtpInput =
+    document.getElementById("disable-otp-input");
+
+const setupError =
+    document.getElementById("setup-error");
+
+const disableError =
+    document.getElementById("disable-error");
+
+
+/* =========================================================
+   GENERIC AUTHENTICATED FETCH
+
+   Every protected request uses the session cookie.
+========================================================= */
+
+async function authenticatedFetch(url, options = {}) {
+
+    const config = {
+        credentials: "include",
+        ...options,
+        headers: {
+            "Accept": "application/json",
+            ...(options.headers || {})
+        }
+    };
+
+    const response = await fetch(url, config);
+
+    if (response.status === 401 || response.status === 403) {
+        window.location.replace("/scanner/login.html");
+        throw new Error("Session expired. Please log in again.");
+    }
+
+    return response;
+}
+
+
+/* =========================================================
+   LOAD ACCOUNT
+========================================================= */
+
+async function loadAccount() {
+
+    try {
+
+        const response = await authenticatedFetch(
+            `${API_BASE}/api/auth/me`
+        );
+
+        if (!response.ok) {
+            throw new Error("Unable to load account.");
+        }
+
+        currentUser = await response.json();
+
+        /*
+         * Safe account metadata only.
+         */
+        if (currentUser.email) {
+
+            document.getElementById(
+                "account-email-display"
+            ).textContent = currentUser.email;
+
+            /*
+             * Optional UI cache.
+             * This is NOT authentication.
+             */
+            localStorage.setItem(
+                "shepherd_email",
+                currentUser.email
+            );
+        }
+
+        if (currentUser.tier) {
+
+            document.getElementById(
+                "current-tier-display"
+            ).textContent =
+                String(currentUser.tier).toUpperCase();
+
+            /*
+             * Optional UI cache.
+             * Backend remains authoritative.
+             */
+            localStorage.setItem(
+                "shepherd_tier",
+                currentUser.tier
+            );
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Failed to load account:",
+            error
+        );
+
+    }
+}
+
+
+/* =========================================================
+   LOAD 2FA STATUS
+========================================================= */
+
+async function load2FAStatus() {
+
+    try {
+
+        const response = await authenticatedFetch(
+            `${API_BASE}/api/auth/2fa-status`
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                "Failed to load 2FA status."
+            );
+        }
+
+        current2FAStatus =
+            await response.json();
+
+        update2FAUI();
+
+    } catch (error) {
+
+        console.error(
+            "Failed to load 2FA status:",
+            error
+        );
+
+    }
+}
+
+
+/* =========================================================
+   UPDATE 2FA UI
+========================================================= */
+
+function update2FAUI() {
+
+    if (current2FAStatus.enabled) {
+
+        twoFAStatusBadge.innerHTML =
+            `<span class="status-badge status-enabled">
+                ✓ Enabled
+             </span>`;
+
+        twoFADisabledState.classList.add("hidden");
+        twoFAEnabledState.classList.remove("hidden");
+        twoFASetupFlow.classList.add("hidden");
+        twoFADisableFlow.classList.add("hidden");
+
+    } else {
+
+        twoFAStatusBadge.innerHTML =
+            `<span class="status-badge status-disabled">
+                ✗ Disabled
+             </span>`;
+
+        twoFADisabledState.classList.remove("hidden");
+        twoFAEnabledState.classList.add("hidden");
+        twoFASetupFlow.classList.add("hidden");
+        twoFADisableFlow.classList.add("hidden");
+    }
+}
+
+
+/* =========================================================
+   START 2FA SETUP
+========================================================= */
+
+async function start2FASetup() {
+
+    setupError.classList.add("hidden");
+    setupOtpInput.value = "";
+
+    try {
+
+        const response = await authenticatedFetch(
+            `${API_BASE}/api/auth/setup-2fa`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }
+        );
+
+        if (!response.ok) {
+
+            const errorData =
+                await response.json().catch(() => ({}));
+
+            throw new Error(
+                errorData.detail ||
+                "Failed to setup 2FA"
+            );
+        }
+
+        const data =
+            await response.json();
+
+        qrCodeImg.src =
+            `data:image/png;base64,${data.qr_code}`;
+
+        secretKeyDisplay.textContent =
+            data.secret || "";
+
+        twoFASetupFlow.classList.remove("hidden");
+        twoFADisabledState.classList.add("hidden");
+        twoFAEnabledState.classList.add("hidden");
+
+        setupOtpInput.focus();
+
+    } catch (error) {
+
+        setupError.textContent =
+            error.message ||
+            "Failed to setup 2FA";
+
+        setupError.classList.remove("hidden");
+    }
+}
+
+
+/* =========================================================
+   VERIFY + ENABLE 2FA
+========================================================= */
+
+async function verifyAndEnable2FA() {
+
+    const otpCode =
+        setupOtpInput.value.trim();
+
+    if (!otpCode || otpCode.length !== 6) {
+
+        setupError.textContent =
+            "Please enter a valid 6-digit code.";
+
+        setupError.classList.remove("hidden");
+        return;
+    }
+
+    setupError.classList.add("hidden");
+
+    const verifyBtn =
+        document.getElementById("verify-2fa-btn");
+
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = "Verifying...";
+
+    try {
+
+        const response = await authenticatedFetch(
+            `${API_BASE}/api/auth/verify-2fa`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    otp_code: otpCode
+                })
+            }
+        );
+
+        if (!response.ok) {
+
+            const errorData =
+                await response.json().catch(() => ({}));
+
+            throw new Error(
+                errorData.detail ||
+                "Failed to verify 2FA"
+            );
+        }
+
+        await load2FAStatus();
+
+        showStatusMessage(
+            "Two-factor authentication has been enabled.",
+            "success"
+        );
+
+    } catch (error) {
+
+        setupError.textContent =
+            error.message ||
+            "Invalid 2FA code. Please try again.";
+
+        setupError.classList.remove("hidden");
+
+        setupOtpInput.value = "";
+        setupOtpInput.focus();
+
+    } finally {
+
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = "Verify & Enable";
+    }
+}
+
+
+/* =========================================================
+   CANCEL 2FA SETUP
+========================================================= */
+
+function cancel2FASetup() {
+
+    twoFASetupFlow.classList.add("hidden");
+    twoFADisabledState.classList.remove("hidden");
+
+    setupOtpInput.value = "";
+    setupError.classList.add("hidden");
+
+    load2FAStatus();
+}
+
+
+/* =========================================================
+   START 2FA DISABLE
+========================================================= */
+
+function start2FADisable() {
+
+    disableError.classList.add("hidden");
+    disableOtpInput.value = "";
+
+    twoFADisableFlow.classList.remove("hidden");
+
+    disableOtpInput.focus();
+}
+
+
+/* =========================================================
+   VERIFY + DISABLE 2FA
+========================================================= */
+
+async function verifyAndDisable2FA() {
+
+    const otpCode =
+        disableOtpInput.value.trim();
+
+    if (!otpCode || otpCode.length !== 6) {
+
+        disableError.textContent =
+            "Please enter a valid 6-digit code.";
+
+        disableError.classList.remove("hidden");
+        return;
+    }
+
+    disableError.classList.add("hidden");
+
+    const disableBtn =
+        document.getElementById("disable-verify-btn");
+
+    disableBtn.disabled = true;
+    disableBtn.textContent = "Verifying...";
+
+    try {
+
+        const response = await authenticatedFetch(
+            `${API_BASE}/api/auth/disable-2fa`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    otp_code: otpCode
+                })
+            }
+        );
+
+        if (!response.ok) {
+
+            const errorData =
+                await response.json().catch(() => ({}));
+
+            throw new Error(
+                errorData.detail ||
+                "Failed to disable 2FA"
+            );
+        }
+
+        await load2FAStatus();
+
+        showStatusMessage(
+            "Two-factor authentication has been disabled.",
+            "warning"
+        );
+
+    } catch (error) {
+
+        disableError.textContent =
+            error.message ||
+            "Invalid 2FA code. Please try again.";
+
+        disableError.classList.remove("hidden");
+
+        disableOtpInput.value = "";
+        disableOtpInput.focus();
+
+    } finally {
+
+        disableBtn.disabled = false;
+        disableBtn.textContent = "Disable 2FA";
+    }
+}
+
+
+/* =========================================================
+   CANCEL 2FA DISABLE
+========================================================= */
+
+function cancel2FADisable() {
+
+    twoFADisableFlow.classList.add("hidden");
+
+    disableOtpInput.value = "";
+    disableError.classList.add("hidden");
+}
+
+
+/* =========================================================
+   API KEY
+========================================================= */
+
+/*
+ * IMPORTANT:
+ *
+ * The raw API key is NOT loaded from localStorage.
+ *
+ * The backend should keep it server-side.
+ *
+ * When the user clicks Show, the backend requires the
+ * security PIN and returns the key temporarily.
+ */
+
+async function promptSecurityPin() {
+
+    const pin =
+        prompt("Enter your security PIN to reveal your API key:");
+
+    if (!pin) {
+        return;
+    }
+
+    try {
+
+        const response = await authenticatedFetch(
+            `${API_BASE}/api/auth/reveal-key`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    pin: pin
+                })
+            }
+        );
+
+        const data =
+            await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail ||
+                "Unable to reveal API key."
+            );
+        }
+
+        const unmaskedKey =
+            data.api_key ||
+            data.key ||
+            data.apiKey;
+
+        if (!unmaskedKey) {
+            throw new Error(
+                "The server did not return an API key."
+            );
+        }
+
+        const input =
+            document.getElementById("api-key-input");
+
+        const btn =
+            document.getElementById("show-api-key");
+
+        input.type = "text";
+        input.value = unmaskedKey;
+        input.dataset.revealed = "true";
+
+        btn.innerText = "Hide";
+        btn.classList.remove("bg-gray-800");
+        btn.classList.add("bg-emerald-600");
+
+        /*
+         * DO NOT DO THIS:
+         *
+         * localStorage.setItem(
+         *     "shepherd_api_key",
+         *     unmaskedKey
+         * );
+         *
+         * The secret only exists temporarily in the DOM.
+         */
+
+    } catch (error) {
+
+        alert(
+            error.message ||
+            "Unable to reveal API key."
+        );
+    }
+}
+
+
+/* =========================================================
+   TOGGLE API KEY
+========================================================= */
+
+async function toggleApiKey(btn) {
+
+    const input =
+        document.getElementById("api-key-input");
+
+    const showBtn =
+        btn ||
+        document.getElementById("show-api-key");
+
+
+    /* Hide */
+    if (input.dataset.revealed === "true") {
+
+        input.type = "password";
+
+        input.value =
+            "••••••••••••••••••••••••••••••••";
+
+        input.dataset.revealed = "false";
+
+        if (showBtn) {
+
+            showBtn.innerText = "Show";
+
+            showBtn.classList.remove(
+                "bg-emerald-600"
+            );
+
+            showBtn.classList.add(
+                "bg-gray-800"
+            );
+        }
+
+        return;
+    }
+
+
+    /* Show */
+    await promptSecurityPin();
+}
+
+
+/* =========================================================
+   COPY API KEY
+========================================================= */
+
+async function copyApiKey() {
+
+    const input =
+        document.getElementById("api-key-input");
+
+    if (
+        input.type === "password" ||
+        input.dataset.revealed !== "true"
+    ) {
+
+        alert(
+            "Please click 'Show' and verify your security PIN before copying."
+        );
+
+        return;
+    }
+
+    const key =
+        input.value
+            ? input.value.trim()
+            : "";
+
+    if (!key || key.includes("•")) {
+
+        alert(
+            "No valid API key available to copy."
+        );
+
+        return;
+    }
+
+    try {
+
+        await navigator.clipboard.writeText(key);
+
+        const copyBtn =
+            document.getElementById("copy-api-key");
+
+        const originalText =
+            copyBtn.textContent;
+
+        copyBtn.textContent =
+            "Copied! ✅";
+
+        setTimeout(() => {
+            copyBtn.textContent =
+                originalText;
+        }, 2000);
+
+    } catch (error) {
+
+        console.error(
+            "Copy failed:",
+            error
+        );
+
+        alert(
+            "Unable to copy API key."
+        );
+    }
+}
+
+
+/* =========================================================
+   LOAD API KEY UI
+========================================================= */
+
+function loadApiKey() {
+
+    const input =
+        document.getElementById("api-key-input");
+
+    if (!input) {
+        return;
+    }
+
+    /*
+     * Always start masked.
+     *
+     * There is NO localStorage lookup here.
+     */
+
+    input.type = "password";
+
+    input.value =
+        "••••••••••••••••••••••••••••••••";
+
+    input.dataset.revealed = "false";
+}
+
+
+/* =========================================================
+   LOAD USER TIER
+========================================================= */
+
+function loadUserTier() {
+
+    const tier =
+        currentUser?.tier ||
+        "free";
+
+    const tierDisplay =
+        document.getElementById(
+            "current-tier-display"
+        );
+
+    if (tierDisplay) {
+
+        tierDisplay.textContent =
+            String(tier).toUpperCase();
+    }
+}
+
+
+/* =========================================================
+   LOAD SCAN USAGE
+========================================================= */
+
+async function loadScansUsage() {
+
+    try {
+
+        const response =
+            await authenticatedFetch(
+                `${API_BASE}/api/usage`
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                "Failed to load scan usage."
+            );
+        }
+
+        const data =
+            await response.json();
+
+        document.getElementById(
+            "scans-used"
+        ).textContent =
+            data.scans_used ?? 0;
+
+        document.getElementById(
+            "scans-limit"
+        ).textContent =
+            data.scans_limit ?? 0;
+
+    } catch (error) {
+
+        console.error(
+            "Failed to load scans usage:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   PAYMENT MODAL
+========================================================= */
+
+function showPaymentModal(plan) {
+
+    const details =
+        PLAN_DETAILS[plan];
+
+    if (!details) {
+        return;
+    }
+
+    pendingPlan = plan;
+
+    document.getElementById(
+        "modalPlanName"
+    ).textContent =
+        `Upgrade to ${details.name}`;
+
+    document.getElementById(
+        "modalPrice"
+    ).textContent =
+        details.price;
+
+    const featuresList =
+        document.getElementById(
+            "modalFeatures"
+        );
+
+    featuresList.innerHTML =
+        details.features
+            .map(feature =>
+                `<li>
+                    <span class="icon">✓</span>
+                    ${feature}
+                 </li>`
+            )
+            .join("");
+
+    document.getElementById(
+        "paymentModal"
+    ).classList.add("active");
+
+    document.body.style.overflow =
+        "hidden";
+}
+
+
+/* =========================================================
+   CLOSE PAYMENT MODAL
+========================================================= */
+
+function closePaymentModal() {
+
+    document.getElementById(
+        "paymentModal"
+    ).classList.remove("active");
+
+    document.body.style.overflow = "";
+
+    pendingPlan = null;
+}
+
+
+/* =========================================================
+   PROCESS PAYMENT
+========================================================= */
+
+async function processPayment() {
+
+    if (!pendingPlan) {
+        return;
+    }
+
+    const payBtn =
+        document.querySelector(".btn-pay");
+
+    payBtn.disabled = true;
+    payBtn.textContent =
+        "Processing...";
+
+    try {
+
+        /*
+         * IMPORTANT:
+         *
+         * We do NOT send the API key.
+         *
+         * We also do not need to trust an email from
+         * localStorage. The backend should determine
+         * the authenticated user's email from the session.
+         */
+
+        const response =
+            await authenticatedFetch(
+                `${API_BASE}/api/create-payment`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        plan: pendingPlan
+                    })
+                }
+            );
+
+        const data =
+            await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail ||
+                "Payment initialization failed"
+            );
+        }
+
+        if (data.authorization_url) {
+
+            window.location.href =
+                data.authorization_url;
+
+        } else {
+
+            throw new Error(
+                "No payment URL received"
+            );
+        }
+
+    } catch (error) {
+
+        alert(
+            `Payment failed: ${error.message}`
+        );
+
+        closePaymentModal();
+
+    } finally {
+
+        payBtn.disabled = false;
+        payBtn.textContent =
+            "💰 Pay Now";
+    }
+}
+
+
+/* =========================================================
+   HANDLE UPGRADE
+========================================================= */
+
+function handleUpgrade(tier) {
+
+    const planMap = {
+        starter: "starter",
+        pro: "pro",
+        enterprise: "enterprise"
+    };
+
+    const plan =
+        planMap[tier];
+
+    if (plan) {
+
+        showPaymentModal(plan);
+
+    } else {
+
+        alert(
+            "Invalid plan selected. Please try again."
+        );
+    }
+}
+
+
+/* =========================================================
+   VERIFY PAYMENT
+========================================================= */
+
+async function verifyPayment(reference) {
+
+    try {
+
+        const response =
+            await authenticatedFetch(
+                `${API_BASE}/api/verify-payment?reference=${encodeURIComponent(reference)}`
+            );
+
+        const data =
+            await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail ||
+                "Payment verification failed."
+            );
+        }
+
+        if (data.success) {
+
+            /*
+             * DO NOT manually make the backend account
+             * authoritative through localStorage.
+             *
+             * The backend has already updated the user's
+             * subscription. Reload /auth/me instead.
+             */
+
+            await loadAccount();
+            await loadScansUsage();
+
+            showStatusMessage(
+                `✅ Payment successful! Your subscription has been updated.`,
+                "success"
+            );
+
+        } else {
+
+            showStatusMessage(
+                "❌ Payment verification failed. Please contact support.",
+                "danger"
+            );
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Payment verification error:",
+            error
+        );
+
+        showStatusMessage(
+            "❌ Payment verification failed. Please contact support.",
+            "danger"
+        );
+
+    } finally {
+
+        window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+        );
+    }
+}
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+async function logout() {
+
+    try {
+
+        await fetch(
+            `${API_BASE}/api/auth/logout`,
+            {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Accept": "application/json"
+                }
+            }
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Logout request failed:",
+            error
+        );
+
+    } finally {
+
+        /*
+         * The API key was never stored here.
+         */
+        localStorage.removeItem(
+            "shepherd_email"
+        );
+
+        localStorage.removeItem(
+            "shepherd_tier"
+        );
+
+        localStorage.removeItem(
+            "scans_used"
+        );
+
+        localStorage.removeItem(
+            "scans_limit"
+        );
+
+        window.location.replace(
+            "login.html"
+        );
+    }
+}
+
+
+/* =========================================================
+   REVOKE API KEY
+========================================================= */
+
+async function revokeApiKey() {
+
+    /*
+     * Currently disabled in the UI because there is no
+     * confirmed revoke endpoint in the supplied backend.
+     *
+     * When your backend implements it, this can become:
+     *
+     * POST /api/auth/revoke-key
+     *
+     * using credentials: "include".
+     */
+
+    alert(
+        "API key revocation is not currently available."
+    );
+}
+
+
+/* =========================================================
+   STATUS MESSAGE
+========================================================= */
+
+function showStatusMessage(
+    message,
+    type = "info"
+) {
+
+    const statusDiv =
+        document.getElementById(
+            "status-message"
+        );
+
+    statusDiv.textContent =
+        message;
+
+    statusDiv.className =
+        `mono text-center mb-10 px-6 py-3 border rounded-xl text-sm alert-${type}`;
+
+    statusDiv.classList.remove(
+        "hidden"
+    );
+
+    setTimeout(() => {
+
+        statusDiv.classList.add(
+            "hidden"
+        );
+
+    }, 10000);
+}
+
+
+/* =========================================================
+   INITIALIZATION
+========================================================= */
+
+async function initializeSettings() {
+
+    /*
+     * Always begin with a masked API key.
+     */
+    loadApiKey();
+
+    /*
+     * Account data comes from the authenticated session.
+     */
+    await loadAccount();
+
+    loadUserTier();
+
+    /*
+     * These requests are also authenticated by the
+     * HttpOnly session cookie.
+     */
+    await Promise.all([
+        load2FAStatus(),
+        loadScansUsage()
+    ]);
+
+
+    /* OTP keyboard handling */
+
+    setupOtpInput.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (event.key === "Enter") {
+
+                event.preventDefault();
+
+                verifyAndEnable2FA();
+            }
+        }
+    );
+
+
+    disableOtpInput.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (event.key === "Enter") {
+
+                event.preventDefault();
+
+                verifyAndDisable2FA();
+            }
+        }
+    );
+
+
+    /* =====================================================
+       PAYMENT REDIRECT FROM DASHBOARD
+    ====================================================== */
+
+    const urlParams =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const action =
+        urlParams.get("action");
+
+    const plan =
+        urlParams.get("plan");
+
+    if (
+        action === "payment" &&
+        plan &&
+        PLAN_DETAILS[plan]
+    ) {
+
+        setTimeout(() => {
+
+            showPaymentModal(plan);
+
+            window.history.replaceState(
+                {},
+                document.title,
+                window.location.pathname
+            );
+
+        }, 500);
+    }
+
+
+    /* =====================================================
+       PAYSTACK CALLBACK
+    ====================================================== */
+
+    const paymentStatus =
+        urlParams.get("payment");
+
+    const reference =
+        urlParams.get("reference");
+
+    if (
+        paymentStatus === "success" &&
+        reference
+    ) {
+
+        await verifyPayment(reference);
+
+    } else if (
+        paymentStatus === "cancel"
+    ) {
+
+        showStatusMessage(
+            "Payment was cancelled. You can try again anytime.",
+            "warning"
+        );
+
+        window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+        );
+    }
+}
+
+
+/* =========================================================
+   GLOBAL KEYBOARD SHORTCUTS
+========================================================= */
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (
+            event.key === "Escape" &&
+            document
+                .getElementById("paymentModal")
+                .classList.contains("active")
+        ) {
+
+            closePaymentModal();
+        }
+    }
+);
+
+</script>
+
+
+<!-- =========================================================
+     FOOTER
+========================================================= -->
+
+<footer class="border-t border-gray-800 bg-black px-6 py-6">
+
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+
+        <p class="mono text-xs text-gray-500">
+            © 2026 Astro Rescue Ventures. All rights reserved.
+        </p>
+
+        <p class="mono text-xs text-gray-500">
+
+            Shepherd AI is a product of
+
+            <a href="about.html"
+               class="text-emerald-400 hover:text-emerald-300 underline">
+                Astro Rescue Ventures
+            </a>.
+
+        </p>
+
     </div>
 
-    <script src="billing.js"></script>
+</footer>
 
-    <script>
-        // ── API Configuration ──
-        const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com";
-        const API_KEY = localStorage.getItem("shepherd_api_key");
-
-        // ── DOM Elements ──
-        const twoFAStatusBadge = document.getElementById('2fa-status-badge');
-        const twoFADisabledState = document.getElementById('2fa-disabled-state');
-        const twoFAEnabledState = document.getElementById('2fa-enabled-state');
-        const twoFASetupFlow = document.getElementById('2fa-setup-flow');
-        const twoFADisableFlow = document.getElementById('2fa-disable-flow');
-        const qrCodeImg = document.getElementById('qr-code-img');
-        const secretKeyDisplay = document.getElementById('secret-key-display');
-        const setupOtpInput = document.getElementById('setup-otp-input');
-        const disableOtpInput = document.getElementById('disable-otp-input');
-        const setupError = document.getElementById('setup-error');
-        const disableError = document.getElementById('disable-error');
-
-        let current2FAStatus = { enabled: false };
-        let pendingPlan = null;
-
-        // ── Plan Details for Payment Modal ──
-        const PLAN_DETAILS = {
-            starter: {
-                name: "Professional",
-                price: "NGN 450,000",
-                features: [
-                    "Complete compliance audit",
-                    "PDF compliance report",
-                    "API endpoint analysis",
-                    "Evidence logs",
-                    "Severity ratings",
-                    "Email support",
-                    "30-day report validity"
-                ]
-            },
-            pro: {
-                name: "Business",
-                price: "NGN 1,500,000",
-                features: [
-                    "Everything in Professional",
-                    "Remediation roadmap",
-                    "Executive reports",
-                    "Follow-up verification scan",
-                    "Slack alerts",
-                    "Priority support",
-                    "Compliance documentation"
-                ]
-            },
-            enterprise: {
-                name: "Enterprise",
-                price: "NGN 3,500,000",
-                features: [
-                    "Unlimited scans",
-                    "Continuous monitoring",
-                    "Executive dashboards",
-                    "Custom compliance frameworks",
-                    "Dedicated compliance engineer",
-                    "Quarterly reviews",
-                    "24/7 Support"
-                ]
-            }
-        };
-
-        // ── Load 2FA Status ──
-        async function load2FAStatus() {
-            try {
-                const response = await fetch(`${API_BASE}/api/auth/2fa-status`, {
-                    headers: {
-                        'X-API-Key': API_KEY,
-                        'Accept': 'application/json'
-                    }
-                });
-                if (response.ok) {
-                    current2FAStatus = await response.json();
-                    update2FAUI();
-                }
-            } catch (error) {
-                console.error('Failed to load 2FA status:', error);
-            }
-        }
-
-        // ── Update 2FA UI ──
-        function update2FAUI() {
-            const badge = document.getElementById('2fa-status-badge');
-            if (current2FAStatus.enabled) {
-                badge.innerHTML = `<span class="status-badge status-enabled">✓ Enabled</span>`;
-                twoFADisabledState.classList.add('hidden');
-                twoFAEnabledState.classList.remove('hidden');
-                twoFASetupFlow.classList.add('hidden');
-                twoFADisableFlow.classList.add('hidden');
-            } else {
-                badge.innerHTML = `<span class="status-badge status-disabled">✗ Disabled</span>`;
-                twoFADisabledState.classList.remove('hidden');
-                twoFAEnabledState.classList.add('hidden');
-                twoFASetupFlow.classList.add('hidden');
-                twoFADisableFlow.classList.add('hidden');
-            }
-        }
-
-        // ── Start 2FA Setup ──
-        async function start2FASetup() {
-            setupError.classList.add('hidden');
-            setupOtpInput.value = '';
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/auth/setup-2fa`, {
-                    method: 'POST',
-                    headers: {
-                        'X-API-Key': API_KEY,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    }
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'Failed to setup 2FA');
-                }
-
-                const data = await response.json();
-                
-                // Show QR code
-                qrCodeImg.src = `data:image/png;base64,${data.qr_code}`;
-                secretKeyDisplay.textContent = data.secret;
-                
-                // Show setup flow
-                twoFASetupFlow.classList.remove('hidden');
-                twoFADisabledState.classList.add('hidden');
-                twoFAEnabledState.classList.add('hidden');
-                
-                setupOtpInput.focus();
-
-            } catch (error) {
-                setupError.textContent = error.message || 'Failed to setup 2FA';
-                setupError.classList.remove('hidden');
-            }
-        }
-
-        // ── Verify and Enable 2FA ──
-        async function verifyAndEnable2FA() {
-            const otpCode = setupOtpInput.value.trim();
-            
-            if (!otpCode || otpCode.length !== 6) {
-                setupError.textContent = 'Please enter a valid 6-digit code';
-                setupError.classList.remove('hidden');
-                return;
-            }
-
-            setupError.classList.add('hidden');
-            const verifyBtn = document.getElementById('verify-2fa-btn');
-            verifyBtn.disabled = true;
-            verifyBtn.textContent = 'Verifying...';
-
-            try {
-                const response = await fetch(`${API_BASE}/api/auth/verify-2fa`, {
-                    method: 'POST',
-                    headers: {
-                        'X-API-Key': API_KEY,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ otp_code: otpCode })
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'Failed to verify 2FA');
-                }
-
-                // Success - reload status
-                await load2FAStatus();
-                update2FAUI();
-                
-                // Show success message
-                const statusBadge = document.getElementById('2fa-status-badge');
-                statusBadge.innerHTML = `<span class="status-badge status-enabled">✓ Enabled</span>`;
-
-            } catch (error) {
-                setupError.textContent = error.message || 'Invalid 2FA code. Please try again.';
-                setupError.classList.remove('hidden');
-                setupOtpInput.value = '';
-                setupOtpInput.focus();
-            } finally {
-                verifyBtn.disabled = false;
-                verifyBtn.textContent = 'Verify & Enable';
-            }
-        }
-
-        // ── Cancel 2FA Setup ──
-        function cancel2FASetup() {
-            twoFASetupFlow.classList.add('hidden');
-            twoFADisabledState.classList.remove('hidden');
-            setupOtpInput.value = '';
-            setupError.classList.add('hidden');
-            load2FAStatus();
-        }
-
-        // ── Start 2FA Disable ──
-        function start2FADisable() {
-            disableError.classList.add('hidden');
-            disableOtpInput.value = '';
-            twoFADisableFlow.classList.remove('hidden');
-            disableOtpInput.focus();
-        }
-
-        // ── Verify and Disable 2FA ──
-        async function verifyAndDisable2FA() {
-            const otpCode = disableOtpInput.value.trim();
-            
-            if (!otpCode || otpCode.length !== 6) {
-                disableError.textContent = 'Please enter a valid 6-digit code';
-                disableError.classList.remove('hidden');
-                return;
-            }
-
-            disableError.classList.add('hidden');
-            const disableBtn = document.getElementById('disable-verify-btn');
-            disableBtn.disabled = true;
-            disableBtn.textContent = 'Verifying...';
-
-            try {
-                const response = await fetch(`${API_BASE}/api/auth/disable-2fa`, {
-                    method: 'POST',
-                    headers: {
-                        'X-API-Key': API_KEY,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ otp_code: otpCode })
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'Failed to disable 2FA');
-                }
-
-                // Success - reload status
-                await load2FAStatus();
-                update2FAUI();
-                
-                // Show disabled status
-                const statusBadge = document.getElementById('2fa-status-badge');
-                statusBadge.innerHTML = `<span class="status-badge status-disabled">✗ Disabled</span>`;
-
-            } catch (error) {
-                disableError.textContent = error.message || 'Invalid 2FA code. Please try again.';
-                disableError.classList.remove('hidden');
-                disableOtpInput.value = '';
-                disableOtpInput.focus();
-            } finally {
-                disableBtn.disabled = false;
-                disableBtn.textContent = 'Disable 2FA';
-            }
-        }
-
-        // ── Cancel 2FA Disable ──
-        function cancel2FADisable() {
-            twoFADisableFlow.classList.add('hidden');
-            disableOtpInput.value = '';
-            disableError.classList.add('hidden');
-        }
-
-        // ── API Key Functions ──
-         // ── Toggle API Key Visibility ──
-         function toggleApiKey(btn) {
-             const input = document.getElementById("api-key-input");
-             const showBtn = btn || document.getElementById("show-api-key");
-
-             if (input.dataset.revealed === "true") {
-                input.type = "password";
-                input.value = "••••••••••••••••••••••••••••••••";
-                input.dataset.revealed = "false";
-                if (showBtn) {
-                    showBtn.innerText = "Show";
-                    showBtn.classList.remove("bg-emerald-600");
-                    showBtn.classList.add("bg-gray-800");
-                }
-                return;
-             }
-
-             const realKey = localStorage.getItem("shepherd_api_key") || sessionStorage.getItem("shepherd_api_key");
-
-             if (!realKey) {
-                 alert("Session expired or API key not found. Please log in again.");
-                 return;
-             }
-
-             input.type = "text";
-             input.value = realKey;
-             input.dataset.revealed = "true";
-
-             if (showBtn) {
-                 showBtn.innerText = "Hide";
-                 showBtn.classList.add("bg-emerald-600");
-                 showBtn.classList.remove("bg-gray-800");
-             }
-        }
-
-        // ── Copy API Key ──
-        function copyApiKey() {
-            const input = document.getElementById("api-key-input");
-
-            if (input.type === "password" || input.dataset.revealed !== "true") {
-                alert("Please click 'Show' to reveal your API key before copying.");
-                return;
-            }
-
-            const key = input.value ? input.value.trim() : "";
-            if (!key || key.includes("•")) {
-                alert("No valid API key available to copy.");
-                return;
-            }
-
-            navigator.clipboard.writeText(key).then(() => {
-                const copyBtn = document.querySelector('[onclick="copyApiKey()"]');
-                const originalText = copyBtn.textContent;
-                copyBtn.textContent = "Copied! ✅";
-                setTimeout(() => copyBtn.textContent = originalText, 2000);
-            });
-        }
-        // ── Load API Key ──
-        function loadApiKey() {
-            const input = document.getElementById("api-key-input");
-            if (input) {
-                input.type = "password";
-                input.value = "••••••••••••••••••••••••••••••••";
-                input.dataset.revealed = "false";
-            }
-        }
-        // ── Load User Tier ──
-        function loadUserTier() {
-            const tier = localStorage.getItem("shepherd_tier") || "free";
-            document.getElementById("current-tier-display").textContent = tier.toUpperCase();
-        }
-
-        // ── Load Scans Usage ──
-        async function loadScansUsage() {
-            try {
-                const response = await fetch(`${API_BASE}/api/usage`, {
-                    headers: {
-                        'X-API-Key': API_KEY,
-                        'Accept': 'application/json'
-                    }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    document.getElementById('scans-used').textContent = data.scans_used || 0;
-                    document.getElementById('scans-limit').textContent = data.scans_limit || 0;
-                }
-            } catch (error) {
-                console.error('Failed to load scans usage:', error);
-            }
-        }
-
-        // ── Show Payment Modal ──
-        function showPaymentModal(plan) {
-            const details = PLAN_DETAILS[plan];
-            if (!details) return;
-
-            pendingPlan = plan;
-
-            document.getElementById('modalPlanName').textContent = `Upgrade to ${details.name}`;
-            document.getElementById('modalPrice').textContent = details.price;
-
-            const featuresList = document.getElementById('modalFeatures');
-            featuresList.innerHTML = details.features.map(f => 
-                `<li><span class="icon">✓</span> ${f}</li>`
-            ).join('');
-
-            document.getElementById('paymentModal').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        // ── Close Payment Modal ──
-        function closePaymentModal() {
-            document.getElementById('paymentModal').classList.remove('active');
-            document.body.style.overflow = '';
-            pendingPlan = null;
-        }
-
-        // ── Process Payment ──
-        async function processPayment() {
-            if (!pendingPlan) return;
-
-            const payBtn = document.querySelector('.btn-pay');
-            payBtn.disabled = true;
-            payBtn.textContent = 'Processing...';
-
-            try {
-                // Call your payment API endpoint
-                const response = await fetch(`${API_BASE}/api/create-payment`, {
-                    method: 'POST',
-                    headers: {
-                        'X-API-Key': API_KEY,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        plan: pendingPlan,
-                        email: localStorage.getItem('shepherd_email') || 'user@example.com'
-                    })
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'Payment initialization failed');
-                }
-
-                const data = await response.json();
-                
-                // Redirect to Paystack payment page
-                if (data.authorization_url) {
-                    window.location.href = data.authorization_url;
-                } else {
-                    throw new Error('No payment URL received');
-                }
-
-            } catch (error) {
-                alert(`Payment failed: ${error.message}`);
-                closePaymentModal();
-            } finally {
-                payBtn.disabled = false;
-                payBtn.textContent = '💰 Pay Now';
-            }
-        }
-
-        // ── Handle Upgrade (from billing.js) ──
-        function handleUpgrade(tier) {
-            // Map tier names to plan keys
-            const planMap = {
-                'starter': 'starter',
-                'pro': 'pro',
-                'enterprise': 'enterprise'
-            };
-            
-            const plan = planMap[tier];
-            if (plan) {
-                showPaymentModal(plan);
-            } else {
-                alert('Invalid plan selected. Please try again.');
-            }
-        }
-
-        // ── Initialize ──
-        document.addEventListener('DOMContentLoaded', function() {
-            loadApiKey();
-            loadUserTier();
-            load2FAStatus();
-            loadScansUsage();
-            
-            // Allow Enter key to submit OTP
-            setupOtpInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    verifyAndEnable2FA();
-                }
-            });
-            
-            disableOtpInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    verifyAndDisable2FA();
-                }
-            });
-
-            // ── Check for payment redirect from index ──
-            const urlParams = new URLSearchParams(window.location.search);
-            const action = urlParams.get('action');
-            const plan = urlParams.get('plan');
-
-            if (action === 'payment' && plan) {
-                // Show payment modal for the selected plan
-                setTimeout(() => {
-                    showPaymentModal(plan);
-                    // Clean URL
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }, 500);
-            }
-
-            // Check for payment callback (from Paystack)
-            const paymentStatus = urlParams.get('payment');
-            const reference = urlParams.get('reference');
-            
-            if (paymentStatus === 'success' && reference) {
-                // Verify payment with backend
-                verifyPayment(reference);
-            } else if (paymentStatus === 'cancel') {
-                showStatusMessage('Payment was cancelled. You can try again anytime.', 'warning');
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-        });
-
-        // ── Verify Payment ──
-        async function verifyPayment(reference) {
-            try {
-                const response = await fetch(`${API_BASE}/api/verify-payment?reference=${reference}`, {
-                    headers: {
-                        'X-API-Key': API_KEY,
-                        'Accept': 'application/json'
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success) {
-                        // Update user tier in localStorage
-                        localStorage.setItem('shepherd_tier', data.tier || 'starter');
-                        showStatusMessage(`✅ Payment successful! You are now on the ${data.tier || 'Professional'} plan.`, 'success');
-                        loadUserTier();
-                        loadScansUsage();
-                    } else {
-                        showStatusMessage('❌ Payment verification failed. Please contact support.', 'danger');
-                    }
-                } else {
-                    showStatusMessage('❌ Payment verification failed. Please contact support.', 'danger');
-                }
-            } catch (error) {
-                console.error('Payment verification error:', error);
-                showStatusMessage('❌ Payment verification failed. Please contact support.', 'danger');
-            }
-            
-            // Clean URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-
-        // ── Show Status Message ──
-        function showStatusMessage(message, type = 'info') {
-            const statusDiv = document.getElementById('status-message');
-            statusDiv.textContent = message;
-            statusDiv.className = `mono text-center mb-10 px-6 py-3 border rounded-xl text-sm alert-${type}`;
-            statusDiv.classList.remove('hidden');
-            
-            // Auto-hide after 10 seconds
-            setTimeout(() => {
-                statusDiv.classList.add('hidden');
-            }, 10000);
-        }
-    </script>
-    
-    <footer class="border-t border-gray-800 bg-black px-6 py-6">
-      <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-        <p class="mono text-xs text-gray-500">© 2026 Astro Rescue Ventures. All rights reserved.</p>
-        <p class="mono text-xs text-gray-500">
-          Shepherd AI is a product of
-          <a href="about.html" class="text-emerald-400 hover:text-emerald-300 underline">Astro Rescue Ventures</a>.
-        </p>
-      </div>
-    </footer>
 </body>
 </html>
