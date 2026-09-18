@@ -376,41 +376,41 @@
             </div>
         </section>
 
-        <!-- API Key Section -->
-        <section id="api-key-section" class="bg-gray-900 border border-gray-800 rounded-2xl p-8 mb-10">
-            <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
-                <div>
-                    <p class="mono text-xs text-emerald-400 uppercase tracking-widest mb-1.5">API Access</p>
-                    <h2 class="text-xl font-bold mb-2">Your API Key</h2>
-                    <p class="text-sm text-gray-300 max-w-md" style="font-family:sans-serif;">
-                        Use this key in the header <code class="mono bg-gray-800 px-1 rounded">X-API-Key</code> to authenticate requests.
-                        Current Tier: <span id="current-tier-display" class="font-bold text-emerald-400">FREE</span>
-                    </p>
-                </div>
-                <div class="flex gap-2">
-                    <button id="show-api-key" onclick="toggleApiKey()"
-                      class="mono text-xs bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition">
-                      Show
-                    </button>
-                    <button onclick="copyApiKey()"
-                      class="mono text-xs bg-gray-800 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition">
-                      Copy
-                    </button>
-                    <button class="mono text-xs border border-red-900 text-red-500 hover:bg-red-950 px-4 py-2 rounded-lg transition opacity-50 cursor-not-allowed">
-                      Revoke
-                    </button>
-                </div>
-            </div>
-            <input
-                type="password"
-                id="api-key-input"
-                value=""
-                readonly
-                onclick="this.select()"
-                class="mono w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-3 text-sm text-gray-300 focus:outline-none focus:border-emerald-500 transition"
-                placeholder="Loading..."
-            />
-        </section>
+       <!-- API Key Section -->
+       <section id="api-key-section" class="bg-gray-900 border border-gray-800 rounded-2xl p-8 mb-10">
+           <div class="flex justify-between items-start mb-6 flex-wrap gap-4">
+               <div>
+                   <p class="mono text-xs text-emerald-400 uppercase tracking-widest mb-1.5">API Access</p>
+                   <h2 class="text-xl font-bold mb-2">Your API Key</h2>
+                   <p class="text-sm text-gray-300 max-w-md" style="font-family:sans-serif;">
+                       Use this key in the header <code class="mono bg-gray-800 px-1 rounded">X-API-Key</code> to authenticate requests.
+                       Current Tier: <span id="current-tier-display" class="font-bold text-emerald-400">FREE</span>
+                   </p>
+               </div>
+               <div class="flex gap-2">
+                   <button id="show-api-key" onclick="toggleApiKey(this)"
+                     class="mono text-xs bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition">
+                     Show
+                   </button>
+                   <button id="copy-api-key" onclick="copyApiKey()"
+                     class="mono text-xs bg-gray-800 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition">
+                     Copy
+                   </button>
+                   <button class="mono text-xs border border-red-900 text-red-500 hover:bg-red-950 px-4 py-2 rounded-lg transition opacity-50 cursor-not-allowed">
+                     Revoke
+                   </button>
+               </div>
+           </div>
+           <input
+               type="password"
+               id="api-key-input"
+               value="••••••••••••••••••••••••••••••••"
+               readonly
+               data-revealed="false"
+               class="mono w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-3 text-sm text-gray-300 focus:outline-none focus:border-emerald-500 transition"
+               placeholder="Loading..."
+           />
+       </section>
 
         <!-- Billing Section -->
         <section id="billing-section">
