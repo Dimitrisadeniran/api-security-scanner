@@ -883,9 +883,71 @@
         // ── Load API Key ──
         function loadApiKey() {
             const input = document.getElementById("api-key-input");
-            input.type = "password";
-            input.value = "••••••••••••••••••••••••••••••••";
-            input.dataset.revealed = "false";
+            if (input) {
+                input.type = "password";
+                input.value = "••••••••••••••••••••••••••••••••";
+                input.dataset.revealed = "false";
+            }
+        }
+
+        // ── Toggle API Key Visibility ──
+        function toggleApiKey(btn) {
+            const input = document.getElementById("api-key-input");
+            const showBtn = btn || document.getElementById("show-api-key");
+
+            // Hide key if currently revealed
+            if (input.dataset.revealed === "true") {
+                input.type = "password";
+                input.value = "••••••••••••••••••••••••••••••••";
+                input.dataset.revealed = "false";
+                if (showBtn) {
+                    showBtn.innerText = "Show";
+                    showBtn.classList.remove("bg-emerald-600");
+                    showBtn.classList.add("bg-gray-800");
+                }
+                return;
+            }
+
+            // Reveal real key only on click
+            const realKey = localStorage.getItem("shepherd_api_key") || sessionStorage.getItem("shepherd_api_key");
+
+            if (!realKey) {
+                alert("Session expired or API key not found. Please log in again.");
+                return;
+            }
+
+            input.type = "text";
+            input.value = realKey;
+            input.dataset.revealed = "true";
+
+            if (showBtn) {
+                showBtn.innerText = "Hide";
+                showBtn.classList.add("bg-emerald-600");
+                showBtn.classList.remove("bg-gray-800");
+            }
+        }
+
+        // ── Copy API Key Guard ──
+        function copyApiKey() {
+            const input = document.getElementById("api-key-input");
+
+            if (input.type === "password" || input.dataset.revealed !== "true") {
+                alert("Please click 'Show' to reveal your API key before copying.");
+                return;
+            }
+
+            const key = input.value ? input.value.trim() : "";
+            if (!key || key.includes("•")) {
+                alert("No valid API key available to copy.");
+                return;
+            }
+
+            navigator.clipboard.writeText(key).then(() => {
+                const copyBtn = document.getElementById("copy-api-key") || document.querySelector('[onclick="copyApiKey()"]');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = "Copied! ✅";
+                setTimeout(() => copyBtn.textContent = originalText, 2000);
+            });
         }
         // ── Load User Tier ──
         function loadUserTier() {
