@@ -403,81 +403,6 @@
              </button>
            </div>
          </div>
-         const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com";
-
-         // PIN verification modal call to reveal unmasked API key
-         async function promptSecurityPinSettings() {
-           const input = document.getElementById("api-key-input");
-           const btn = document.getElementById("show-api-key");
-
-           if (!input) return;
-
-           // If already unmasked, hide it back
-           if (input.type === "text" && input.value) {
-             input.type = "password";
-             input.value = "••••••••••••••••••••••••••••••••";
-             if (btn) btn.textContent = "Reveal Key";
-             return;
-           }
-
-           const pin = prompt("Enter your Security PIN to reveal your API key:");
-           if (!pin) return;
-
-           try {
-             const response = await fetch(`${API_BASE}/api/auth/reveal-key`, {
-               method: "POST",
-               credentials: "include",
-               headers: {
-                 "Content-Type": "application/json",
-                 "Accept": "application/json"
-               },
-               body: JSON.stringify({ pin: pin })
-             });
-
-             if (!response.ok) {
-               const errData = await response.json().catch(() => ({}));
-               alert(errData.detail || "Incorrect PIN. Access denied.");
-               return;
-             }
-
-             const data = await response.json();
-             const unmaskedKey = data.api_key || data.key || data.apiKey;
-
-             if (unmaskedKey) {
-               input.value = unmaskedKey;
-               input.type = "text";
-               if (btn) btn.textContent = "Hide Key";
-               localStorage.setItem("shepherd_api_key", unmaskedKey);
-             } else {
-               alert("PIN verified, but no API key was returned.");
-             }
-           } catch (err) {
-             console.error("Failed to reveal API key:", err);
-             alert("Connection error while validating PIN.");
-           }
-         }
-
-         // Guarded copy function requiring key reveal first
-         function copyApiKeySettings() {
-           const keyInput = document.getElementById("api-key-input");
-
-           if (keyInput.type === "password") {
-             alert("Please reveal your API key first using your security PIN.");
-             return;
-           }
-
-           const key = keyInput.value ? keyInput.value.trim() : "";
-           if (!key) {
-             alert("No API key available to copy.");
-             return;
-           }
-
-           navigator.clipboard.writeText(key).then(() => {
-             const btn = document.getElementById("copy-api-key");
-             btn.textContent = "Copied ✅";
-             setTimeout(() => (btn.textContent = "Copy"), 2000);
-           });
-         }
          <!-- Masked Password Input Field -->
          <input
            type="password"
@@ -618,7 +543,7 @@
                 <button onclick="closePaymentModal()" class="text-gray-500 hover:text-white transition text-xl">✕</button>
             </div>
             <p class="text-gray-400 text-sm mb-1 font-mono">One-time payment · Instant access</p>
-            <div class="price-tag" id="modalPrice">$49</div>
+            <div class="price-tag" id="modalPrice">NGN 450,000</div>
             <ul class="features-list" id="modalFeatures">
                 <li><span class="icon">✓</span> 100 scans per month</li>
                 <li><span class="icon">✓</span> Full PHI/PII/PCI detection</li>
@@ -898,65 +823,83 @@
             disableError.classList.add('hidden');
         }
 
-        // ── API Key Functions ──
-         // ── Toggle API Key Visibility ──
-         function toggleApiKey(btn) {
-             const input = document.getElementById("api-key-input");
-             const showBtn = btn || document.getElementById("show-api-key");
+        // ── API Key: PIN-gated reveal ──
+        async function promptSecurityPinSettings() {
+            const input = document.getElementById("api-key-input");
+            const btn = document.getElementById("show-api-key");
 
-             if (input.dataset.revealed === "true") {
+            if (!input) return;
+
+            // If already unmasked, hide it back
+            if (input.type === "text" && input.dataset.revealed === "true") {
                 input.type = "password";
                 input.value = "••••••••••••••••••••••••••••••••";
                 input.dataset.revealed = "false";
-                if (showBtn) {
-                    showBtn.innerText = "Show";
-                    showBtn.classList.remove("bg-emerald-600");
-                    showBtn.classList.add("bg-gray-800");
-                }
-                return;
-             }
-
-             const realKey = localStorage.getItem("shepherd_api_key") || sessionStorage.getItem("shepherd_api_key");
-
-             if (!realKey) {
-                 alert("Session expired or API key not found. Please log in again.");
-                 return;
-             }
-
-             input.type = "text";
-             input.value = realKey;
-             input.dataset.revealed = "true";
-
-             if (showBtn) {
-                 showBtn.innerText = "Hide";
-                 showBtn.classList.add("bg-emerald-600");
-                 showBtn.classList.remove("bg-gray-800");
-             }
-        }
-
-        // ── Copy API Key ──
-        function copyApiKey() {
-            const input = document.getElementById("api-key-input");
-
-            if (input.type === "password" || input.dataset.revealed !== "true") {
-                alert("Please click 'Show' to reveal your API key before copying.");
+                if (btn) btn.textContent = "Reveal Key";
                 return;
             }
 
-            const key = input.value ? input.value.trim() : "";
-            if (!key || key.includes("•")) {
-                alert("No valid API key available to copy.");
+            const pin = prompt("Enter your Security PIN to reveal your API key:");
+            if (!pin) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/reveal-key`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({ pin: pin })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    alert(errData.detail || "Incorrect PIN. Access denied.");
+                    return;
+                }
+
+                const data = await response.json();
+                const unmaskedKey = data.api_key || data.key || data.apiKey;
+
+                if (unmaskedKey) {
+                    input.value = unmaskedKey;
+                    input.type = "text";
+                    input.dataset.revealed = "true";
+                    if (btn) btn.textContent = "Hide Key";
+                } else {
+                    alert("PIN verified, but no API key was returned.");
+                }
+            } catch (err) {
+                console.error("Failed to reveal API key:", err);
+                alert("Connection error while validating PIN.");
+            }
+        }
+
+        // ── API Key: guarded copy, requires reveal first ──
+        function copyApiKeySettings() {
+            const keyInput = document.getElementById("api-key-input");
+
+            if (keyInput.type === "password" || keyInput.dataset.revealed !== "true") {
+                alert("Please reveal your API key first using your security PIN.");
+                return;
+            }
+
+            const key = keyInput.value ? keyInput.value.trim() : "";
+            if (!key) {
+                alert("No API key available to copy.");
                 return;
             }
 
             navigator.clipboard.writeText(key).then(() => {
-                const copyBtn = document.querySelector('[onclick="copyApiKey()"]');
-                const originalText = copyBtn.textContent;
-                copyBtn.textContent = "Copied! ✅";
-                setTimeout(() => copyBtn.textContent = originalText, 2000);
+                const btn = document.getElementById("copy-api-key");
+                const original = btn.textContent;
+                btn.textContent = "Copied ✅";
+                setTimeout(() => (btn.textContent = original), 2000);
             });
         }
-        // ── Load API Key ──
+
+        // ── Load API Key (initial masked state) ──
         function loadApiKey() {
             const input = document.getElementById("api-key-input");
             if (input) {
@@ -965,6 +908,7 @@
                 input.dataset.revealed = "false";
             }
         }
+
         // ── Load User Tier ──
         function loadUserTier() {
             const tier = localStorage.getItem("shepherd_tier") || "free";
