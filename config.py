@@ -8,8 +8,9 @@ PAYSTACK_BASE_URL   = "https://api.paystack.co"
 
 # Prices in kobo (Nigerian currency smallest unit — 100 kobo = ₦1)
 # Starter = ₦49 equivalent, Pro = ₦149, Enterprise = ₦300
+# config.py
 TIER_PRICES = {
-    "starter":    360800 ,    # ₦360000/year (~$220 equivalent)
-    "pro":        820000,   # ₦820000/year (~$500 equivalent)
-    "enterprise": 2296000,   # ₦2296000/year (~$1400 equivalent)
+    "professional": 45000000,  # Paystack uses kobo (450,000 NGN)
+    "business": 150000000,      # 1,500,000 NGN
+    "enterprise": 350000000,    # 3,500,000 NGN
 }
