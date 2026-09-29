@@ -165,9 +165,10 @@ def health():
 # ─────────────────────────────────────────────
 @app.post("/api/auth/register")
 def register(body: RegisterRequest):
-    allowed_tiers = {"free", "starter", "pro", "enterprise"}
+    allowed_tiers = {"starter", "professional", "business", "enterprise"}
     if body.tier not in allowed_tiers:
         raise HTTPException(status_code=400, detail="Invalid tier.")
+    
     result = database.create_user(body.email, body.password, body.tier)
     if not result:
         raise HTTPException(status_code=409, detail="Email already exists.")
@@ -498,15 +499,15 @@ def get_alert_settings_route(user: dict = Depends(verify_api_key)):
 
 @app.post("/api/slack/configure")
 def configure_slack(body: SlackSettingsRequest, user: dict = Depends(verify_api_key)):
-    if user["tier"] not in {"pro", "enterprise"}:
-        raise HTTPException(status_code=403, detail="Slack alerts available on Pro and above.")
+    if user["tier"] not in {"business", "enterprise"}:
+        raise HTTPException(status_code=403, detail="Slack alerts available on Business and above.")
     database.save_slack_settings(user["id"], body.webhook_url, body.slack_alerts)
     return {"message": "Slack alerts configured.", "webhook_saved": True}
 
 @app.post("/api/slack/test")
 def test_slack(user: dict = Depends(verify_api_key)):
-    if user["tier"] not in {"pro", "enterprise"}:
-        raise HTTPException(status_code=403, detail="Slack alerts available on Pro and above.")
+    if user["tier"] not in {"business", "enterprise"}:
+        raise HTTPException(status_code=403, detail="Slack alerts available on Business and above.")
     settings = database.get_slack_settings(user["id"])
     if not settings or not settings.get("slack_webhook"):
         raise HTTPException(status_code=400, detail="No Slack webhook configured yet.")
@@ -555,8 +556,8 @@ def get_enterprise(user: dict = Depends(verify_api_key)):
 # ─────────────────────────────────────────────
 @app.post("/api/report/download")
 async def download_report(body: ReportRequest, user: dict = Depends(verify_api_key)):
-    if user["tier"] == "free":
-        raise HTTPException(status_code=403, detail="Upgrade to Starter to download PDF reports.")
+    if user["tier"] == "starter":
+        raise HTTPException(status_code=403, detail="Upgrade to Professional to download PDF reports.")
     company_name = body.company_name
     if user["tier"] == "enterprise":
         ent = database.get_enterprise_settings(user["id"])
@@ -572,7 +573,7 @@ async def download_report(body: ReportRequest, user: dict = Depends(verify_api_k
             compliance_score=body.compliance_score,
             audit_status_label=body.audit_status_label,
             confirmed_leak_count=body.confirmed_leak_count,
-            include_remediation=(user["tier"] in {"pro", "enterprise"}),
+            include_remediation=(user["tier"] in {"business", "enterprise"}),
         )
         return StreamingResponse(
             io.BytesIO(pdf_bytes),
@@ -592,9 +593,8 @@ def get_history(user: dict = Depends(verify_api_key)):
 
 @app.get("/api/history/{scan_id}/report")
 async def download_history_report(scan_id: int, user: dict = Depends(verify_api_key)):
-    if user["tier"] == "free":
-        raise HTTPException(status_code=403, detail="Upgrade to Starter to download PDF reports.")
-
+    if user["tier"] == "starter":
+        raise HTTPException(status_code=403, detail="Upgrade to Professional to download PDF reports.")
     scan = database.get_scan_by_id(user["id"], scan_id)
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found.")
@@ -642,9 +642,9 @@ def verify_paystack_webhook(request_data: bytes, signature: str) -> bool:
 
 @app.post("/api/billing/upgrade")
 def create_upgrade_link(body: BillingUpgradeRequest, user: dict = Depends(verify_api_key)):
-    if body.new_tier not in {"starter", "pro", "enterprise"}:
+    if body.new_tier not in {"professional", "business", "enterprise"}:
         raise HTTPException(status_code=400, detail="Invalid tier.")
-    if user["tier"] == body.new_tier:
+        if user["tier"] == body.new_tier:
         raise HTTPException(status_code=400, detail=f"Already on {body.new_tier} plan.")
 
     amount = TIER_PRICES[body.new_tier]
