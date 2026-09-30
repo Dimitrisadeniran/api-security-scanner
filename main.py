@@ -465,7 +465,7 @@ def get_usage(user: dict = Depends(verify_api_key)):
 
 @app.post("/api/alerts/configure")
 def configure_alerts(body: AlertSettingsRequest, user: dict = Depends(verify_api_key)):
-    if body.email_alerts and user["tier"] == "free":
+    if body.email_alerts and user["tier"] == "starter":
         raise HTTPException(status_code=403, detail="Email alerts available on Starter and above.")
     database.save_alert_settings(
         user_id=user["id"],
@@ -615,7 +615,7 @@ async def download_history_report(scan_id: int, user: dict = Depends(verify_api_
             compliance_score=scan.get("compliance_score"),
             audit_status_label=scan.get("audit_status_label"),
             confirmed_leak_count=scan.get("confirmed_leak_count") or 0,
-            include_remediation=(user["tier"] in {"pro", "enterprise"}),
+            include_remediation = (user["tier"] in {"business", "enterprise"}),
         )
         return StreamingResponse(
             io.BytesIO(pdf_bytes),
