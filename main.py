@@ -476,7 +476,7 @@ def configure_alerts(body: AlertSettingsRequest, user: dict = Depends(verify_api
 
 @app.post("/api/alerts/test")
 def test_alert(body: TestAlertRequest, user: dict = Depends(verify_api_key)):
-    if user["tier"] == "free":
+    if user["tier"] == "starter":
         raise HTTPException(status_code=403, detail="Email alerts available on Starter and above.")
     result = email_service.send_scan_alert(
         to_email=body.alert_email,
@@ -586,7 +586,7 @@ async def download_report(body: ReportRequest, user: dict = Depends(verify_api_k
 
 @app.get("/api/history")
 def get_history(user: dict = Depends(verify_api_key)):
-    if user["tier"] == "free":
+    if user["tier"] == "starter":
         raise HTTPException(status_code=403, detail="Audit history available on Starter and above.")
     history = database.get_scan_history(user["id"])
     return {"email": user["email"], "tier": user["tier"], "count": len(history), "history": history}
