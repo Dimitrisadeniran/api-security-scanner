@@ -644,9 +644,9 @@ def verify_paystack_webhook(request_data: bytes, signature: str) -> bool:
 def create_upgrade_link(body: BillingUpgradeRequest, user: dict = Depends(verify_api_key)):
     if body.new_tier not in {"professional", "business", "enterprise"}:
         raise HTTPException(status_code=400, detail="Invalid tier.")
-        if user["tier"] == body.new_tier:
+        
+    if user["tier"] == body.new_tier:
         raise HTTPException(status_code=400, detail=f"Already on {body.new_tier} plan.")
-
     amount = TIER_PRICES[body.new_tier]
     payload = {
         "email":        user["email"],
