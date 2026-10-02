@@ -76,13 +76,19 @@ def on_startup():
 class ScanRequest(BaseModel):
     target_url: str
 
+# ─────────────────────────────────────────────
+#  ALL Models
+# ─────────────────────────────────────────────
+class ScanRequest(BaseModel):
+    target_url: str
+
 class ReportRequest(BaseModel):
-    target_url:   str
-    score:        float
-    findings:     list
-    company_name: str = "Shepherd AI"
-    compliance_score: float = None
-    audit_status_label: str = None
+    target_url:          str
+    score:               float
+    findings:            list
+    company_name:        str = "Shepherd AI"
+    compliance_score:    float = None
+    audit_status_label:  str = None
     confirmed_leak_count: int = 0
 
 class AlertSettingsRequest(BaseModel):
@@ -95,9 +101,6 @@ class TestAlertRequest(BaseModel):
 class SlackSettingsRequest(BaseModel):
     webhook_url:  str
     slack_alerts: bool = True
-    
-class ScanRequest(BaseModel):
-    target_url: str
 
 class RevealKeyPayload(BaseModel):
     pin: str
@@ -120,7 +123,6 @@ class LoginWith2FARequest(BaseModel):
     email: str
     password: str
     otp_code: str | None = None
-
 # ─────────────────────────────────────────────
 #  Auth Dependency (API Key)
 # ─────────────────────────────────────────────
