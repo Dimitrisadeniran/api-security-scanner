@@ -1,4 +1,4 @@
-# main.py — Shepherd AI v0.7 — with 2FA & Cookie Support
+# main.py — Shepherd AI v2.0 — with Multi-Tier Engine, 2FA & Cookie Support
 import io
 import json
 import hmac
@@ -9,7 +9,7 @@ import uuid
 import qrcode
 from base64 import b64encode
 from io import BytesIO
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from fastapi import FastAPI, HTTPException, Header, Request, Depends, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,14 +20,13 @@ from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-from pathlib import Path
 
 import database
 import pdf_generator
 import email_service
 import slack_service
 import engine
-from auth import RegisterRequest, LoginRequest
+from auth import RegisterRequest
 from config import PAYSTACK_SECRET_KEY, PAYSTACK_BASE_URL, TIER_PRICES
 
 
@@ -43,13 +42,12 @@ limiter = Limiter(key_func=get_remote_address)
 # ─────────────────────────────────────────────
 app = FastAPI(
     title="Shepherd AI - Scanner API",
-    description="HIPAA Compliance Scanner for Health Tech APIs",
-    version="0.7"
+    description="Compliance Scanner for Health Tech and Fintech APIs",
+    version="2.0"
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Explicit origins are REQUIRED when allow_credentials=True
 ALLOWED_ORIGINS = [
     "https://api-security-scanner-1-rxnh.onrender.com",
     "http://localhost:5500",
@@ -68,16 +66,10 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     database.init_db()
-    logger.info("🚀 Shepherd AI ready with 2FA support.")
+    logger.info("🚀 Shepherd AI ready with multi-tier scan engine and 2FA support.")
 
 # ─────────────────────────────────────────────
-#  ALL Models
-# ─────────────────────────────────────────────
-class ScanRequest(BaseModel):
-    target_url: str
-
-# ─────────────────────────────────────────────
-#  ALL Models
+#  Pydantic Request & Response Models
 # ─────────────────────────────────────────────
 class ScanRequest(BaseModel):
     target_url: str
@@ -123,8 +115,9 @@ class LoginWith2FARequest(BaseModel):
     email: str
     password: str
     otp_code: str | None = None
+
 # ─────────────────────────────────────────────
-#  Auth Dependency (API Key)
+#  Auth Dependencies
 # ─────────────────────────────────────────────
 async def verify_api_key(x_api_key: str = Header(None)):
     user = database.get_user_by_api_key(x_api_key)
@@ -132,20 +125,15 @@ async def verify_api_key(x_api_key: str = Header(None)):
         raise HTTPException(status_code=401, detail="Invalid API key.")
     return user
 
-# ─────────────────────────────────────────────
-#  Session Dependency (for Web UI)
-# ─────────────────────────────────────────────
 async def get_current_user(request: Request):
-    """Get current user from session cookie (for web UI)"""
+    """Get current user from session cookie (for web UI)."""
     session_token = request.cookies.get("session_token")
     if not session_token:
         return None
-    
-    user = database.get_session_user(session_token)
-    return user
+    return database.get_session_user(session_token)
 
 async def require_current_user(request: Request):
-    """Require authenticated user for web UI routes"""
+    """Require authenticated user for web UI routes."""
     user = await get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -156,7 +144,7 @@ async def require_current_user(request: Request):
 # ─────────────────────────────────────────────
 @app.get("/")
 def home():
-    return {"message": "Shepherd AI Online", "version": "0.7", "api_docs": "/docs"}
+    return {"message": "Shepherd AI Online", "version": "2.0", "api_docs": "/docs"}
 
 @app.get("/api/health")
 def health():
@@ -190,12 +178,10 @@ def login(body: LoginWith2FARequest, response: Response):
         user = database.get_user_by_email(body.email, body.password)
         if not user:
             raise HTTPException(status_code=401, detail="Invalid credentials.")
-
-    except Exception as e:
+    except Exception:
         logger.exception("LOGIN ERROR")
         raise
     
-    # Check if 2FA is enabled
     if user.get("is_2fa_enabled", False):
         if not body.otp_code:
             return {
@@ -211,12 +197,10 @@ def login(body: LoginWith2FARequest, response: Response):
         if not database.verify_otp(user_data["otp_secret"], body.otp_code):
             raise HTTPException(status_code=401, detail="Invalid 2FA code")
     
-    # Create session
     session_token = str(uuid.uuid4())
     expires_at = (datetime.now() + timedelta(days=7)).isoformat()
     database.create_session(user["id"], session_token, expires_at)
     
-    # Attach HTTP-only session cookie for cross-domain browser requests
     response.set_cookie(
         key="session_token",
         value=session_token,
@@ -235,6 +219,7 @@ def login(body: LoginWith2FARequest, response: Response):
         "is_2fa_enabled": user.get("is_2fa_enabled", False),
         "session_token": session_token
     }
+
 @app.post("/api/auth/reveal-key")
 @limiter.limit("5/minute")
 async def reveal_api_key(
@@ -242,7 +227,6 @@ async def reveal_api_key(
     body: RevealKeyPayload, 
     user: dict = Depends(require_current_user)
 ):
-    """Verify security PIN and return the logged-in user's API key."""
     if not database.verify_pin(user["id"], body.pin):
         raise HTTPException(status_code=401, detail="Invalid security PIN.")
     
@@ -250,12 +234,10 @@ async def reveal_api_key(
     if not full_user or not full_user.get("api_key"):
         raise HTTPException(status_code=404, detail="API Key not found.")
 
-    return {
-        "api_key": full_user["api_key"]
-    }
+    return {"api_key": full_user["api_key"]}
+
 @app.post("/api/auth/logout")
 async def logout(request: Request, response: Response):
-    """Logout and clear session"""
     session_token = request.cookies.get("session_token")
     if session_token:
         database.delete_session(session_token)
@@ -268,7 +250,6 @@ async def logout(request: Request, response: Response):
 # ─────────────────────────────────────────────
 @app.post("/api/auth/setup-2fa")
 async def setup_2fa(user: dict = Depends(verify_api_key)):
-    """Generate 2FA secret and QR code for setup"""
     status = database.get_user_2fa_status(user["id"])
     if status is None:
         raise HTTPException(status_code=500, detail="get_user_2fa_status returned None")
@@ -301,7 +282,6 @@ async def verify_2fa(
     body: TwoFactorVerifyRequest,
     user: dict = Depends(verify_api_key)
 ):
-    """Verify 2FA code and enable 2FA for the user"""
     user_data = database.get_user_by_id(user["id"])
     if not user_data or not user_data.get("otp_secret"):
         raise HTTPException(status_code=400, detail="2FA not set up")
@@ -322,7 +302,6 @@ async def disable_2fa(
     body: TwoFactorDisableRequest,
     user: dict = Depends(verify_api_key)
 ):
-    """Disable 2FA for the user"""
     user_data = database.get_user_by_id(user["id"])
     if not user_data or not user_data.get("otp_secret"):
         raise HTTPException(status_code=400, detail="2FA not enabled")
@@ -340,7 +319,6 @@ async def disable_2fa(
 
 @app.get("/api/auth/me")
 async def get_current_user_info(user: dict = Depends(require_current_user)):
-    """Get current user info (for web UI)"""
     status = database.get_user_2fa_status(user["id"])
     return {
         "id": user["id"],
@@ -351,11 +329,10 @@ async def get_current_user_info(user: dict = Depends(require_current_user)):
 
 @app.get("/api/auth/2fa-status")
 async def get_2fa_status(user: dict = Depends(verify_api_key)):
-    """Get 2FA status for the current user"""
     return database.get_user_2fa_status(user["id"])
 
 # ─────────────────────────────────────────────
-#  Scan Route
+#  Multi-Tier Scan Route
 # ─────────────────────────────────────────────
 @app.post("/api/scan")
 @limiter.limit("10/minute")
@@ -369,6 +346,7 @@ async def run_scan(
         raise HTTPException(status_code=429, detail="Monthly scan limit reached. Upgrade to scan more.")
 
     try:
+        # Check custom enterprise keywords if applicable
         custom_keywords = []
         if user["tier"] == "enterprise":
             ent = database.get_enterprise_settings(user["id"])
@@ -376,20 +354,18 @@ async def run_scan(
             if kw_string:
                 custom_keywords = [k.strip() for k in kw_string.split(",") if k.strip()]
 
-        try:
-            schema = await engine.fetch_openapi_schema(body.target_url)
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-        unsecured_routes, score, compliance_summary = engine.find_unsecured_routes(schema, custom_keywords)
-
-        compliance_summary = await engine.probe_for_leaks(
-            base_url=body.target_url,
-            unsecured=unsecured_routes,
-            total_routes=compliance_summary["total_routes"],
-            protected_count=compliance_summary["protected_routes"],
+        # Execute tier-based inspection
+        scan_results = await engine.run_tier_based_scan(
+            target_url=body.target_url,
+            user_tier=user["tier"],
+            custom_keywords=custom_keywords
         )
 
+        unsecured_routes = scan_results["findings"]
+        score = scan_results["security_score"]
+        compliance_summary = scan_results["summary"]
+
+        # Log scan result
         scan_id = database.log_scan(
             user["id"], body.target_url, score,
             findings=unsecured_routes,
@@ -399,6 +375,7 @@ async def run_scan(
             confirmed_leak_count=compliance_summary["confirmed_leak_count"],
         )
 
+        # Dispatch Email Alerts
         alert_settings = database.get_alert_settings(user["id"])
         if alert_settings and alert_settings["email_alerts"]:
             email_service.send_scan_alert(
@@ -410,6 +387,7 @@ async def run_scan(
                 findings=unsecured_routes,
             )
 
+        # Dispatch Slack Alerts
         slack_settings = database.get_slack_settings(user["id"])
         if slack_settings and slack_settings["slack_alerts"] and slack_settings["slack_webhook"]:
             slack_service.send_slack_alert(
@@ -423,21 +401,22 @@ async def run_scan(
                 audit_status_label=compliance_summary["audit_status_label"],
                 confirmed_leak_count=compliance_summary["confirmed_leak_count"],
             )
+
         return {
-            "target":            body.target_url,
-            "score":             round(score, 1),
-            "findings":          unsecured_routes,
-            "compliance_score":  compliance_summary["compliance_score"],
-            "audit_status":      compliance_summary["audit_status"],
+            "target":             body.target_url,
+            "score":              round(score, 1),
+            "findings":           unsecured_routes,
+            "compliance_score":   compliance_summary["compliance_score"],
+            "audit_status":       compliance_summary["audit_status"],
             "audit_status_label": compliance_summary["audit_status_label"],
             "summary": {
-                "total_routes":       compliance_summary["total_routes"],
-                "protected_routes":   compliance_summary["protected_routes"],
+                "total_routes":         compliance_summary["total_routes"],
+                "protected_routes":     compliance_summary["protected_routes"],
                 "confirmed_leak_count": compliance_summary["confirmed_leak_count"],
-                "critical_count":     compliance_summary["critical_count"],
-                "warning_count":    compliance_summary["warning_count"],
-                "info_count":       compliance_summary["info_count"],
-                "overlap_count":    compliance_summary["overlap_count"],
+                "critical_count":       compliance_summary["critical_count"],
+                "warning_count":        compliance_summary["warning_count"],
+                "info_count":           compliance_summary["info_count"],
+                "overlap_count":        compliance_summary["overlap_count"],
             },
             "usage": {
                 "scans_used":  usage["used"] + 1,
@@ -445,6 +424,8 @@ async def run_scan(
                 "tier":        user["tier"]
             }
         }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
@@ -617,7 +598,7 @@ async def download_history_report(scan_id: int, user: dict = Depends(verify_api_
             compliance_score=scan.get("compliance_score"),
             audit_status_label=scan.get("audit_status_label"),
             confirmed_leak_count=scan.get("confirmed_leak_count") or 0,
-            include_remediation = (user["tier"] in {"business", "enterprise"}),
+            include_remediation=(user["tier"] in {"business", "enterprise"}),
         )
         return StreamingResponse(
             io.BytesIO(pdf_bytes),
