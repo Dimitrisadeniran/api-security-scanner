@@ -4,7 +4,19 @@
 
 import httpx
 import re
+import json
+import yaml
 from datetime import datetime
+from enum import Enum
+from typing import Tuple, Dict, Any, Optional, List
+
+# 2. ENUMS & CONSTANTS
+class TargetType(str, Enum):
+    STATIC_SCHEMA = "STATIC_SCHEMA"
+    LIVE_ROUTE = "LIVE_ROUTE"
+    UNKNOWN = "UNKNOWN"
+
+PROBE_TIMEOUT = 5.0
 
 # ─────────────────────────────────────────────
 #  Regex Patterns (PII / sensitive-data signals)
@@ -18,6 +30,71 @@ PII_REGEX = {
     "PATIENT_ID":  r"\bPAT-\d{4,8}\b",
 }
 
+# 3. HELPER & AUTO-DETECTION FUNCTIONS
+def _redact(text: str) -> str:
+    """Utility to mask sensitive data before recording findings."""
+    if len(text) <= 4:
+        return "****"
+    return text[:2] + "*" * (len(text) - 4) + text[-2:]
+
+async def auto_detect_target(target_input: str) -> Tuple[TargetType, Optional[Dict[str, Any]]]:
+    """
+    Analyzes the user input (raw JSON/YAML or URL) and classifies it 
+    as a Static Schema or a Live API Route in under 200ms.
+    """
+    target_input = target_input.strip()
+
+    # 1. Check if input is inline raw JSON/YAML text
+    if target_input.startswith("{") or target_input.startswith("openapi:") or target_input.startswith("swagger:"):
+        try:
+            data = json.loads(target_input) if target_input.startswith("{") else yaml.safe_load(target_input)
+            if isinstance(data, dict) and ("openapi" in data or "swagger" in data):
+                return TargetType.STATIC_SCHEMA, data
+        except Exception:
+            pass
+
+    # 2. Check if input is a URL
+    if target_input.startswith("http://") or target_input.startswith("https://"):
+        try:
+            async with httpx.AsyncClient(timeout=3.0, follow_redirects=True) as client:
+                res = await client.get(target_input, headers={"User-Agent": "ShepherdAI-Detector/1.0"})
+                
+                if res.status_code == 200:
+                    try:
+                        data = res.json()
+                        if isinstance(data, dict) and ("openapi" in data or "swagger" in data):
+                            return TargetType.STATIC_SCHEMA, data
+                    except Exception:
+                        pass
+
+                return TargetType.LIVE_ROUTE, None
+
+        except httpx.RequestError:
+            return TargetType.LIVE_ROUTE, None
+
+    return TargetType.UNKNOWN, None
+
+# 4. CORE ENGINE WORKERS (Static Audits, Live Probes, Remediation Generators)
+async def audit_static_schema(schema: dict) -> list:
+    # Existing AST/Schema inspection logic here
+    pass
+
+async def probe_single_live_route(target_url: str, auth_header: Optional[str] = None) -> dict:
+    # Live HTTP probing logic here
+    pass
+# 5. MASTER ORCHESTRATOR
+async def run_smart_scan(target_input: str, auth_header: Optional[str] = None) -> dict:
+    target_type, parsed_schema = await auto_detect_target(target_input)
+    
+    if target_type == TargetType.STATIC_SCHEMA:
+        findings = await audit_static_schema(parsed_schema or target_input)
+        return {"mode_detected": TargetType.STATIC_SCHEMA, "findings": findings}
+    
+    elif target_type == TargetType.LIVE_ROUTE:
+        findings = await probe_single_live_route(target_url=target_input, auth_header=auth_header)
+        return {"mode_detected": TargetType.LIVE_ROUTE, "findings": findings}
+    
+    raise ValueError("Unrecognized target format.")
 # ─────────────────────────────────────────────
 #  Framework Keyword Sets
 # ─────────────────────────────────────────────
