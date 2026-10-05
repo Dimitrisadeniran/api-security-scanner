@@ -1,6 +1,6 @@
-# engine.py — Shepherd AI v2.0
+# engine.py — Shepherd AI v2.0 (Multi-Tier Architecture)
 # Compliance-first API risk scoring: NDPA / PCI / HIPAA overlap detection,
-# severity-tiered findings, and an audit-readiness score.
+# severity-tiered findings, and tier-specific auditing modules.
 
 import httpx
 import re
@@ -38,7 +38,6 @@ SENSITIVE_KEYWORDS = {
     ],
 }
 
-# Human-readable labels for output messages
 FRAMEWORK_LABELS = {
     "HIPAA": "HIPAA (health data)",
     "PCI":   "PCI-DSS (payment data)",
@@ -64,25 +63,19 @@ AUDIT_THRESHOLDS = [
     (0,  "NOT_AUDIT_READY",    "🚨 Not audit-ready"),
 ]
 
-# Max number of live GET requests fired per scan, and per-request timeout.
-# Keeps probing bounded so a scan can't hammer someone's production API.
 MAX_LIVE_PROBES = 15
 PROBE_TIMEOUT = 6.0
 
 
 def _redact(value: str) -> str:
-    """
-    Masks a matched sensitive value before it's ever stored or displayed.
-    Shows only enough to confirm a real match occurred (first 2 / last 2 chars).
-    The full value is never persisted anywhere.
-    """
     value = str(value)
     if len(value) <= 4:
         return "*" * len(value)
     return f"{value[:2]}{'*' * (len(value) - 4)}{value[-2:]}"
 
+
 # ─────────────────────────────────────────────
-#  Remediation Guidance (Business+ tier PDF section)
+#  Remediation Guidance
 # ─────────────────────────────────────────────
 BASE_REMEDIATION = (
     "Add an authentication requirement to this route (e.g. API key, OAuth2, "
@@ -123,10 +116,6 @@ OVERLAP_PREFIX = (
 
 
 def _get_remediation(finding: dict) -> str:
-    """
-    Builds a concrete, actionable fix recommendation for a single finding.
-    Used in the Business+ tier PDF's Remediation Roadmap section.
-    """
     parts = []
 
     if finding.get("severity") == "CONFIRMED_LEAK":
@@ -145,12 +134,6 @@ def _get_remediation(finding: dict) -> str:
 
 
 def build_remediation_roadmap(findings: list) -> list:
-    """
-    Returns a list of {route, method, severity, remediation} dicts, sorted
-    with the highest-priority findings first — the input for the PDF's
-    Remediation Roadmap section. Only includes routes that actually need
-    a fix (skips clean/INFO-only routes with no framework or leak signal).
-    """
     severity_order = {"CONFIRMED_LEAK": 0, "CRITICAL": 1, "WARNING": 2, "INFO": 3}
 
     actionable = [
@@ -169,18 +152,11 @@ def build_remediation_roadmap(findings: list) -> list:
         for f in actionable
     ]
 
+
 # ─────────────────────────────────────────────
 #  Logic: Fetch OpenAPI Schema
 # ─────────────────────────────────────────────
 async def fetch_openapi_schema(url: str):
-    """
-    Fetches the openapi.json from the target FastAPI URL.
-    Handles URL cleaning (adding /openapi.json if missing).
-
-    Raises ValueError with a specific, user-facing message on any failure —
-    callers should catch ValueError and surface str(e) directly rather than
-    a generic message, so the real cause is visible in logs and the UI.
-    """
     target = url.strip()
     if not target.startswith(("http://", "https://")):
         target = "https://" + target
@@ -235,13 +211,11 @@ async def fetch_openapi_schema(url: str):
 
     return schema
 
+
 # ─────────────────────────────────────────────
-#  Helper: Determine severity + message for a route
+#  Helper Functions & Scoring Summary
 # ─────────────────────────────────────────────
 def _classify_finding(found_tags: list, patterns_found: list, route: str):
-    """
-    Returns (severity, message, is_overlap) for a single unsecured route.
-    """
     overlap = len(found_tags) >= 2
     has_pii_pattern = bool(patterns_found)
     has_framework_hit = bool(found_tags)
@@ -264,15 +238,11 @@ def _classify_finding(found_tags: list, patterns_found: list, route: str):
         return severity, message, False
 
     severity = "INFO"
-    message = "ℹ️ INFO: Route is unsecured but no sensitive-data signals detected"
+    message = "ℹ️️ INFO: Route is unsecured but no sensitive-data signals detected"
     return severity, message, False
 
+
 def _compute_summary(unsecured: list, total_routes: int, protected_count: int):
-    """
-    Computes security score, compliance score, and audit status from a
-    findings list. Shared by both the schema-only pass and the post-probe
-    pass, so scores stay consistent regardless of when they're computed.
-    """
     security_score = (protected_count / total_routes * 100) if total_routes > 0 else 100.0
 
     severity_counts = {"CONFIRMED_LEAK": 0, "CRITICAL": 0, "WARNING": 0, "INFO": 0}
@@ -282,7 +252,7 @@ def _compute_summary(unsecured: list, total_routes: int, protected_count: int):
         if f.get("is_overlap"):
             overlap_count += 1
 
-    penalty = sum(SEVERITY_WEIGHTS[f["severity"]] for f in unsecured)
+    penalty = sum(SEVERITY_WEIGHTS.get(f["severity"], 1) for f in unsecured)
     compliance_score = max(0, round(100 - penalty, 1))
 
     audit_status_code = "NOT_AUDIT_READY"
@@ -294,23 +264,24 @@ def _compute_summary(unsecured: list, total_routes: int, protected_count: int):
             break
 
     return {
-        "total_routes":       total_routes,
-        "protected_routes":   protected_count,
-        "unsecured_routes":   len(unsecured),
+        "total_routes":         total_routes,
+        "protected_routes":     protected_count,
+        "unsecured_routes":     len(unsecured),
         "confirmed_leak_count": severity_counts["CONFIRMED_LEAK"],
-        "critical_count":     severity_counts["CRITICAL"],
-        "warning_count":      severity_counts["WARNING"],
-        "info_count":         severity_counts["INFO"],
-        "overlap_count":      overlap_count,
-        "compliance_score":   compliance_score,
-        "audit_status":       audit_status_code,
-        "audit_status_label": audit_status_label,
+        "critical_count":       severity_counts["CRITICAL"],
+        "warning_count":        severity_counts["WARNING"],
+        "info_count":           severity_counts["INFO"],
+        "overlap_count":        overlap_count,
+        "compliance_score":     compliance_score,
+        "audit_status":         audit_status_code,
+        "audit_status_label":   audit_status_label,
     }, security_score
 
+
 # ─────────────────────────────────────────────
-#  Logic: Find Unsecured Routes (v2.0 — severity + compliance scoring)
+#  Core Schema Finding Logic (Base / Starter)
 # ─────────────────────────────────────────────
-def find_unsecured_routes(schema: dict, custom_keywords: list = []):
+def find_unsecured_routes(schema: dict, custom_keywords: list = None):
     unsecured = []
     total_routes = 0
     protected_count = 0
@@ -355,46 +326,109 @@ def find_unsecured_routes(schema: dict, custom_keywords: list = []):
             severity, message, is_overlap = _classify_finding(found_tags, patterns_found, route)
 
             unsecured.append({
-                "route":         route,
-                "method":        method.upper(),
-                "summary":       details.get("summary", "N/A"),
-                "compliance":    found_tags,
-                "pii_detected":  patterns_found,
-                "severity":      severity,
-                "message":       message,
-                "is_overlap":    is_overlap,
+                "route":          route,
+                "method":         method.upper(),
+                "summary":        details.get("summary", "N/A"),
+                "compliance":     found_tags,
+                "pii_detected":   patterns_found,
+                "severity":       severity,
+                "message":        message,
+                "is_overlap":     is_overlap,
                 "confirmed_leak": False,
                 "leak_evidence":  [],
-                # kept for backward compatibility with existing frontend/PDF code
-                "is_critical":   severity == "CRITICAL",
+                "is_critical":    severity == "CRITICAL",
             })
 
     summary, security_score = _compute_summary(unsecured, total_routes, protected_count)
-
-    # Returns: (findings list, structural security score, compliance summary dict)
     return unsecured, security_score, summary
 
+
 # ─────────────────────────────────────────────
-#  Logic: Live Leak Probing (v2.0 — the literal "detect leaks" feature)
+#  Tier-Specific Additional Checks
 # ─────────────────────────────────────────────
+async def check_professional_headers_and_cors(target_url: str, unsecured: list):
+    """
+    Professional Tier: Checks root target for wildcard CORS and missing basic security headers.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=PROBE_TIMEOUT, follow_redirects=True) as client:
+            resp = await client.options(target_url)
+            headers = resp.headers
+
+            # 1. CORS check
+            if headers.get("access-control-allow-origin") == "*":
+                unsecured.append({
+                    "route": "/",
+                    "method": "OPTIONS",
+                    "summary": "CORS Policy Check",
+                    "compliance": [],
+                    "pii_detected": [],
+                    "severity": "WARNING",
+                    "message": "⚠️ WARNING: Global Wildcard CORS (`Access-Control-Allow-Origin: *`) enabled.",
+                    "is_overlap": False,
+                    "confirmed_leak": False,
+                    "leak_evidence": [],
+                    "is_critical": False,
+                })
+
+            # 2. Basic Security Headers check
+            missing = []
+            if "strict-transport-security" not in headers:
+                missing.append("HSTS")
+            if "x-content-type-options" not in headers:
+                missing.append("X-Content-Type-Options")
+
+            if missing:
+                unsecured.append({
+                    "route": "/",
+                    "method": "HEAD",
+                    "summary": "HTTP Security Headers Check",
+                    "compliance": [],
+                    "pii_detected": [],
+                    "severity": "INFO",
+                    "message": f"ℹ️ INFO: Missing recommended security headers: {', '.join(missing)}.",
+                    "is_overlap": False,
+                    "confirmed_leak": False,
+                    "leak_evidence": [],
+                    "is_critical": False,
+                })
+    except Exception:
+        pass
+
+
+async def check_business_rate_limiting(target_url: str, unsecured: list):
+    """
+    Business Tier: Probes key endpoints for rate limit header presence.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=PROBE_TIMEOUT, follow_redirects=True) as client:
+            resp = await client.get(target_url)
+            headers = resp.headers
+
+            has_rate_limit = any(h in headers for h in ["x-ratelimit-limit", "retry-after", "ratelimit-limit"])
+            if not has_rate_limit:
+                unsecured.append({
+                    "route": "/",
+                    "method": "GET",
+                    "summary": "Rate Limiting Policy Check",
+                    "compliance": [],
+                    "pii_detected": [],
+                    "severity": "WARNING",
+                    "message": "⚠️ WARNING: Target endpoint missing standard Rate-Limiting response headers.",
+                    "is_overlap": False,
+                    "confirmed_leak": False,
+                    "leak_evidence": [],
+                    "is_critical": False,
+                })
+    except Exception:
+        pass
+
+
 def _has_path_params(route: str) -> bool:
     return "{" in route and "}" in route
 
 
 async def probe_for_leaks(base_url: str, unsecured: list, total_routes: int, protected_count: int):
-    """
-    For unsecured GET routes with no path parameters, sends a real request
-    and scans the ACTUAL response body for PII patterns.
-
-    - Bounded to MAX_LIVE_PROBES requests per scan.
-    - Only GET (never mutates data on the target system).
-    - Never stores the real matched value — only a redacted preview and
-      the pattern type, so Shepherd AI never becomes a second copy of
-      whatever sensitive data it finds.
-
-    Mutates `unsecured` in place (upgrades matching findings to
-    CONFIRMED_LEAK) and returns a freshly recomputed summary dict.
-    """
     base = base_url.strip()
     if not base.startswith(("http://", "https://")):
         base = "https://" + base
@@ -424,12 +458,12 @@ async def probe_for_leaks(base_url: str, unsecured: list, total_routes: int, pro
             try:
                 response = await client.get(full_url, headers=headers)
             except httpx.RequestError:
-                continue  # unreachable route — skip, don't fail the whole scan
+                continue
 
             if response.status_code != 200:
                 continue
 
-            body_text = response.text[:20000]  # cap how much we scan per response
+            body_text = response.text[:20000]
 
             evidence = []
             for pattern_name, pattern in PII_REGEX.items():
@@ -453,3 +487,43 @@ async def probe_for_leaks(base_url: str, unsecured: list, total_routes: int, pro
 
     summary, security_score = _compute_summary(unsecured, total_routes, protected_count)
     return summary
+
+
+# ─────────────────────────────────────────────
+#  Master Orchestrator (Tier-Aware Scanner)
+# ─────────────────────────────────────────────
+async def run_tier_based_scan(
+    target_url: str, 
+    user_tier: str = "starter", 
+    custom_keywords: list = None
+):
+    """
+    Executes tiered security checks based on user subscription level.
+    """
+    # 1. Fetch Schema & Run Base OpenAPI Inspection
+    schema = await fetch_openapi_schema(target_url)
+    unsecured, security_score, summary = find_unsecured_routes(
+        schema, 
+        custom_keywords=custom_keywords if user_tier == "enterprise" else None
+    )
+
+    total_routes = summary["total_routes"]
+    protected_count = summary["protected_routes"]
+
+    # 2. Professional+ Tier Features: CORS & Header Analysis
+    if user_tier in {"professional", "business", "enterprise"}:
+        await check_professional_headers_and_cors(target_url, unsecured)
+
+    # 3. Business+ Tier Features: Rate Limiting & Live PII Probing
+    if user_tier in {"business", "enterprise"}:
+        await check_business_rate_limiting(target_url, unsecured)
+        summary = await probe_for_leaks(target_url, unsecured, total_routes, protected_count)
+    else:
+        # Re-compute summary if CORS/Header checks added new findings
+        summary, security_score = _compute_summary(unsecured, total_routes, protected_count)
+
+    return {
+        "findings": unsecured,
+        "security_score": security_score,
+        "summary": summary
+    }
