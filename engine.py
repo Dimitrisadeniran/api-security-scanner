@@ -53,8 +53,8 @@ HTTP_METHODS = {"get", "post", "put", "delete", "patch"}
 SEVERITY_WEIGHTS = {
     "CONFIRMED_LEAK": 25,
     "CRITICAL":       12,
-    "WARNING":        5,
-    "INFO":           1,
+    "WARNING":         5,
+    "INFO":            1,
 }
 
 AUDIT_THRESHOLDS = [
@@ -75,62 +75,102 @@ def _redact(value: str) -> str:
 
 
 # ─────────────────────────────────────────────
-#  Remediation Guidance
+#  Route-Specific Technical Remediation Engine
 # ─────────────────────────────────────────────
-BASE_REMEDIATION = (
-    "Add an authentication requirement to this route (e.g. API key, OAuth2, "
-    "or JWT bearer scheme) before it reaches production."
-)
-
-FRAMEWORK_REMEDIATION = {
-    "HIPAA": (
-        "Restrict this data to authenticated, role-appropriate users only, "
-        "and enable audit logging for every access — required under HIPAA's "
-        "technical safeguards."
-    ),
-    "PCI": (
-        "Never return full card numbers in plaintext — mask or tokenize card "
-        "data, and confirm this endpoint sits within your defined PCI-DSS scope."
-    ),
-    "NDPA": (
-        "Limit the personal data this route returns to what's strictly "
-        "necessary (data minimization), and confirm a documented lawful "
-        "basis exists for this data flow."
-    ),
-    "CUSTOM": (
-        "Review this route against your internal data-handling policy — it "
-        "matched one of your organization's custom-flagged keywords."
-    ),
-}
-
-CONFIRMED_LEAK_PREFIX = (
-    "🔴 URGENT — this is a confirmed live exposure, not a naming-based guess. "
-    "Prioritize this fix immediately and consider rotating or invalidating any "
-    "data that may already have been exposed. "
-)
-
-OVERLAP_PREFIX = (
-    "This route triggers more than one regulatory framework at once — treat "
-    "it as a compliance review item, not just a technical fix. "
-)
-
-
-def _get_remediation(finding: dict) -> str:
+def _generate_route_code_remediation(finding: dict, path_details: dict = None) -> str:
+    """
+    Generates a route-specific, code-level remediation plan including
+    flaw analysis and framework code patches (FastAPI / Express).
+    """
+    route = finding.get("route", "")
+    method = finding.get("method", "GET").upper()
+    route_lower = route.lower()
+    
+    # Context flags
+    is_confirmed_leak = finding.get("severity") == "CONFIRMED_LEAK"
+    compliance_tags = finding.get("compliance", [])
+    pii_tags = finding.get("pii_detected", [])
+    
+    # Path parameters check
+    path_params = re.findall(r"\{([^}]+)\}", route)
+    
     parts = []
 
-    if finding.get("severity") == "CONFIRMED_LEAK":
-        parts.append(CONFIRMED_LEAK_PREFIX)
-    if finding.get("is_overlap"):
-        parts.append(OVERLAP_PREFIX)
+    if is_confirmed_leak:
+        parts.append(
+            "🔴 **CRITICAL ACTION REQUIRED**: Live data exposure confirmed on this route! "
+            "Immediately disable public access or deploy the code patch below to restrict unauthenticated access."
+        )
 
-    parts.append(BASE_REMEDIATION)
+    # 1. BOLA / IDOR Pattern Detection
+    if path_params or any(k in route_lower for k in ["user", "account", "profile", "patient", "order"]):
+        param_str = ", ".join(path_params) if path_params else "resource_id"
+        parts.append(f"""
+#### 🚨 Flaw Analysis: Broken Object Level Authorization (BOLA/IDOR)
+Route `{method} {route}` handles resource identifiers (`{param_str}`) without verifying if the requesting user owns the object.
 
-    for tag in finding.get("compliance", []):
-        guidance = FRAMEWORK_REMEDIATION.get(tag)
-        if guidance:
-            parts.append(guidance)
+#### 🛠️ Code-Level Patch (FastAPI Example):
+```python
+# BEFORE (Vulnerable): Direct query without ownership scope
+@app.{method.lower()}("{route}")
+async def get_resource({param_str}: str, db: Session = Depends(get_db)):
+    return db.query(Model).filter(Model.id == {param_str}).first()
 
-    return " ".join(parts)
+# AFTER (Secure): Scope query to authenticated user context
+@app.{method.lower()}("{route}")
+async def get_resource(
+    {param_str}: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    resource = db.query(Model).filter(
+        Model.id == {param_str}, 
+        Model.owner_id == current_user.id
+    ).first()
+    if not resource:
+        raise HTTPException(status_code=403, detail="Access denied to requested resource")
+    return resource
+```""")
+
+    # 2. Authentication & Sensitive Data Exposure Pattern
+    elif any(tag in compliance_tags for tag in ["HIPAA", "PCI", "NDPA"]) or pii_tags:
+        parts.append(f"""
+#### 🚨 Flaw Analysis: Unprotected Sensitive Data Route
+Route `{method} {route}` exposes regulated payload fields ({', '.join(compliance_tags or pii_tags)}) without enforced auth schemes or field sanitization.
+
+#### 🛠️ Code-Level Patch (Express.js Example):
+```javascript
+// BEFORE (Vulnerable): Exposing raw database objects over open endpoint
+app.{method.lower()}('{route}', async (req, res) => {{
+  const data = await Database.find(req.query);
+  res.json(data);
+}});
+
+// AFTER (Secure): JWT Authentication + Field Minimization
+app.{method.lower()}('{route}', verifyJwtToken, enforceRole('ADMIN'), async (req, res) => {{
+  const data = await Database.find(req.query)
+    .select('-password -bvn -cvv -ssn'); // Sanitize sensitive fields
+  res.json(data);
+}});
+```""")
+
+    # 3. Default General Endpoint Patch
+    else:
+        parts.append(f"""
+#### 🚨 Flaw Analysis: Missing Authentication Scheme
+Route `{method} {route}` is reachable without an API key, OAuth2 scope, or JWT authorization header.
+
+#### 🛠️ Code-Level Patch (FastAPI Dependency Injection):
+```python
+from fastapi import Security
+from app.auth import get_current_user
+
+@app.{method.lower()}("{route}", dependencies=[Security(get_current_user)])
+async def secure_route_handler():
+    return {{"status": "protected"}}
+```""")
+
+    return "\n".join(parts)
 
 
 def build_remediation_roadmap(findings: list) -> list:
@@ -147,7 +187,7 @@ def build_remediation_roadmap(findings: list) -> list:
             "route": f["route"],
             "method": f["method"],
             "severity": f["severity"],
-            "remediation": _get_remediation(f),
+            "remediation": f.get("remediation", _generate_route_code_remediation(f)),
         }
         for f in actionable
     ]
@@ -238,7 +278,7 @@ def _classify_finding(found_tags: list, patterns_found: list, route: str):
         return severity, message, False
 
     severity = "INFO"
-    message = "ℹ️️ INFO: Route is unsecured but no sensitive-data signals detected"
+    message = "ℹ INFO: Route is unsecured but no sensitive-data signals detected"
     return severity, message, False
 
 
@@ -325,7 +365,7 @@ def find_unsecured_routes(schema: dict, custom_keywords: list = None):
 
             severity, message, is_overlap = _classify_finding(found_tags, patterns_found, route)
 
-            unsecured.append({
+            finding_entry = {
                 "route":          route,
                 "method":         method.upper(),
                 "summary":        details.get("summary", "N/A"),
@@ -333,15 +373,15 @@ def find_unsecured_routes(schema: dict, custom_keywords: list = None):
                 "pii_detected":   patterns_found,
                 "severity":       severity,
                 "message":        message,
-                "is_overlap":     is_overlap,
+                "is_overlap":      is_overlap,
                 "confirmed_leak": False,
                 "leak_evidence":  [],
                 "is_critical":    severity == "CRITICAL",
-            })
-    # 2. Attach remediation text explicitly
-    finding_entry["remediation"] = _get_remediation(finding_entry)
+            }
 
-    unsecured.append(finding_entry)
+            # Generate route-specific code remediation
+            finding_entry["remediation"] = _generate_route_code_remediation(finding_entry, details)
+            unsecured.append(finding_entry)
 
     summary, security_score = _compute_summary(unsecured, total_routes, protected_count)
     return unsecured, security_score, summary
@@ -361,7 +401,7 @@ async def check_professional_headers_and_cors(target_url: str, unsecured: list):
 
             # 1. CORS check
             if headers.get("access-control-allow-origin") == "*":
-                unsecured.append({
+                cors_finding = {
                     "route": "/",
                     "method": "OPTIONS",
                     "summary": "CORS Policy Check",
@@ -373,7 +413,12 @@ async def check_professional_headers_and_cors(target_url: str, unsecured: list):
                     "confirmed_leak": False,
                     "leak_evidence": [],
                     "is_critical": False,
-                })
+                }
+                cors_finding["remediation"] = (
+                    "Restrict `Access-Control-Allow-Origin` headers to explicit whitelisted domains "
+                    "rather than wildcards (`*`)."
+                )
+                unsecured.append(cors_finding)
 
             # 2. Basic Security Headers check
             missing = []
@@ -383,7 +428,7 @@ async def check_professional_headers_and_cors(target_url: str, unsecured: list):
                 missing.append("X-Content-Type-Options")
 
             if missing:
-                unsecured.append({
+                headers_finding = {
                     "route": "/",
                     "method": "HEAD",
                     "summary": "HTTP Security Headers Check",
@@ -395,7 +440,11 @@ async def check_professional_headers_and_cors(target_url: str, unsecured: list):
                     "confirmed_leak": False,
                     "leak_evidence": [],
                     "is_critical": False,
-                })
+                }
+                headers_finding["remediation"] = (
+                    f"Inject missing headers ({', '.join(missing)}) via server middleware."
+                )
+                unsecured.append(headers_finding)
     except Exception:
         pass
 
@@ -411,7 +460,7 @@ async def check_business_rate_limiting(target_url: str, unsecured: list):
 
             has_rate_limit = any(h in headers for h in ["x-ratelimit-limit", "retry-after", "ratelimit-limit"])
             if not has_rate_limit:
-                unsecured.append({
+                rl_finding = {
                     "route": "/",
                     "method": "GET",
                     "summary": "Rate Limiting Policy Check",
@@ -423,7 +472,12 @@ async def check_business_rate_limiting(target_url: str, unsecured: list):
                     "confirmed_leak": False,
                     "leak_evidence": [],
                     "is_critical": False,
-                })
+                }
+                rl_finding["remediation"] = (
+                    "Attach rate-limiting middleware (e.g. `slowapi` or Redis token bucket) "
+                    "returning `429 Too Many Requests` on excessive hits."
+                )
+                unsecured.append(rl_finding)
     except Exception:
         pass
 
@@ -488,6 +542,8 @@ async def probe_for_leaks(base_url: str, unsecured: list, total_routes: int, pro
                     f"contains real {types} data ({', '.join(e['preview'] for e in evidence)})"
                 )
                 finding["is_critical"] = True
+                # Refresh remediation text to highlight live leak
+                finding["remediation"] = _generate_route_code_remediation(finding)
 
     summary, security_score = _compute_summary(unsecured, total_routes, protected_count)
     return summary
