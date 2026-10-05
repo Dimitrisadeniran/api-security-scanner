@@ -338,6 +338,10 @@ def find_unsecured_routes(schema: dict, custom_keywords: list = None):
                 "leak_evidence":  [],
                 "is_critical":    severity == "CRITICAL",
             })
+    # 2. Attach remediation text explicitly
+    finding_entry["remediation"] = _get_remediation(finding_entry)
+
+    unsecured.append(finding_entry)
 
     summary, security_score = _compute_summary(unsecured, total_routes, protected_count)
     return unsecured, security_score, summary
