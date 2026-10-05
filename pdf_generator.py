@@ -433,6 +433,7 @@ def generate_pdf_report(
             severity    = _get_severity(f)
             risk_color  = SEVERITY_COLORS.get(severity, GRAY)
             risk_label  = SEVERITY_LABELS.get(severity, "Low")
+            risk_hex = "#" + risk_color.hexval()[2:]
             frameworks  = ", ".join(f.get("compliance", [])) or "—"
 
             # Evidence column: prefer real confirmed-leak evidence (redacted),
@@ -447,23 +448,23 @@ def generate_pdf_report(
 
             route_para = Paragraph(
                 f.get("route", ""),
-                ParagraphStyle("cell", fontSize=8, fontName="Helvetica", textColor=BLACK)
+                ParagraphStyle("cell", fontSize=8, fontName="Helvetica", textColor=BLACK, wordWrap='CJK',)
             )
             method_para = Paragraph(
                 f.get("method", ""),
-                ParagraphStyle("cell", fontSize=8, fontName="Helvetica-Bold", textColor=BLACK)
+                ParagraphStyle("cell", fontSize=8, fontName="Helvetica-Bold", textColor=BLACK, wordWrap='CJK',)
             )
             risk_para = Paragraph(
                 risk_label,
-                ParagraphStyle("risk", fontSize=8, fontName="Helvetica-Bold", textColor=risk_color)
+                ParagraphStyle("risk", fontSize=8, fontName="Helvetica-Bold", textColor=risk_color, wordWrap='CJK',)
             )
             fw_para = Paragraph(
                 frameworks,
-                ParagraphStyle("cell", fontSize=8, fontName="Helvetica", textColor=BLACK)
+                ParagraphStyle("cell", fontSize=8, fontName="Helvetica", textColor=BLACK, wordWrap='CJK',)
             )
             evidence_para = Paragraph(
                 evidence_text,
-                ParagraphStyle("cell", fontSize=8, fontName="Helvetica", textColor=BLACK)
+                ParagraphStyle("cell", fontSize=8, fontName="Helvetica", textColor=BLACK, wordWrap='CJK',)
             )
 
             table_data.append([route_para, method_para, risk_para, fw_para, evidence_para])
@@ -507,14 +508,16 @@ def generate_pdf_report(
                 severity = _get_severity(f)
                 risk_color = SEVERITY_COLORS.get(severity, GRAY)
                 risk_label = SEVERITY_LABELS.get(severity, "Low")
-                risk_hex = "#" + risk_color.hexval()[2:]
+    
+                # Safe hex string conversion across integer and string return types
+                hex_val = risk_color.hexval()
+                risk_hex = f"#{hex_val:0>6}" if isinstance(hex_val, int) else f"#{str(hex_val).replace('0x', '')}"
 
                 item_header = Paragraph(
                     f'<font color="{risk_hex}"><b>[{risk_label}]</b></font> '
                     f'<b>{f.get("method","")} {f.get("route","")}</b>',
                     ParagraphStyle("remhead", fontSize=10, fontName="Helvetica", textColor=BLACK, spaceAfter=2)
-                )
-                item_body = Paragraph(
+                )                item_body = Paragraph(
                     _get_remediation_text(f),
                     ParagraphStyle("rembody", fontSize=9, fontName="Helvetica", textColor=GRAY, spaceAfter=8, leftIndent=4)
                 )
