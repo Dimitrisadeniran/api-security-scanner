@@ -87,6 +87,14 @@
         document.addEventListener("DOMContentLoaded", function () {
           document.body.style.display = "";
         });
+        window.addEventListener("pageshow", function(event) {
+          if (event.persisted) {
+            const key = localStorage.getItem("shepherd_api_key");
+            if (key && key.trim() !== "") {
+              window.location.replace("index.html");
+            }
+          }
+        });
       }
     })();
   </script>
