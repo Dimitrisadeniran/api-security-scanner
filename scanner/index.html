@@ -214,10 +214,6 @@
       gap: 0.75rem;
       flex-shrink: 0;
     }
-    .service-selector {
-      min-width: 160px;
-      flex-shrink: 0;
-    }
 
     @media (max-width: 640px) {
       .action-group {
@@ -233,13 +229,11 @@
       }
     }
 
-    /* Plan-specific result badges */
     .plan-badge-free { background: #374151; color: #9ca3af; }
     .plan-badge-starter { background: #1e3a5f; color: #60a5fa; }
     .plan-badge-pro { background: #3b1e5f; color: #a78bfa; }
     .plan-badge-enterprise { background: #064e3b; color: #34d399; }
 
-    /* Scan depth indicators */
     .scan-depth-basic { border-left: 3px solid #6b7280; }
     .scan-depth-standard { border-left: 3px solid #3b82f6; }
     .scan-depth-advanced { border-left: 3px solid #8b5cf6; }
@@ -379,15 +373,7 @@
           if (user.api_key) localStorage.setItem("shepherd_api_key", user.api_key);
 
           showPage();
-    
-          // Save API key and auto-fill the input field
-          if (user.api_key) {
-            localStorage.setItem("shepherd_api_key", user.api_key);
-          }
 
-          showPage();
-
-          // Safely populate input after DOM is fully loaded
           if (document.readyState === "loading") {
             document.addEventListener("DOMContentLoaded", populateApiKeyInput, { once: true });
           } else {
@@ -649,8 +635,8 @@
 
     <p id="errorMsg" class="mono text-red-400 text-xs mt-3 hidden"></p>
 
+    <!-- Cleaned API Key & Account Info Section -->
     <div class="mt-12 w-full max-w-xl mx-auto border-t border-gray-900 pt-8">
-      <!-- API Key & Service Card -->
       <div id="apiKeyCard" class="bg-gray-900 border border-gray-800/60 rounded-xl p-4 mb-3">
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-2">
@@ -660,19 +646,17 @@
             </span>
           </div>
           <div class="flex gap-2">
-            <!-- PIN Reveal Button -->
             <button onclick="promptSecurityPin()" type="button" id="toggleKeyBtn" 
               class="mono text-[10px] text-gray-400 hover:text-white transition px-2 py-1 bg-gray-800 rounded">
               Reveal Key
             </button>
-            <!-- Copy Button -->
             <button onclick="copyApiKey()" id="copyKeyBtn" 
               class="mono text-[10px] text-gray-400 hover:text-emerald-400 transition px-2 py-1 bg-gray-800 rounded">
               Copy
             </button>
           </div>
         </div>
-        <!-- MISSING INPUT ELEMENT ADDED HERE -->
+        
         <input 
           type="password" 
           id="apiKeyInput" 
@@ -682,15 +666,10 @@
           class="w-full bg-gray-950 text-gray-200 border border-gray-800/80 rounded px-3 py-1.5 text-xs mono focus:outline-none"
         />
 
-        <p class="mono text-[10px] text-gray-500 mt-2" id="userEmailDisplay">
-          aladedimitris@gmail.com
-       </p>
-      </div>
-
-        <!-- API Key Input Field -->
         <div class="flex items-center justify-between mt-3">
-          <p id="userEmailDisplay" class="mono text-[10px] text-gray-500"></p>
-          <!-- Tier Upgrade Actions (Hidden until key is revealed) -->
+          <p class="mono text-[10px] text-gray-500" id="userEmailDisplay">
+            Loading user email...
+          </p>
           <div id="tierActions" class="tier-actions flex gap-2 hidden">
             <button type="button" onclick="handleTierUpgrade('pro')" 
               class="mono text-[10px] bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded transition font-medium">
@@ -703,6 +682,7 @@
           </div>
         </div>
       </div>
+    </div>
 
     <div id="usageBar" class="hidden mt-4 w-full max-w-xl mx-auto">
       <div class="flex justify-between items-center mb-1.5">
@@ -1032,14 +1012,12 @@
       const config = PLAN_CONFIG[selectedTier];
       if (!config) return;
 
-      // 1. Fetch User's Actual Owned Tier & Current Usage
       const userTier = localStorage.getItem("shepherd_tier") || "free";
       const scansUsed = parseInt(localStorage.getItem("scans_used") || "0", 10);
       const scansLimit = parseInt(localStorage.getItem("scans_limit") || "10", 10);
       
       const TIER_RANK = { free: 0, starter: 1, pro: 2, enterprise: 3 };
 
-      // 2. Update Display Text & Specs
       document.getElementById("serviceNameDisplay").textContent = config.name;
       document.getElementById("servicePriceDisplay").textContent = config.price;
       document.getElementById("tierDot").className = `tier-dot ${config.dot}`;
@@ -1056,8 +1034,7 @@
       if (scanDepthLabel) scanDepthLabel.textContent = config.scanDepth;
       if (scanDepthBar) scanDepthBar.style.width = `${config.scanDepthPercent}%`;
 
-      // 3. Update API Key Card Badge to reflect owned account tier
-      const badge = document.getElementById("tierBadge");
+      const badge = document.getElementById("currentTierBadge");
       if (badge) {
         badge.textContent = userTier.toUpperCase();
         if (typeof TIER_COLORS !== "undefined") {
@@ -1065,36 +1042,32 @@
         }
       }
 
-      // 4. Smart Upgrade Button Logic
       const upgradeBtn = document.getElementById("upgradeBtn");
       if (upgradeBtn) {
         const isLookingAtHigherTier = TIER_RANK[selectedTier] > TIER_RANK[userTier];
         const isLimitReached = (userTier !== "enterprise") && (scansUsed >= scansLimit);
 
         if (userTier === "enterprise") {
-          // Enterprise users never need upgrades
           upgradeBtn.style.display = "none";
         } else if (isLookingAtHigherTier || isLimitReached) {
-          // Show upgrade if viewing a higher plan OR if user exhausted their scans
           upgradeBtn.style.display = "block";
           upgradeBtn.textContent = isLimitReached && !isLookingAtHigherTier ? "↑ Upgrade (Limit Reached)" : "↑ Upgrade";
         } else {
-          // Hide button when viewing current/lower plan with active remaining scans
           upgradeBtn.style.display = "none";
         }
       }
 
       localStorage.setItem("selected_tier", selectedTier);
     }
+
     function handleCardClick() {
       const select = document.getElementById("serviceSelect");
       const tier = select.value;
-      
-      // Open modal for Free and all lower tiers, but block for Enterprise
       if (tier !== "enterprise") {
         showPaymentModal();
       }
     }
+
     function showPaymentModal() {
       const select = document.getElementById("serviceSelect");
       const tier = select.value;
@@ -1169,9 +1142,11 @@
       }
       updateServiceInfo();
 
-      const badge = document.getElementById("tierBadge");
-      badge.textContent = tier.toUpperCase();
-      badge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
+      const badge = document.getElementById("currentTierBadge");
+      if (badge) {
+        badge.textContent = tier.toUpperCase();
+        badge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
+      }
 
       fetchUsage();
       selectScanTier(tier);
@@ -1202,27 +1177,17 @@
 
         const used = data.scans_used ?? 0;
         const limit = data.scans_limit ?? 10;
-        
-        // Cache usage stats locally for UI checks
+
         localStorage.setItem("scans_used", used);
         localStorage.setItem("scans_limit", limit);
 
-        // Refresh UI state
         updateServiceInfo();
       } catch (_) {}
-    }
-    function toggleKeyVisibility() {
-      const input = document.getElementById("apiKeyInput");
-      const btn = document.getElementById("toggleKeyBtn");
-      const isHidden = input.type === "password";
-      input.type = isHidden ? "text" : "password";
-      btn.textContent = isHidden ? "Hide" : "Show";
     }
 
     function copyApiKey() {
       const keyInput = document.getElementById("apiKeyInput");
 
-      // Check if the input is currently masked as a password field
       if (keyInput.type === "password") {
         alert("Please reveal your API key first using your security PIN.");
         return;
@@ -1241,6 +1206,7 @@
         setTimeout(() => btn.textContent = "Copy", 2000);
       });
     }
+
     window.runScan = async function() {
       const urlInput = document.getElementById("urlInput");
       const url = urlInput.value.trim();
@@ -1546,6 +1512,7 @@
       errEl.classList.remove('hidden');
     }
   "></script>
+
   <footer class="border-t border-gray-800 bg-black px-6 py-6">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
       <p class="mono text-xs text-gray-500">© 2026 Astro Rescue Ventures. All rights reserved.</p>
