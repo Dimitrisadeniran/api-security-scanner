@@ -395,14 +395,17 @@
       }
 
       if (document.readyState === "loading") {
-        document.addEventListener(
-          "DOMContentLoaded",
-          checkSession,
-          { once: true }
-        );
+        document.addEventListener("DOMContentLoaded", checkSession, { once: true });
       } else {
         checkSession();
       }
+
+      window.addEventListener("pageshow", function(event) {
+        // event.persisted = true means page was restored from bfcache
+        if (event.persisted) {
+          checkSession();
+        }
+      });
 
     })();
   </script>
@@ -996,6 +999,7 @@
       localStorage.removeItem("shepherd_api_key");
       localStorage.removeItem("shepherd_email");
       localStorage.removeItem("shepherd_tier");
+      // Prevent bfcache from restoring this page
       window.location.replace("login.html");
     }
 
