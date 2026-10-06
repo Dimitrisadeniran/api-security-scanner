@@ -995,11 +995,22 @@
       enterprise: "bg-emerald-950 text-emerald-400"
     };
 
-    function logout() {
+    async function logout() {
+      document.body.style.display = "none"; // hide the dashboard immediately
+      try {
+        await fetch(`${API_BASE}/auth/logout`, { // API_BASE in this script already ends in /api
+          method: "POST",
+          credentials: "include",
+          keepalive: true
+        });
+      } catch (_) {}
       localStorage.removeItem("shepherd_api_key");
       localStorage.removeItem("shepherd_email");
       localStorage.removeItem("shepherd_tier");
-      // Prevent bfcache from restoring this page
+      localStorage.removeItem("scans_used");
+      localStorage.removeItem("scans_limit");
+      localStorage.removeItem("selected_tier");
+      localStorage.removeItem("pending_purchase");
       window.location.replace("login.html");
     }
 
