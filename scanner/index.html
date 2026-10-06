@@ -400,14 +400,15 @@
         checkSession();
       }
 
-      window.addEventListener("pageshow", function(event) {
-        // event.persisted = true means page was restored from bfcache
-        if (event.persisted) {
-          checkSession();
-        }
-      });
+            window.addEventListener("pageshow", function (event) {
+              const nav = performance.getEntriesByType("navigation")[0];
+              if (event.persisted || (nav && nav.type === "back_forward")) {
+                document.body.style.display = "none";
+                checkSession();
+              }    
+            });
 
-    })();
+          })();
   </script>
   <script>
     async function promptSecurityPin() {
