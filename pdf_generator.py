@@ -45,15 +45,15 @@ def get_score_color(score: float):
 SEVERITY_COLORS = {
     "CONFIRMED_LEAK": DARK_RED,
     "CRITICAL":       RED,
-    "WARNING":         YELLOW,
-    "INFO":            GRAY,
+    "WARNING":        YELLOW,
+    "INFO":           GRAY,
 }
 
 SEVERITY_LABELS = {
     "CONFIRMED_LEAK": "CONFIRMED LEAK",
     "CRITICAL":        "Critical",
-    "WARNING":          "Warning",
-    "INFO":             "Low",
+    "WARNING":         "Warning",
+    "INFO":            "Low",
 }
 
 def _get_severity(finding: dict) -> str:
@@ -274,13 +274,13 @@ def generate_pdf_report(
     title_table = Table(title_data, colWidths=[20*mm, 100*mm, 50*mm], rowHeights=18*mm)
 
     title_table.setStyle(TableStyle([
-        ("BACKGROUND",  (0, 0), (-1, -1), DARK_BG),
-        ("LEFTPADDING", (0, 0), (0, -1), 8),
-        ("LEFTPADDING", (1, 0), (1, -1), 4),
-        ("RIGHTPADDING",(0, 0), (-1, -1), 12),
-        ("TOPPADDING",  (0, 0), (-1, -1), 15),
+        ("BACKGROUND",   (0, 0), (-1, -1), DARK_BG),
+        ("LEFTPADDING",  (0, 0), (0, -1), 8),
+        ("LEFTPADDING",  (1, 0), (1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        ("TOPPADDING",   (0, 0), (-1, -1), 15),
         ("BOTTOMPADDING",(0, 0), (-1, -1), 10),
-        ("VALIGN",      (0, 0), (-1, -1), "MIDDLE"),
+        ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
     ]))
 
     story.append(title_table)
@@ -508,7 +508,7 @@ def generate_pdf_report(
                 severity = _get_severity(f)
                 risk_color = SEVERITY_COLORS.get(severity, GRAY)
                 risk_label = SEVERITY_LABELS.get(severity, "Low")
-    
+
                 # Safe hex string conversion across integer and string return types
                 hex_val = risk_color.hexval()
                 risk_hex = f"#{hex_val:0>6}" if isinstance(hex_val, int) else f"#{str(hex_val).replace('0x', '')}"
@@ -517,7 +517,8 @@ def generate_pdf_report(
                     f'<font color="{risk_hex}"><b>[{risk_label}]</b></font> '
                     f'<b>{f.get("method","")} {f.get("route","")}</b>',
                     ParagraphStyle("remhead", fontSize=10, fontName="Helvetica", textColor=BLACK, spaceAfter=2)
-                )                item_body = Paragraph(
+                )
+                item_body = Paragraph(
                     _get_remediation_text(f),
                     ParagraphStyle("rembody", fontSize=9, fontName="Helvetica", textColor=GRAY, spaceAfter=8, leftIndent=4)
                 )
