@@ -63,6 +63,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ─────────────────────────────────────────────
+#  No-Cache Middleware (Prevents bfcache back-button access)
+# ─────────────────────────────────────────────
+@app.middleware("http")
+async def add_no_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 @app.on_event("startup")
 def on_startup():
     database.init_db()
@@ -75,10 +86,10 @@ class ScanRequest(BaseModel):
     target_url: str
 
 class ReportRequest(BaseModel):
-    target_url:          str
-    score:               float
-    findings:            list
-    company_name:        str = "Shepherd AI"
+    target_url:           str
+    score:                float
+    findings:             list
+    company_name:         str = "Shepherd AI"
     compliance_score:    float = None
     audit_status_label:  str = None
     confirmed_leak_count: int = 0
@@ -442,7 +453,7 @@ def get_usage(user: dict = Depends(verify_api_key)):
         "email":           user["email"],
         "tier":            user["tier"],
         "scans_used":      usage["used"],
-        "scans_limit":     usage["limit"],
+        "scans_limit":      usage["limit"],
         "scans_remaining": max(0, usage["limit"] - usage["used"])
     }
 
