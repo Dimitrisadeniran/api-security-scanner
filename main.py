@@ -4,13 +4,14 @@ import json
 import hmac
 import hashlib
 import logging
-import requests
 import uuid
 import qrcode
 from base64 import b64encode
 from io import BytesIO
 from datetime import datetime, timedelta
+from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import FastAPI, HTTPException, Header, Request, Depends, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse, RedirectResponse
@@ -31,19 +32,31 @@ from config import PAYSTACK_SECRET_KEY, PAYSTACK_BASE_URL, TIER_PRICES
 
 
 # ─────────────────────────────────────────────
-#  Logging & Rate Limiter
+# Logging & Rate Limiter
 # ─────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ShepherdAI")
 limiter = Limiter(key_func=get_remote_address)
 
+
 # ─────────────────────────────────────────────
-#  App Init & CORS Configuration
+# Lifespan Context Manager
+# ─────────────────────────────────────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    database.init_db()
+    logger.info("🚀 Shepherd AI ready with multi-tier scan engine and 2FA support.")
+    yield
+
+
+# ─────────────────────────────────────────────
+# App Init & CORS Configuration
 # ─────────────────────────────────────────────
 app = FastAPI(
     title="Shepherd AI - Scanner API",
     description="Compliance Scanner for Health Tech and Fintech APIs",
-    version="2.0"
+    version="2.0",
+    lifespan=lifespan
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -63,8 +76,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # ─────────────────────────────────────────────
-#  No-Cache Middleware (Prevents bfcache back-button access)
+# No-Cache Middleware (Prevents bfcache back-button access)
 # ─────────────────────────────────────────────
 @app.middleware("http")
 async def add_no_cache_headers(request: Request, call_next):
@@ -74,43 +88,39 @@ async def add_no_cache_headers(request: Request, call_next):
     response.headers["Expires"] = "0"
     return response
 
-@app.on_event("startup")
-def on_startup():
-    database.init_db()
-    logger.info("🚀 Shepherd AI ready with multi-tier scan engine and 2FA support.")
 
 # ─────────────────────────────────────────────
-#  Pydantic Request & Response Models
+# Pydantic Request & Response Models
 # ─────────────────────────────────────────────
 class ScanRequest(BaseModel):
     target_url: str
 
 class ReportRequest(BaseModel):
-    target_url:           str
-    score:                float
-    findings:             list
-    company_name:         str = "Shepherd AI"
-    compliance_score:    float = None
-    audit_status_label:  str = None
+    target_url: str
+    score: float
+    findings: list
+    company_name: str = "Shepherd AI"
+    compliance_score: float | None = None
+    audit_status_label: str | None = None
     confirmed_leak_count: int = 0
 
 class AlertSettingsRequest(BaseModel):
     email_alerts: bool = True
-    alert_email:  str  = ""
+    alert_email: str = ""
 
 class TestAlertRequest(BaseModel):
     alert_email: str
 
 class SlackSettingsRequest(BaseModel):
-    webhook_url:  str
+    webhook_url: str
     slack_alerts: bool = True
 
 class RevealKeyPayload(BaseModel):
     pin: str
 
 class EnterpriseSettingsRequest(BaseModel):
-    company_name:    str = "Shepherd AI"
-    logo_url:        str = ""
+    company_name: str = "Shepherd AI"
+    logo_url: str = ""
     custom_keywords: str = ""
 
 class BillingUpgradeRequest(BaseModel):
@@ -127,8 +137,9 @@ class LoginWith2FARequest(BaseModel):
     password: str
     otp_code: str | None = None
 
+
 # ─────────────────────────────────────────────
-#  Auth Dependencies
+# Auth Dependencies
 # ─────────────────────────────────────────────
 async def verify_api_key(x_api_key: str = Header(None)):
     user = database.get_user_by_api_key(x_api_key)
@@ -150,8 +161,9 @@ async def require_current_user(request: Request):
         raise HTTPException(status_code=401, detail="Not authenticated")
     return user
 
+
 # ─────────────────────────────────────────────
-#  Health Routes
+# Health Routes
 # ─────────────────────────────────────────────
 @app.get("/")
 def home():
@@ -161,8 +173,9 @@ def home():
 def health():
     return {"status": "ok"}
 
+
 # ─────────────────────────────────────────────
-#  Auth Routes
+# Auth Routes
 # ─────────────────────────────────────────────
 @app.post("/api/auth/register")
 def register(body: RegisterRequest):
@@ -256,8 +269,9 @@ async def logout(request: Request, response: Response):
     response.delete_cookie(key="session_token", path="/", samesite="none", secure=True)
     return {"message": "Logged out"}
 
+
 # ─────────────────────────────────────────────
-#  2FA Routes
+# 2FA Routes
 # ─────────────────────────────────────────────
 @app.post("/api/auth/setup-2fa")
 async def setup_2fa(user: dict = Depends(verify_api_key)):
@@ -342,8 +356,9 @@ async def get_current_user_info(user: dict = Depends(require_current_user)):
 async def get_2fa_status(user: dict = Depends(verify_api_key)):
     return database.get_user_2fa_status(user["id"])
 
+
 # ─────────────────────────────────────────────
-#  Multi-Tier Scan Route
+# Multi-Tier Scan Route
 # ─────────────────────────────────────────────
 @app.post("/api/scan")
 @limiter.limit("10/minute")
@@ -357,7 +372,6 @@ async def run_scan(
         raise HTTPException(status_code=429, detail="Monthly scan limit reached. Upgrade to scan more.")
 
     try:
-        # Check custom enterprise keywords if applicable
         custom_keywords = []
         if user["tier"] == "enterprise":
             ent = database.get_enterprise_settings(user["id"])
@@ -365,7 +379,6 @@ async def run_scan(
             if kw_string:
                 custom_keywords = [k.strip() for k in kw_string.split(",") if k.strip()]
 
-        # Execute tier-based inspection
         scan_results = await engine.run_tier_based_scan(
             target_url=body.target_url,
             user_tier=user["tier"],
@@ -376,7 +389,6 @@ async def run_scan(
         score = scan_results["security_score"]
         compliance_summary = scan_results["summary"]
 
-        # Log scan result
         scan_id = database.log_scan(
             user["id"], body.target_url, score,
             findings=unsecured_routes,
@@ -386,7 +398,6 @@ async def run_scan(
             confirmed_leak_count=compliance_summary["confirmed_leak_count"],
         )
 
-        # Dispatch Email Alerts
         alert_settings = database.get_alert_settings(user["id"])
         if alert_settings and alert_settings["email_alerts"]:
             email_service.send_scan_alert(
@@ -398,7 +409,6 @@ async def run_scan(
                 findings=unsecured_routes,
             )
 
-        # Dispatch Slack Alerts
         slack_settings = database.get_slack_settings(user["id"])
         if slack_settings and slack_settings["slack_alerts"] and slack_settings["slack_webhook"]:
             slack_service.send_slack_alert(
@@ -414,25 +424,25 @@ async def run_scan(
             )
 
         return {
-            "target":             body.target_url,
-            "score":              round(score, 1),
-            "findings":           unsecured_routes,
-            "compliance_score":   compliance_summary["compliance_score"],
-            "audit_status":       compliance_summary["audit_status"],
+            "target": body.target_url,
+            "score": round(score, 1),
+            "findings": unsecured_routes,
+            "compliance_score": compliance_summary["compliance_score"],
+            "audit_status": compliance_summary["audit_status"],
             "audit_status_label": compliance_summary["audit_status_label"],
             "summary": {
-                "total_routes":         compliance_summary["total_routes"],
-                "protected_routes":     compliance_summary["protected_routes"],
+                "total_routes": compliance_summary["total_routes"],
+                "protected_routes": compliance_summary["protected_routes"],
                 "confirmed_leak_count": compliance_summary["confirmed_leak_count"],
-                "critical_count":       compliance_summary["critical_count"],
-                "warning_count":        compliance_summary["warning_count"],
-                "info_count":           compliance_summary["info_count"],
-                "overlap_count":        compliance_summary["overlap_count"],
+                "critical_count": compliance_summary["critical_count"],
+                "warning_count": compliance_summary["warning_count"],
+                "info_count": compliance_summary["info_count"],
+                "overlap_count": compliance_summary["overlap_count"],
             },
             "usage": {
-                "scans_used":  usage["used"] + 1,
+                "scans_used": usage["used"] + 1,
                 "scans_limit": usage["limit"],
-                "tier":        user["tier"]
+                "tier": user["tier"]
             }
         }
     except ValueError as e:
@@ -443,17 +453,18 @@ async def run_scan(
         logger.error(f"Scan Error: {e}")
         raise HTTPException(status_code=500, detail="Internal scan error.")
 
+
 # ─────────────────────────────────────────────
-#  Usage & Configuration Routes
+# Usage & Configuration Routes
 # ─────────────────────────────────────────────
 @app.get("/api/usage")
 def get_usage(user: dict = Depends(verify_api_key)):
     usage = database.check_scan_limit(user["id"], user["tier"])
     return {
-        "email":           user["email"],
-        "tier":            user["tier"],
-        "scans_used":      usage["used"],
-        "scans_limit":      usage["limit"],
+        "email": user["email"],
+        "tier": user["tier"],
+        "scans_used": usage["used"],
+        "scans_limit": usage["limit"],
         "scans_remaining": max(0, usage["limit"] - usage["used"])
     }
 
@@ -479,9 +490,9 @@ def test_alert(body: TestAlertRequest, user: dict = Depends(verify_api_key)):
         total_unsecured=3,
         critical_count=2,
         findings=[
-            {"route": "/patient/records", "method": "GET",  "is_critical": True,  "compliance": ["HIPAA"]},
-            {"route": "/billing/payment", "method": "POST", "is_critical": True,  "compliance": ["PCI"]},
-            {"route": "/user/profile",    "method": "PUT",  "is_critical": False, "compliance": []},
+            {"route": "/patient/records", "method": "GET", "is_critical": True, "compliance": ["HIPAA"]},
+            {"route": "/billing/payment", "method": "POST", "is_critical": True, "compliance": ["PCI"]},
+            {"route": "/user/profile", "method": "PUT", "is_critical": False, "compliance": []},
         ]
     )
     return {"message": "Test alert sent.", "result": result}
@@ -512,7 +523,7 @@ def test_slack(user: dict = Depends(verify_api_key)):
         total_unsecured=3,
         critical_count=2,
         findings=[
-            {"route": "/patient/records", "method": "GET",  "is_critical": True, "compliance": ["HIPAA"]},
+            {"route": "/patient/records", "method": "GET", "is_critical": True, "compliance": ["HIPAA"]},
             {"route": "/billing/payment", "method": "POST", "is_critical": True, "compliance": ["PCI"]},
         ]
     )
@@ -534,8 +545,8 @@ def save_enterprise(body: EnterpriseSettingsRequest, user: dict = Depends(verify
         custom_keywords=body.custom_keywords,
     )
     return {
-        "message":         "Enterprise settings saved.",
-        "company_name":    body.company_name,
+        "message": "Enterprise settings saved.",
+        "company_name": body.company_name,
         "custom_keywords": body.custom_keywords,
     }
 
@@ -545,8 +556,9 @@ def get_enterprise(user: dict = Depends(verify_api_key)):
         raise HTTPException(status_code=403, detail="Enterprise plan required.")
     return database.get_enterprise_settings(user["id"])
 
+
 # ─────────────────────────────────────────────
-#  PDF Report & Audit History
+# PDF Report & Audit History
 # ─────────────────────────────────────────────
 @app.post("/api/report/download")
 async def download_report(body: ReportRequest, user: dict = Depends(verify_api_key)):
@@ -620,8 +632,9 @@ async def download_history_report(scan_id: int, user: dict = Depends(verify_api_
         logger.error(f"History PDF Error: {e}")
         raise HTTPException(status_code=500, detail="PDF generation failed.")
 
+
 # ─────────────────────────────────────────────
-#  Billing: Paystack
+# Billing: Paystack
 # ─────────────────────────────────────────────
 def verify_paystack_webhook(request_data: bytes, signature: str) -> bool:
     if not PAYSTACK_SECRET_KEY or "sk_test_your_key" in PAYSTACK_SECRET_KEY:
@@ -635,37 +648,40 @@ def verify_paystack_webhook(request_data: bytes, signature: str) -> bool:
     return hmac.compare_digest(computed, signature)
 
 @app.post("/api/billing/upgrade")
-def create_upgrade_link(body: BillingUpgradeRequest, user: dict = Depends(verify_api_key)):
+async def create_upgrade_link(body: BillingUpgradeRequest, user: dict = Depends(verify_api_key)):
     if body.new_tier not in {"professional", "business", "enterprise"}:
         raise HTTPException(status_code=400, detail="Invalid tier.")
         
     if user["tier"] == body.new_tier:
         raise HTTPException(status_code=400, detail=f"Already on {body.new_tier} plan.")
+    
     amount = TIER_PRICES[body.new_tier]
     payload = {
-        "email":        user["email"],
-        "amount":       amount,
+        "email": user["email"],
+        "amount": amount,
         "callback_url": "https://api-security-scanner-1-rxnh.onrender.com/scanner/?billing=success",
         "metadata": {
-            "user_id":     user["id"],
+            "user_id": user["id"],
             "target_tier": body.new_tier
         }
     }
     headers = {
         "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
-        "Content-Type":  "application/json"
+        "Content-Type": "application/json"
     }
 
     try:
-        response = requests.post(
-            f"{PAYSTACK_BASE_URL}/transaction/initialize",
-            json=payload,
-            headers=headers,
-            timeout=10
-        )
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{PAYSTACK_BASE_URL}/transaction/initialize",
+                json=payload,
+                headers=headers
+            )
+            
         if response.status_code == 200:
             checkout_url = response.json()["data"]["authorization_url"]
             return {"checkout_url": checkout_url}
+        
         logger.error(f"Paystack error: {response.status_code} {response.text}")
         raise HTTPException(status_code=500, detail="Paystack failed to initialize.")
     except HTTPException:
@@ -677,7 +693,7 @@ def create_upgrade_link(body: BillingUpgradeRequest, user: dict = Depends(verify
 @app.post("/api/billing/webhook")
 async def paystack_webhook(request: Request):
     payload_body = await request.body()
-    signature    = request.headers.get("x-paystack-signature", "")
+    signature = request.headers.get("x-paystack-signature", "")
 
     if not verify_paystack_webhook(payload_body, signature):
         logger.warning("❌ Invalid Paystack webhook signature.")
@@ -687,13 +703,13 @@ async def paystack_webhook(request: Request):
     event_type = event_data.get("event")
 
     if event_type == "charge.success":
-        data   = event_data.get("data", {})
+        data = event_data.get("data", {})
         status = data.get("status")
 
         if status == "success":
-            metadata  = data.get("metadata", {})
-            user_id   = metadata.get("user_id")
-            new_tier  = metadata.get("target_tier")
+            metadata = data.get("metadata", {})
+            user_id = metadata.get("user_id")
+            new_tier = metadata.get("target_tier")
             reference = data.get("reference")
 
             if user_id and new_tier:
@@ -705,8 +721,9 @@ async def paystack_webhook(request: Request):
 
     return JSONResponse(content={"message": "OK"})
 
+
 # ─────────────────────────────────────────────
-#  Web UI Routes
+# Web UI Routes
 # ─────────────────────────────────────────────
 templates = Jinja2Templates(directory="templates")
 
@@ -741,7 +758,8 @@ async def dashboard_page(request: Request):
         "user": user
     })
 
+
 # ─────────────────────────────────────────────
-#  Static Files
+# Static Files
 # ─────────────────────────────────────────────
 app.mount("/scanner", StaticFiles(directory="scanner", html=True), name="scanner")
