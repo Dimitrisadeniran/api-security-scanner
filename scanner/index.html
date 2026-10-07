@@ -999,13 +999,21 @@
 
     async function logout() {
       document.body.style.display = "none"; // hide the dashboard immediately
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000);
       try {
-        await fetch(`${API_BASE}/auth/logout`, { // API_BASE in this script already ends in /api
+        await fetch(`${API_BASE}/auth/logout`, {
           method: "POST",
           credentials: "include",
-          keepalive: true
+          keepalive: true,
+          signal: controller.signal
         });
-      } catch (_) {}
+      } catch (_) {
+      } finally {
+        clearTimeout(timeout);
+      }
+
       localStorage.removeItem("shepherd_api_key");
       localStorage.removeItem("shepherd_email");
       localStorage.removeItem("shepherd_tier");
@@ -1013,9 +1021,50 @@
       localStorage.removeItem("scans_limit");
       localStorage.removeItem("selected_tier");
       localStorage.removeItem("pending_purchase");
+      localStorage.removeItem("shepherd_last_activity");
       window.location.replace("login.html");
     }
+    
+    // ── INACTIVITY AUTO-LOGOUT (10 minutes) ──
+    const IDLE_LIMIT_MS = 10 * 60 * 1000;
+    const ACTIVITY_KEY = "shepherd_last_activity";
+    let idleCheckTimer = null;
+    let lastWrite = 0;
 
+    function markActivity() {
+      const now = Date.now();
+      if (now - lastWrite < 1000) return; // throttle writes
+      lastWrite = now;
+      try { localStorage.setItem(ACTIVITY_KEY, String(now)); } catch (_) {}
+    }
+
+    function checkIdle() {
+      const last = parseInt(localStorage.getItem(ACTIVITY_KEY) || "0", 10);
+      if (last && Date.now() - last >= IDLE_LIMIT_MS) {
+        autoLogout();
+      }
+    }
+
+    async function autoLogout() {
+      clearInterval(idleCheckTimer);
+      localStorage.setItem("shepherd_idle_logout", "1"); // lets login page show a message
+      await logout();
+    }
+
+    function startIdleWatcher() {
+      markActivity();
+      ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"].forEach(evt =>
+        window.addEventListener(evt, markActivity, { passive: true })
+      );
+      idleCheckTimer = setInterval(checkIdle, 15000);
+
+      // Background tabs throttle timers, so re-check when the tab becomes visible again
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") checkIdle();
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", startIdleWatcher);
     function syncTierSelection(tier) {
       const select = document.getElementById("serviceSelect");
       if (select.value !== tier) select.value = tier;
