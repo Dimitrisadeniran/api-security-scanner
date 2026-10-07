@@ -1,109 +1,212 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shepherd AI — Autonomous API Security & OpenAPI Scanner</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    .mono { font-family: 'Fira Code', monospace; }
-    .bg-grid {
-      background-size: 30px 30px;
-      background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-    }
-    .glow-emerald {
-      box-shadow: 0 0 50px -10px rgba(16, 185, 129, 0.25);
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shepherd AI — Find the data leak before your auditor does</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#06130f;--panel:#0c1f18;--line:#1b3a2f;--text:#e8f1ec;--muted:#93ab9f;--sig:#34d399;--leak:#ff7a6b}
+  body{font-family:'Inter',sans-serif;background:var(--ink);color:var(--text)}
+  .display{font-family:'Bricolage Grotesque',sans-serif;letter-spacing:-.02em}
+  .code{font-family:'IBM Plex Mono',monospace}
+  .backdrop{background:radial-gradient(900px 480px at 85% -5%,rgba(52,211,153,.14),transparent 60%),radial-gradient(600px 400px at 0% 30%,rgba(52,211,153,.05),transparent 70%)}
+  .field{background:#081811;border:1px solid var(--line);color:var(--text);border-radius:.75rem;padding:.8rem 1rem;width:100%;font-size:.9rem;transition:border-color .2s,box-shadow .2s}
+  .field:focus{outline:none;border-color:var(--sig);box-shadow:0 0 0 3px rgba(52,211,153,.15)}
+  .btn{background:var(--sig);color:#032016;font-weight:700;border-radius:.75rem;transition:transform .15s,background .2s}
+  .btn:hover{background:#6ee7b7}.btn:active{transform:scale(.98)}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--sig);outline-offset:3px}
+  .leak-row{position:relative}
+  .leak-row.hit{background:rgba(255,122,107,.13)}
+  .leak-row .tag{opacity:0;transform:translateX(-6px);transition:opacity .4s,transform .4s}
+  .leak-row.hit .tag{opacity:1;transform:none}
+  .rule{border-top:1px solid var(--line)}
+  @media (prefers-reduced-motion:reduce){.leak-row .tag{transition:none}html{scroll-behavior:auto}}
+</style>
 </head>
-<body class="bg-black text-gray-100 antialiased selection:bg-emerald-500 selection:text-black min-h-screen flex flex-col justify-between">
+<body class="antialiased selection:bg-emerald-400 selection:text-black">
 
-  <!-- BACKGROUND OVERLAY -->
-  <div class="fixed inset-0 bg-grid pointer-events-none z-0"></div>
-  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none z-0"></div>
-
-  <!-- NAVIGATION -->
-  <nav class="relative z-10 border-b border-gray-900 bg-black/60 backdrop-blur-md sticky top-0 px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></div>
-      <span class="mono text-lg font-bold tracking-wider text-emerald-400">SHEPHERD AI</span>
+<nav class="sticky top-0 z-20 backdrop-blur-md" style="background:rgba(6,19,15,.8);border-bottom:1px solid var(--line)">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="#" class="display text-xl font-extrabold flex items-center gap-2.5">
+      <span class="w-2.5 h-2.5 rounded-full" style="background:var(--sig);box-shadow:0 0 12px var(--sig)"></span>Shepherd AI
+    </a>
+    <div class="flex items-center gap-7 text-sm" style="color:var(--muted)">
+      <a href="#who-we-serve" class="hidden md:inline hover:text-white transition">Who it's for</a>
+      <a href="#pricing-tiers" class="hidden md:inline hover:text-white transition">Pricing</a>
+      <a href="#business-plan" class="hidden md:inline hover:text-white transition">How it works</a>
+      <a href="#waitlist" class="btn px-4 py-2 text-sm">Claim 20% off</a>
     </div>
-    <div class="flex items-center gap-6">
-      <a href="#who-we-serve" class="text-xs text-gray-400 hover:text-emerald-400 transition font-medium hidden sm:inline-block">Who It's For</a>
-      <a href="#pricing-tiers" class="text-xs text-gray-400 hover:text-emerald-400 transition font-medium hidden sm:inline-block">Tiers & Pricing</a>
-      <a href="#business-plan" class="text-xs text-gray-400 hover:text-emerald-400 transition font-medium hidden sm:inline-block">Business Plan</a>
-      <a href="#waitlist" class="mono text-xs px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-lg transition transform hover:scale-105">
-        Claim 20% Off
-      </a>
+  </div>
+</nav>
+
+<header class="backdrop">
+  <div class="max-w-6xl mx-auto px-6 pt-16 pb-24 grid lg:grid-cols-2 gap-14 items-center">
+    <div>
+      <h1 class="display text-4xl sm:text-6xl font-extrabold leading-[1.04] mb-6">Find the data leak before your auditor does.</h1>
+      <p class="text-lg leading-relaxed mb-9 max-w-xl" style="color:var(--muted)">
+        Shepherd AI reads your OpenAPI spec, calls your live endpoints, and confirms which responses really expose patient, card, or personal data, mapped to NDPA, PCI, and HIPAA.
+      </p>
+
+      <div id="waitlist" class="rounded-2xl p-6 max-w-lg" style="background:var(--panel);border:1px solid var(--line)">
+        <h3 class="display text-xl font-bold mb-1">Get priority access and 20% off for life</h3>
+        <p class="text-sm mb-5" style="color:var(--muted)">Pick your plan now. The discount applies to every subscription tier at launch.</p>
+        <form id="waitlistForm" onsubmit="handleWaitlistSubmit(event)" class="space-y-4">
+          <div>
+            <label for="waitlistEmail" class="block text-sm font-medium mb-1.5">Work email</label>
+            <input type="email" id="waitlistEmail" required placeholder="name@company.com" class="field" />
+          </div>
+          <div>
+            <label for="tierSelect" class="block text-sm font-medium mb-1.5">Plan</label>
+            <select id="tierSelect" required class="field">
+              <option value="professional">Professional — NGN 450,000/mo (20% off at launch)</option>
+              <option value="business" selected>Business — NGN 1,500,000/mo (20% off at launch)</option>
+              <option value="enterprise">Enterprise — NGN 3,500,000/mo (20% off at launch)</option>
+            </select>
+          </div>
+          <button type="submit" id="submitBtn" class="btn w-full py-3.5 text-sm">Reserve my 20% discount</button>
+        </form>
+        <div id="successMsg" class="hidden mt-4 p-3 rounded-lg text-center" style="background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.35)">
+          <p class="text-sm font-semibold" style="color:var(--sig)">You're on the waitlist.</p>
+          <p class="text-xs mt-0.5" style="color:var(--muted)">Your 20% lifetime discount is reserved for launch.</p>
+        </div>
+        <p id="errorMsg" class="hidden text-sm mt-3" style="color:var(--leak)"></p>
+      </div>
     </div>
-  </nav>
 
-  <!-- HERO SECTION -->
-  <header class="relative z-10 max-w-5xl mx-auto px-6 pt-16 pb-16 text-center">
-    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs mono mb-8">
-      <span>🛡️ Autonomous API Security & Vulnerability Intelligence</span>
+    <!-- Hero visual: a live response with leaks being confirmed -->
+    <div class="rounded-2xl overflow-hidden" style="background:#081811;border:1px solid var(--line);box-shadow:0 30px 80px -30px rgba(52,211,153,.25)">
+      <div class="flex items-center justify-between px-4 py-3" style="border-bottom:1px solid var(--line)">
+        <span class="code text-xs" style="color:var(--muted)">GET /api/v1/patients/2041</span>
+        <span class="code text-xs px-2 py-0.5 rounded" style="background:rgba(255,122,107,.15);color:var(--leak)">No auth required</span>
+      </div>
+      <pre id="leakPanel" class="code text-[13px] leading-7 py-4 overflow-x-auto"><span class="leak-row block px-5">{</span>
+<span class="leak-row block px-5">  "id": 2041,</span>
+<span class="leak-row block px-5" data-hit>  "full_name": "Adaeze Okafor", <span class="tag" style="color:var(--leak)">// NDPA personal data</span></span>
+<span class="leak-row block px-5" data-hit>  "diagnosis": "Type 2 diabetes", <span class="tag" style="color:var(--leak)">// HIPAA PHI</span></span>
+<span class="leak-row block px-5" data-hit>  "card_number": "5399 83•• •••• 4417", <span class="tag" style="color:var(--leak)">// PCI</span></span>
+<span class="leak-row block px-5">  "created_at": "2026-03-14"</span>
+<span class="leak-row block px-5">}</span></pre>
+      <div class="px-4 py-3 flex items-center justify-between text-sm" style="border-top:1px solid var(--line)">
+        <span style="color:var(--muted)">Readiness score</span>
+        <span class="display font-bold" style="color:var(--leak)">38% · Critical risk</span>
+      </div>
     </div>
+  </div>
+</header>
 
-    <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight">
-      Guard Your APIs Before <br class="hidden sm:inline" />
-      <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-        Vulnerabilities Become Breaches
-      </span>
-    </h1>
+<section id="who-we-serve" class="max-w-6xl mx-auto px-6 py-20">
+  <h2 class="display text-3xl sm:text-4xl font-bold mb-3 max-w-2xl">Built for teams that hold other people's data</h2>
+  <p class="mb-12 max-w-xl" style="color:var(--muted)">If a regulator or a bank partner can ask for proof, Shepherd AI gives you the answer first.</p>
+  <div class="grid md:grid-cols-3 gap-0">
+    <div class="rule pt-6 pr-8 pb-8">
+      <h3 class="display text-xl font-bold mb-2">Fintechs and payment apps</h3>
+      <p class="text-sm leading-relaxed" style="color:var(--muted)">Catch card and account data in responses before a PCI assessment or a CBN review does.</p>
+    </div>
+    <div class="rule pt-6 pr-8 pb-8">
+      <h3 class="display text-xl font-bold mb-2">Healthtech platforms</h3>
+      <p class="text-sm leading-relaxed" style="color:var(--muted)">Find patient records served to unauthenticated callers and see exactly which fields are exposed.</p>
+    </div>
+    <div class="rule pt-6 pb-8">
+      <h3 class="display text-xl font-bold mb-2">Startups preparing for audit</h3>
+      <p class="text-sm leading-relaxed" style="color:var(--muted)">Get an NDPA-aware readiness score and a clear fix list in minutes, not a consulting engagement.</p>
+    </div>
+  </div>
+</section>
 
-    <p class="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
-      Shepherd AI scans your OpenAPI specifications and cloud backends to automatically expose unsecured endpoints, broken authorization, and data leaks in seconds.
-    </p>
+<section id="pricing-tiers" class="py-20" style="background:var(--panel);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="max-w-6xl mx-auto px-6">
+    <h2 class="display text-3xl sm:text-4xl font-bold mb-3">Pricing</h2>
+    <p class="mb-12" style="color:var(--muted)">Launch prices include your 20% lifetime discount.</p>
+    <div class="grid md:grid-cols-3 gap-6 items-stretch">
 
-    <!-- WAITLIST FORM CALLOUT -->
-    <div id="waitlist" class="max-w-lg mx-auto bg-gray-900/90 border border-emerald-500/30 rounded-2xl p-6 glow-emerald relative backdrop-blur-xl">
-      <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-black text-[10px] mono font-bold uppercase px-3 py-0.5 rounded-full shadow-lg">
-        Limited Early-Bird Offer
+      <div class="rounded-2xl p-7 flex flex-col" style="border:1px solid var(--line)">
+        <h3 class="display text-xl font-bold">Professional</h3>
+        <p class="text-sm mt-1 mb-5" style="color:var(--muted)">For a first audit-ready report.</p>
+        <p class="text-sm line-through" style="color:var(--muted)">NGN 450,000</p>
+        <p class="display text-3xl font-bold mb-5">NGN 360,000</p>
+        <ul class="text-sm space-y-2.5 mb-7" style="color:#cfe0d7">
+          <li>Complete compliance audit</li><li>PDF compliance report</li><li>API endpoint analysis</li><li>Evidence logs and severity ratings</li><li>Email support</li>
+        </ul>
+        <a href="#waitlist" class="mt-auto text-center py-3 rounded-xl text-sm font-semibold transition hover:bg-emerald-400/10" style="border:1px solid var(--sig);color:var(--sig)">Reserve Professional</a>
       </div>
 
-      <h3 class="text-lg font-bold text-white mb-1">Get Priority Access + 20% Off</h3>
-      <p class="text-xs text-gray-400 mb-5">Select your target plan and lock in a <span class="text-emerald-400 font-semibold">20% lifetime discount</span> across all subscription tiers when we launch.</p>
-
-      <form id="waitlistForm" onsubmit="handleWaitlistSubmit(event)" class="space-y-4 text-left">
-        <div>
-          <label for="waitlistEmail" class="block text-[11px] mono text-gray-400 mb-1">Work Email</label>
-          <input 
-            type="email" 
-            id="waitlistEmail"
-            required 
-            placeholder="name@company.com" 
-            class="w-full bg-black border border-gray-800 rounded-lg px-4 py-2.5 text-sm text-gray-200 focus:outline-none focus:border-emerald-500 transition mono"
-          />
-        </div>
-
-        <div>
-          <label for="tierSelect" class="block text-[11px] mono text-gray-400 mb-1">Target Subscription Tier</label>
-          <select 
-            id="tierSelect"
-            required
-            class="w-full bg-black border border-gray-800 rounded-lg px-4 py-2.5 text-sm text-gray-200 focus:outline-none focus:border-emerald-500 transition mono">
-            <option value="professional">Professional Plan — NGN 450,000/mo (20% Off Launch)</option>
-            <option value="business" selected>Business Plan — NGN 1,500,000/mo (20% Off Launch)</option>
-            <option value="enterprise">Enterprise Plan — NGN 3,500,000/mo (20% Off Launch)</option>
-          </select>
-        </div>
-
-        <button 
-          type="submit" 
-          id="submitBtn"
-          class="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 px-6 rounded-lg transition transform active:scale-95 text-sm mono">
-          Reserve My 20% Discount →
-        </button>
-      </form>
-
-      <div id="successMsg" class="hidden text-center mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
-        <p class="text-xs text-emerald-400 mono font-bold">✓ You're on the waitlist!</p>
-        <p class="text-[11px] text-gray-300 mt-0.5">Your 20% lifetime discount code has been reserved for launch.</p>
+      <div class="rounded-2xl p-7 flex flex-col relative" style="border:2px solid var(--sig);background:linear-gradient(180deg,rgba(52,211,153,.08),transparent 60%)">
+        <span class="absolute -top-3 left-7 text-xs font-bold px-3 py-1 rounded-full" style="background:var(--sig);color:#032016">Most popular</span>
+        <h3 class="display text-xl font-bold">Business</h3>
+        <p class="text-sm mt-1 mb-5" style="color:var(--muted)">For teams that need to fix and prove it.</p>
+        <p class="text-sm line-through" style="color:var(--muted)">NGN 1,500,000</p>
+        <p class="display text-3xl font-bold mb-5">NGN 1,200,000</p>
+        <ul class="text-sm space-y-2.5 mb-7" style="color:#cfe0d7">
+          <li>Everything in Professional</li><li>Remediation roadmap</li><li>Executive reports</li><li>Follow-up verification scan</li><li>Slack alerts and priority support</li>
+        </ul>
+        <a href="#waitlist" class="btn mt-auto text-center py-3 text-sm">Reserve Business</a>
       </div>
-      <p id="errorMsg" class="hidden text-
+
+      <div class="rounded-2xl p-7 flex flex-col" style="border:1px solid var(--line)">
+        <h3 class="display text-xl font-bold">Enterprise</h3>
+        <p class="text-sm mt-1 mb-5" style="color:var(--muted)">For continuous assurance.</p>
+        <p class="text-sm line-through" style="color:var(--muted)">NGN 3,500,000</p>
+        <p class="display text-3xl font-bold mb-5">NGN 2,800,000</p>
+        <ul class="text-sm space-y-2.5 mb-7" style="color:#cfe0d7">
+          <li>Unlimited scans and continuous monitoring</li><li>Dedicated compliance engineer</li><li>Custom compliance frameworks</li><li>Quarterly reviews and incident alerts</li><li>24/7 support</li>
+        </ul>
+        <a href="#waitlist" class="mt-auto text-center py-3 rounded-xl text-sm font-semibold transition hover:bg-emerald-400/10" style="border:1px solid var(--sig);color:var(--sig)">Reserve Enterprise</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="business-plan" class="max-w-6xl mx-auto px-6 py-20">
+  <h2 class="display text-3xl sm:text-4xl font-bold mb-12 max-w-2xl">From URL to audit-ready in three steps</h2>
+  <ol class="grid md:grid-cols-3 gap-10">
+    <li>
+      <span class="display text-5xl font-extrabold" style="color:var(--line)">1</span>
+      <h3 class="display text-xl font-bold mt-2 mb-2">Read your spec</h3>
+      <p class="text-sm leading-relaxed" style="color:var(--muted)">Point Shepherd AI at your <span class="code">/openapi.json</span>. It maps every route and flags the ones with no authentication.</p>
+    </li>
+    <li>
+      <span class="display text-5xl font-extrabold" style="color:var(--line)">2</span>
+      <h3 class="display text-xl font-bold mt-2 mb-2">Confirm in live responses</h3>
+      <p class="text-sm leading-relaxed" style="color:var(--muted)">It checks real responses for PHI, PII, and card data, so you see proof of exposure instead of guesses from route names.</p>
+    </li>
+    <li>
+      <span class="display text-5xl font-extrabold" style="color:var(--line)">3</span>
+      <h3 class="display text-xl font-bold mt-2 mb-2">Fix and show your score</h3>
+      <p class="text-sm leading-relaxed" style="color:var(--muted)">Get severity ratings, evidence logs, and a readiness score you can hand to an auditor or investor.</p>
+    </li>
+  </ol>
+</section>
+
+<footer style="border-top:1px solid var(--line)">
+  <div class="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row justify-between gap-3 text-sm" style="color:var(--muted)">
+    <p>© 2026 Astro Rescue Ventures. All rights reserved.</p>
+    <p>Scan only APIs you own or have permission to test.</p>
+  </div>
+</footer>
+
+<script>
+  // One orchestrated moment: the leaked fields get flagged in sequence.
+  (function () {
+    const rows = document.querySelectorAll('#leakPanel [data-hit]');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    rows.forEach((r, i) => setTimeout(() => r.classList.add('hit'), reduce ? 0 : 900 + i * 700));
+  })();
+</script>
+
+<!-- ▼▼ PASTE YOUR ORIGINAL <script> BLOCK HERE (the one that defines handleWaitlistSubmit) ▼▼ -->
+<script>
+  if (typeof handleWaitlistSubmit === 'undefined') {
+    window.handleWaitlistSubmit = function (e) {
+      e.preventDefault();
+      const err = document.getElementById('errorMsg');
+      err.textContent = 'Waitlist is not connected yet. Paste your original script block into this file.';
+      err.classList.remove('hidden');
+    };
+  }
+</script>
+</body>
+</html>
