@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shepherd AI — Autonomous API Security & OpenAPI Scanner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .mono { font-family: 'Fira Code', monospace; }
+    .bg-grid {
+      background-size: 30px 30px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    }
+    .glow-emerald {
+      box-shadow: 0 0 50px -10px rgba(16, 185, 129, 0.25);
+    }
+  </style>
+</head>
+<body class="bg-black text-gray-100 antialiased selection:bg-emerald-500 selection:text-black min-h-screen flex flex-col justify-between">
+
+  <!-- BACKGROUND OVERLAY -->
+  <div class="fixed inset-0 bg-grid pointer-events-none z-0"></div>
+  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none z-0"></div>
+
+  <!-- NAVIGATION -->
+  <nav class="relative z-10 border-b border-gray-900 bg-black/60 backdrop-blur-md sticky top-0 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></div>
+      <span class="mono text-lg font-bold tracking-wider text-emerald-400">SHEPHERD AI</span>
+    </div>
+    <div class="flex items-center gap-6">
+      <a href="#who-we-serve" class="text-xs text-gray-400 hover:text-emerald-400 transition font-medium hidden sm:inline-block">Who It's For</a>
+      <a href="#waitlist" class="mono text-xs px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-lg transition transform hover:scale-105">
+        Claim 20% Off
+      </a>
+
+      <!-- ================================================================= -->
+      <!-- TEMPORARILY HIDDEN: SHEPHERD AI APP ACCESS LINK                   -->
+      <!-- UNCOMMENT THE SECTION BELOW WHEN READY TO GO LIVE                 -->
+      <!-- ================================================================= -->
+      <!-- 
+      <a href="https://app.shepherdai.com" class="mono text-xs px-4 py-2 border border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-black font-bold rounded-lg transition">
+        Launch App →
+      </a> 
+      -->
+      <!-- ================================================================= -->
+    </div>
+  </nav>
+
+  <!-- HERO SECTION -->
+  <header class="relative z-10 max-w-5xl mx-auto px-6 pt-20 pb-16 text-center">
+    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs mono mb-8">
+      <span>🛡️ Autonomous API Security & Vulnerability Intelligence</span>
+    </div>
+
+    <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight">
+      Guard Your APIs Before <br class="hidden sm:inline" />
+      <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
+        Vulnerabilities Become Breaches
+      </span>
+    </h1>
+
+    <p class="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
+      Shepherd AI scans your OpenAPI specifications and cloud backends to automatically expose unsecured endpoints, broken authorization, and data leaks in seconds.
+    </p>
+
+    <!-- WAITLIST FORM CALLOUT -->
+    <div id="waitlist" class="max-w-md mx-auto bg-gray-900/90 border border-emerald-500/30 rounded-2xl p-6 glow-emerald relative backdrop-blur-xl">
+      <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-black text-[10px] mono font-bold uppercase px-3 py-0.5 rounded-full">
+        Limited Early-Bird Offer
+      </div>
+
+      <h3 class="text-lg font-bold text-white mb-1">Get Priority Access + 20% Off</h3>
+      <p class="text-xs text-gray-400 mb-5">Join the waitlist today and lock in <span class="text-emerald-400 font-semibold">20% lifetime discount</span> across all subscription tiers when we launch.</p>
+
+      <form id="waitlistForm" onsubmit="handleWaitlistSubmit(event)" class="space-y-3">
+        <div>
+          <input 
+            type="email" 
+            id="waitlistEmail"
+            required 
+            placeholder="Enter your work email address..." 
+            class="w-full bg-black border border-gray-800 rounded-lg px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-emerald-500 transition mono"
+          />
+        </div>
+        <button 
+          type="submit" 
+          class="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 px-6 rounded-lg transition transform active:scale-95 text-sm mono">
+          Reserve My 20% Discount →
+        </button>
+      </form>
+      <p id="successMsg" class="hidden text-xs text-emerald-400 mt-3 mono">✓ You're on the list! We've locked in your 20% discount.</p>
+    </div>
+  </header>
+
+  <!-- WHO IT SERVES SECTION -->
+  <section id="who-we-serve" class="relative z-10 max-w-5xl mx-auto px-6 py-16 border-t border-gray-900">
+    <div class="text-center mb-12">
+      <h2 class="mono text-xs uppercase tracking-widest text-emerald-400 mb-2">Targeted Protection</h2>
+      <p class="text-2xl sm:text-3xl font-bold text-white">Who Shepherd AI Serves</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Card 1 -->
+      <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-6 hover:border-emerald-500/50 transition">
+        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-bold mb-4">
+          ⚡
+        </div>
+        <h3 class="text-lg font-bold text-white mb-2">Backend & API Engineers</h3>
+        <p class="text-xs text-gray-400 leading-relaxed">
+          Instantly audit OpenAPI schemas, FastAPI/Express routes, and Supabase policies before deploying code to production.
+        </p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-6 hover:border-emerald-500/50 transition">
+        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-bold mb-4">
+          🛡️
+        </div>
+        <h3 class="text-lg font-bold text-white mb-2">Security & DevSecOps Teams</h3>
+        <p class="text-xs text-gray-400 leading-relaxed">
+          Automate continuous endpoint inspection and aggregate security compliance reports across multi-cloud infrastructure.
+        </p>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="bg-gray-900/40 border border-gray-800 rounded-xl p-6 hover:border-emerald-500/50 transition">
+        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-bold mb-4">
+          🚀
+        </div>
+        <h3 class="text-lg font-bold text-white mb-2">Startups & Tech Agencies</h3>
+        <p class="text-xs text-gray-400 leading-relaxed">
+          Demonstrate robust API security and HIPAA/GDPR readiness to clients and enterprise buyers without hiring dedicated audit teams.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES BRIEF -->
+  <section class="relative z-10 max-w-5xl mx-auto px-6 py-16 border-t border-gray-900">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+      <div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-white mb-4">
+          Continuous AI Analysis for Modern Backends
+        </h2>
+        <ul class="space-y-3 text-xs text-gray-300">
+          <li class="flex items-start gap-3">
+            <span class="text-emerald-400 font-bold">✓</span>
+            <span><b>Automated Schema Scanning:</b> Parse OpenAPI v2/v3 specs to catch missing authorization rules.</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="text-emerald-400 font-bold">✓</span>
+            <span><b>Real-time Alerts:</b> Get notified immediately when an unauthenticated route goes live.</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="text-emerald-400 font-bold">✓</span>
+            <span><b>One-Click Audit Reports:</b> Export executive-ready PDFs and detailed JSON findings.</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- CODE PREVIEW BLOCK -->
+      <div class="bg-gray-950 border border-gray-800 rounded-xl p-4 mono text-[11px] text-gray-300 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-gray-800 pb-2 mb-3">
+          <div class="flex gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
+          </div>
+          <span class="text-gray-500">shepherd-audit.log</span>
+        </div>
+        <p class="text-gray-500">[12:00:01] Initializing Shepherd AI Scanner...</p>
+        <p class="text-emerald-400">[12:00:02] Connected to target backend schema.</p>
+        <p class="text-yellow-400">[12:00:03] WARNING: Route '/api/v1/users' missing auth middleware.</p>
+        <p class="text-red-400">[12:00:04] CRITICAL: Exposed DB credential found in response schema.</p>
+        <p class="text-emerald-400 font-bold mt-2">[12:00:05] Audit Complete. 2 Vulnerabilities flagged.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="relative z-10 border-t border-gray-900 py-8 px-6 text-center text-xs text-gray-500">
+    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div class="mono text-gray-400 font-bold">SHEPHERD AI</div>
+      <p>© 2026 Shepherd AI. All rights reserved.</p>
+      <div class="flex gap-4">
+        <a href="#waitlist" class="hover:text-emerald-400 transition">Waitlist</a>
+        <a href="#" class="hover:text-emerald-400 transition">Privacy Policy</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function handleWaitlistSubmit(e) {
+      e.preventDefault();
+      const emailInput = document.getElementById("waitlistEmail");
+      const successMsg = document.getElementById("successMsg");
+      
+      if (emailInput.value) {
+        // Here you can hook up Supabase, Airtable, or Make.com webhook URL
+        console.log("Waitlist entry:", emailInput.value);
+        
+        emailInput.value = "";
+        successMsg.classList.remove("hidden");
+      }
+    }
+  </script>
+</body>
+</html>
