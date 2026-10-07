@@ -466,7 +466,12 @@
 <body class="min-h-screen flex flex-col">
 
   <nav class="border-b border-gray-800 bg-black px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
     <div class="mono text-lg font-bold text-emerald-400">SHEPHERD AI</div>
+    <span id="navTierBadge" class="mono text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider bg-gray-800 text-gray-400 border border-gray-700">
+      TIER: LOADING...
+    </span>
+    </div>
     <div class="flex gap-4 sm:gap-6 items-baseline flex-wrap">
       <a href="about.html" class="mono text-xs text-gray-400 hover:text-emerald-400 transition font-medium">About</a>
       <a href="index.html" class="mono text-xs text-emerald-400 font-bold px-3 py-1 bg-gray-900 rounded-full self-center">Scanner</a>
@@ -647,7 +652,7 @@
           <div class="flex items-center gap-2">
             <span class="mono text-xs text-gray-500">Your API Key</span>
             <span id="currentTierBadge" class="mono text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              FREE
+              STARTER (FREE)
             </span>
           </div>
           <div class="flex gap-2">
@@ -672,9 +677,18 @@
         />
 
         <div class="flex items-center justify-between mt-3">
-          <p class="mono text-[10px] text-gray-500" id="userEmailDisplay">
-            Loading user email...
-          </p>
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <p class="mono text-[10px] text-gray-400" id="userEmailDisplay">
+              Loading user email...
+            </p>
+          </div>
+          <a href="settings.html" class="mono text-[10px] text-emerald-400 hover:underline">
+            Manage Subscription →
+          </a>
+        </div>
+      </div>
+    </div>
           <div id="tierActions" class="tier-actions flex gap-2 hidden">
             <button type="button" onclick="handleTierUpgrade('pro')" 
               class="mono text-[10px] bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded transition font-medium">
@@ -990,12 +1004,53 @@
       }
     };
 
+    // Color map for tier styling
     const TIER_COLORS = {
-      free: "bg-gray-800 text-gray-400",
-      starter: "bg-blue-950 text-blue-400",
-      pro: "bg-purple-950 text-purple-400",
-      enterprise: "bg-emerald-950 text-emerald-400"
+      free: "bg-gray-800 text-gray-300 border border-gray-700",
+      starter: "bg-blue-950 text-blue-400 border border-blue-800",
+      pro: "bg-purple-950 text-purple-400 border border-purple-800",
+      enterprise: "bg-emerald-950 text-emerald-400 border border-emerald-800"
     };
+
+    function updateTierBadges() {
+      const userTier = (localStorage.getItem("shepherd_tier") || "free").toLowerCase();
+      const tierName = PLAN_CONFIG[userTier] ? PLAN_CONFIG[userTier].name : userTier.toUpperCase();
+
+      // 1. Update Navigation Bar Tier Badge
+      const navBadge = document.getElementById("navTierBadge");
+      if (navBadge) {
+        navBadge.textContent = `PLAN: ${tierName.toUpperCase()}`;
+        navBadge.className = `mono text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${TIER_COLORS[userTier] || TIER_COLORS.free}`;
+      }
+
+      // 2. Update API Key Card Tier Badge
+      const cardBadge = document.getElementById("currentTierBadge");
+      if (cardBadge) {
+        cardBadge.textContent = tierName.toUpperCase();
+        cardBadge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[userTier] || TIER_COLORS.free}`;
+      }
+
+      // 3. Highlight the user's active tier card in the selector grid
+      document.querySelectorAll('.tier-select-card').forEach(card => {
+        const isUserActiveTier = card.dataset.tier === userTier;
+    
+        // Remove old active badges if any
+        const existingBadge = card.querySelector('.active-user-tier-tag');
+        if (existingBadge) existingBadge.remove();
+
+        if (isUserActiveTier) {
+          const activeTag = document.createElement('span');
+          activeTag.className = 'active-user-tier-tag absolute -top-2.5 left-3 mono text-[9px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full shadow-md';
+          activeTag.textContent = 'YOUR PLAN';
+          card.appendChild(activeTag);
+        }
+      });
+    }
+
+    // Call updateTierBadges during DOM initialized & checkSession
+    document.addEventListener("DOMContentLoaded", function () {
+      updateTierBadges();
+    });
 
     async function logout() {
       document.body.style.display = "none"; // hide the dashboard immediately
