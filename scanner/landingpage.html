@@ -37,20 +37,10 @@
     <div class="flex items-center gap-6">
       <a href="#who-we-serve" class="text-xs text-gray-400 hover:text-emerald-400 transition font-medium hidden sm:inline-block">Who It's For</a>
       <a href="#pricing-tiers" class="text-xs text-gray-400 hover:text-emerald-400 transition font-medium hidden sm:inline-block">Tiers & Pricing</a>
+      <a href="#business-plan" class="text-xs text-gray-400 hover:text-emerald-400 transition font-medium hidden sm:inline-block">Business Plan</a>
       <a href="#waitlist" class="mono text-xs px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-lg transition transform hover:scale-105">
         Claim 20% Off
       </a>
-
-      <!-- ================================================================= -->
-      <!-- TEMPORARILY HIDDEN: SHEPHERD AI APP ACCESS LINK                   -->
-      <!-- UNCOMMENT THE SECTION BELOW WHEN READY TO GO LIVE                 -->
-      <!-- ================================================================= -->
-      <!-- 
-      <a href="https://app.shepherdai.com" class="mono text-xs px-4 py-2 border border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-black font-bold rounded-lg transition">
-        Launch App →
-      </a> 
-      -->
-      <!-- ================================================================= -->
     </div>
   </nav>
 
@@ -162,7 +152,6 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <!-- Starter -->
       <div class="bg-gray-900/30 border border-gray-800 rounded-xl p-6 flex flex-col justify-between">
         <div>
           <span class="mono text-[10px] text-gray-400 bg-gray-800 px-2.5 py-1 rounded-full uppercase">Starter</span>
@@ -174,7 +163,6 @@
         </button>
       </div>
 
-      <!-- Pro -->
       <div class="bg-gray-900/80 border border-emerald-500/50 rounded-xl p-6 flex flex-col justify-between relative glow-emerald">
         <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-black text-[9px] mono font-bold uppercase px-2.5 py-0.5 rounded-full">Most Popular</span>
         <div>
@@ -187,7 +175,6 @@
         </button>
       </div>
 
-      <!-- Enterprise -->
       <div class="bg-gray-900/30 border border-gray-800 rounded-xl p-6 flex flex-col justify-between">
         <div>
           <span class="mono text-[10px] text-purple-400 bg-purple-950 px-2.5 py-1 rounded-full uppercase border border-purple-800">Enterprise</span>
@@ -197,6 +184,50 @@
         <button onclick="selectTierAndScroll('enterprise')" class="mt-6 w-full py-2 bg-gray-800 hover:bg-gray-700 text-xs font-bold text-purple-400 rounded-lg transition mono">
           Select Enterprise (20% Off)
         </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- BUSINESS PLAN SECTION -->
+  <section id="business-plan" class="relative z-10 max-w-5xl mx-auto px-6 py-16 border-t border-gray-900">
+    <div class="text-center mb-12">
+      <h2 class="mono text-xs uppercase tracking-widest text-emerald-400 mb-2">Investor & Partner Blueprint</h2>
+      <p class="text-2xl sm:text-3xl font-bold text-white">Shepherd AI Business Plan Strategy</p>
+    </div>
+
+    <div class="bg-gray-950 border border-gray-800 rounded-2xl p-6 sm:p-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+            <span class="text-emerald-400">01.</span> Executive Summary
+          </h3>
+          <p class="text-xs text-gray-400 leading-relaxed mb-6">
+            Shepherd AI delivers automated, shift-left API vulnerability detection. By evaluating OpenAPI schemas, authorization middleware, and Supabase RLS configurations prior to deployment, Shepherd prevents security breaches before they go live.
+          </p>
+
+          <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+            <span class="text-emerald-400">02.</span> Target Audience & Market
+          </h3>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Focused on backend developers, DevSecOps leads, and technical software agencies who require audit-ready compliance reports (HIPAA/GDPR) without high pentesting overhead costs.
+          </p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+            <span class="text-emerald-400">03.</span> Business Model & Pricing
+          </h3>
+          <p class="text-xs text-gray-400 leading-relaxed mb-6">
+            Recurring subscription tiers (Starter $29/mo, Pro $99/mo, Enterprise $299+/mo) alongside agency license models to support external client audit pipelines.
+          </p>
+
+          <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+            <span class="text-emerald-400">04.</span> Product & Integration Roadmap
+          </h3>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Phase 1: OpenAPI Schema & FastAPI/Supabase parser. Phase 2: GitHub Actions CI/CD integration and PDF report exports. Phase 3: Team RBAC and continuous runtime scanning.
+          </p>
+        </div>
       </div>
     </div>
   </section>
@@ -256,7 +287,6 @@
   </footer>
 
   <script>
-    // Configuration: Replace with your actual Supabase URL & Anon Key or Webhook Endpoint
     const SUPABASE_URL = "https://<YOUR_SUPABASE_PROJECT_ID>.supabase.co";
     const SUPABASE_ANON_KEY = "<YOUR_SUPABASE_ANON_KEY>";
 
@@ -284,7 +314,6 @@
       errorMsg.classList.add("hidden");
 
       try {
-        // Attempting POST to Supabase waitlist table
         const response = await fetch(`${SUPABASE_URL}/rest/v1/waitlist`, {
           method: "POST",
           headers: {
@@ -303,13 +332,12 @@
         if (response.ok || response.status === 201) {
           showSuccess();
         } else {
-          // Fallback log or alternative endpoint trigger if Supabase is not configured yet
           console.log("Waitlist captured (Local/Fallback Mode):", { email, tier });
           showSuccess();
         }
       } catch (err) {
         console.warn("API request error, logging submission locally:", err);
-        showSuccess(); // Graceful fallback UX
+        showSuccess();
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = "Reserve My 20% Discount →";
