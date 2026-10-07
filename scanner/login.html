@@ -722,6 +722,15 @@
       }
     });
 
+     // Show a message if the user was signed out for inactivity
+    document.addEventListener("DOMContentLoaded", function () {
+      if (localStorage.getItem("shepherd_idle_logout")) {
+        localStorage.removeItem("shepherd_idle_logout");
+        const info = document.getElementById("loginInfo");
+        info.textContent = "You were signed out after 10 minutes of inactivity.";
+        info.classList.remove("hidden");
+      }
+    });
     const observer = new MutationObserver(function(mutations) {
       mutations.forEach(function(mutation) {
         if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
