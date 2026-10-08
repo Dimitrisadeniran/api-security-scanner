@@ -197,15 +197,48 @@
   })();
 </script>
 
-<!-- ▼▼ PASTE YOUR ORIGINAL <script> BLOCK HERE (the one that defines handleWaitlistSubmit) ▼▼ -->
 <script>
-  if (typeof handleWaitlistSubmit === 'undefined') {
-    window.handleWaitlistSubmit = function (e) {
-      e.preventDefault();
-      const err = document.getElementById('errorMsg');
-      err.textContent = 'Waitlist is not connected yet. Paste your original script block into this file.';
-      err.classList.remove('hidden');
-    };
+  const SUPABASE_URL = "https://kssngedhwekwwfmqokhg.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_Zmz_LbgOItXjyhIUqtqf9Q_NnVkctd0";
+
+  async function handleWaitlistSubmit(event) {
+    event.preventDefault();
+    const email = document.getElementById("waitlistEmail").value.trim().toLowerCase();
+    const tier = document.getElementById("tierSelect").value;
+    const btn = document.getElementById("submitBtn");
+    const ok = document.getElementById("successMsg");
+    const err = document.getElementById("errorMsg");
+
+    err.classList.add("hidden");
+    ok.classList.add("hidden");
+    btn.disabled = true;
+    btn.textContent = "Reserving...";
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/waitlist`, {
+        method: "POST",
+        headers: {
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal"
+        },
+        body: JSON.stringify({ email, tier })
+      });
+
+      // 409 = this email is already on the list, which is fine for the visitor
+      if (!res.ok && res.status !== 409) {
+        throw new Error("Could not join the waitlist. Please try again.");
+      }
+
+      document.getElementById("waitlistForm").classList.add("hidden");
+      ok.classList.remove("hidden");
+    } catch (e) {
+      err.textContent = e.message;
+      err.classList.remove("hidden");
+      btn.disabled = false;
+      btn.textContent = "Reserve my 20% discount";
+    }
   }
 </script>
 </body>
