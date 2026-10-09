@@ -234,11 +234,6 @@
     .plan-badge-pro { background: #3b1e5f; color: #a78bfa; }
     .plan-badge-enterprise { background: #064e3b; color: #34d399; }
 
-    .scan-depth-basic { border-left: 3px solid #6b7280; }
-    .scan-depth-standard { border-left: 3px solid #3b82f6; }
-    .scan-depth-advanced { border-left: 3px solid #8b5cf6; }
-    .scan-depth-comprehensive { border-left: 3px solid #34d399; }
-
     .payment-overlay {
       display: none;
       position: fixed;
@@ -370,10 +365,14 @@
 
           const user = await response.json();
           if (user.email) localStorage.setItem("shepherd_email", user.email);
-          if (user.tier) localStorage.setItem("shepherd_tier", user.tier);
+          if (user.tier) localStorage.setItem("shepherd_tier", user.tier.toLowerCase());
           if (user.api_key) localStorage.setItem("shepherd_api_key", user.api_key);
 
           showPage();
+
+          if (typeof updateTierBadges === "function") {
+            updateTierBadges();
+          }
 
           if (document.readyState === "loading") {
             document.addEventListener("DOMContentLoaded", populateApiKeyInput, { once: true });
@@ -401,15 +400,15 @@
         checkSession();
       }
 
-            window.addEventListener("pageshow", function (event) {
-              const nav = performance.getEntriesByType("navigation")[0];
-              if (event.persisted || (nav && nav.type === "back_forward")) {
-                document.body.style.display = "none";
-                checkSession();
-              }    
-            });
+      window.addEventListener("pageshow", function (event) {
+        const nav = performance.getEntriesByType("navigation")[0];
+        if (event.persisted || (nav && nav.type === "back_forward")) {
+          document.body.style.display = "none";
+          checkSession();
+        }    
+      });
 
-          })();
+    })();
   </script>
   <script>
     async function promptSecurityPin() {
@@ -467,11 +466,11 @@
 
   <nav class="border-b border-gray-800 bg-black px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
     <div class="flex items-center gap-3">
-    <img src="shepherd-logo.png" alt="Shepherd AI logo" class="h-14 w-14">
-    <div class="mono text-lg font-bold text-emerald-400">SHEPHERD AI</div>
-    <span id="navTierBadge" class="mono text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider bg-gray-800 text-gray-400 border border-gray-700">
-      TIER: LOADING...
-    </span>
+      <img src="shepherd-logo.png" alt="Shepherd AI logo" class="h-14 w-14">
+      <div class="mono text-lg font-bold text-emerald-400">SHEPHERD AI</div>
+      <span id="navTierBadge" class="mono text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider bg-gray-800 text-gray-400 border border-gray-700">
+        TIER: LOADING...
+      </span>
     </div>
     <div class="flex gap-4 sm:gap-6 items-baseline flex-wrap">
       <a href="about.html" class="mono text-xs text-gray-400 hover:text-emerald-400 transition font-medium">About</a>
@@ -646,7 +645,6 @@
 
     <p id="errorMsg" class="mono text-red-400 text-xs mt-3 hidden"></p>
 
-    <!-- Cleaned API Key & Account Info Section -->
     <div class="mt-12 w-full max-w-xl mx-auto border-t border-gray-900 pt-8">
       <div id="apiKeyCard" class="bg-gray-900 border border-gray-800/60 rounded-xl p-4 mb-3">
         <div class="flex items-center justify-between mb-2">
@@ -687,19 +685,6 @@
           <a href="settings.html" class="mono text-[10px] text-emerald-400 hover:underline">
             Manage Subscription →
           </a>
-        </div>
-      </div>
-    </div>
-          <div id="tierActions" class="tier-actions flex gap-2 hidden">
-            <button type="button" onclick="handleTierUpgrade('pro')" 
-              class="mono text-[10px] bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded transition font-medium">
-              Upgrade Pro
-            </button>
-            <button type="button" onclick="handleTierUpgrade('enterprise')" 
-              class="mono text-[10px] bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border border-purple-500/30 px-2.5 py-1 rounded transition font-medium">
-              Upgrade Enterprise
-            </button>
-          </div>
         </div>
       </div>
     </div>
@@ -1005,7 +990,6 @@
       }
     };
 
-    // Color map for tier styling
     const TIER_COLORS = {
       free: "bg-gray-800 text-gray-300 border border-gray-700",
       starter: "bg-blue-950 text-blue-400 border border-blue-800",
@@ -1015,27 +999,24 @@
 
     function updateTierBadges() {
       const userTier = (localStorage.getItem("shepherd_tier") || "free").toLowerCase();
-      const tierName = PLAN_CONFIG[userTier] ? PLAN_CONFIG[userTier].name : userTier.toUpperCase();
+      const config = PLAN_CONFIG[userTier] || PLAN_CONFIG.free;
+      const tierName = config.name;
 
-      // 1. Update Navigation Bar Tier Badge
       const navBadge = document.getElementById("navTierBadge");
       if (navBadge) {
         navBadge.textContent = `PLAN: ${tierName.toUpperCase()}`;
         navBadge.className = `mono text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${TIER_COLORS[userTier] || TIER_COLORS.free}`;
       }
 
-      // 2. Update API Key Card Tier Badge
       const cardBadge = document.getElementById("currentTierBadge");
       if (cardBadge) {
         cardBadge.textContent = tierName.toUpperCase();
         cardBadge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[userTier] || TIER_COLORS.free}`;
       }
 
-      // 3. Highlight the user's active tier card in the selector grid
       document.querySelectorAll('.tier-select-card').forEach(card => {
         const isUserActiveTier = card.dataset.tier === userTier;
     
-        // Remove old active badges if any
         const existingBadge = card.querySelector('.active-user-tier-tag');
         if (existingBadge) existingBadge.remove();
 
@@ -1048,13 +1029,8 @@
       });
     }
 
-    // Call updateTierBadges during DOM initialized & checkSession
-    document.addEventListener("DOMContentLoaded", function () {
-      updateTierBadges();
-    });
-
     async function logout() {
-      document.body.style.display = "none"; // hide the dashboard immediately
+      document.body.style.display = "none";
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 4000);
@@ -1081,7 +1057,6 @@
       window.location.replace("login.html");
     }
     
-    // ── INACTIVITY AUTO-LOGOUT (10 minutes) ──
     const IDLE_LIMIT_MS = 10 * 60 * 1000;
     const ACTIVITY_KEY = "shepherd_last_activity";
     let idleCheckTimer = null;
@@ -1089,7 +1064,7 @@
 
     function markActivity() {
       const now = Date.now();
-      if (now - lastWrite < 1000) return; // throttle writes
+      if (now - lastWrite < 1000) return;
       lastWrite = now;
       try { localStorage.setItem(ACTIVITY_KEY, String(now)); } catch (_) {}
     }
@@ -1103,7 +1078,7 @@
 
     async function autoLogout() {
       clearInterval(idleCheckTimer);
-      localStorage.setItem("shepherd_idle_logout", "1"); // lets login page show a message
+      localStorage.setItem("shepherd_idle_logout", "1");
       await logout();
     }
 
@@ -1114,13 +1089,13 @@
       );
       idleCheckTimer = setInterval(checkIdle, 15000);
 
-      // Background tabs throttle timers, so re-check when the tab becomes visible again
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") checkIdle();
       });
     }
 
     document.addEventListener("DOMContentLoaded", startIdleWatcher);
+
     function syncTierSelection(tier) {
       const select = document.getElementById("serviceSelect");
       if (select.value !== tier) select.value = tier;
@@ -1134,7 +1109,7 @@
       const config = PLAN_CONFIG[selectedTier];
       if (!config) return;
 
-      const userTier = localStorage.getItem("shepherd_tier") || "free";
+      const userTier = (localStorage.getItem("shepherd_tier") || "free").toLowerCase();
       const scansUsed = parseInt(localStorage.getItem("scans_used") || "0", 10);
       const scansLimit = parseInt(localStorage.getItem("scans_limit") || "10", 10);
       
@@ -1156,13 +1131,7 @@
       if (scanDepthLabel) scanDepthLabel.textContent = config.scanDepth;
       if (scanDepthBar) scanDepthBar.style.width = `${config.scanDepthPercent}%`;
 
-      const badge = document.getElementById("currentTierBadge");
-      if (badge) {
-        badge.textContent = userTier.toUpperCase();
-        if (typeof TIER_COLORS !== "undefined") {
-          badge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[userTier] || TIER_COLORS.free}`;
-        }
-      }
+      updateTierBadges();
 
       const upgradeBtn = document.getElementById("upgradeBtn");
       if (upgradeBtn) {
@@ -1239,11 +1208,11 @@
         updateServiceInfo();
       }
 
-      const currentTier = localStorage.getItem("shepherd_tier") || "free";
+      const currentTier = (localStorage.getItem("shepherd_tier") || "free").toLowerCase();
       const note = document.getElementById("tierUpgradeNote");
 
       if (TIER_RANK[tier] > TIER_RANK[currentTier]) {
-        note.innerHTML = `You're currently on <strong>${TIER_DISPLAY_NAMES[currentTier]}</strong>. Upgrade to <strong>${TIER_DISPLAY_NAMES[tier]}</strong> to unlock this tier — <a href="settings.html" class="underline text-yellow-300">Upgrade now →</a>`;
+        note.innerHTML = `You're currently on <strong>${TIER_DISPLAY_NAMES[currentTier] || currentTier.toUpperCase()}</strong>. Upgrade to <strong>${TIER_DISPLAY_NAMES[tier]}</strong> to unlock this tier — <a href="settings.html" class="underline text-yellow-300">Upgrade now →</a>`;
         note.classList.remove("hidden");
       } else {
         note.classList.add("hidden");
@@ -1253,7 +1222,7 @@
     document.addEventListener("DOMContentLoaded", function () {
       const key = localStorage.getItem("shepherd_api_key");
       const email = localStorage.getItem("shepherd_email");
-      const tier = localStorage.getItem("shepherd_tier") || "free";
+      const tier = (localStorage.getItem("shepherd_tier") || "free").toLowerCase();
 
       if (key) document.getElementById("apiKeyInput").value = key;
       if (email) document.getElementById("userEmailDisplay").textContent = email;
@@ -1262,14 +1231,9 @@
       if (tier && select.querySelector(`option[value="${tier}"]`)) {
         select.value = tier;
       }
+      
+      updateTierBadges();
       updateServiceInfo();
-
-      const badge = document.getElementById("currentTierBadge");
-      if (badge) {
-        badge.textContent = tier.toUpperCase();
-        badge.className = `mono text-[10px] px-2 py-0.5 rounded-full font-bold ${TIER_COLORS[tier] || TIER_COLORS.free}`;
-      }
-
       fetchUsage();
       selectScanTier(tier);
 
@@ -1280,7 +1244,7 @@
         errorMsg.textContent = "✅ Payment successful! Your plan has been upgraded.";
         errorMsg.className = "mono text-emerald-400 text-xs mt-3";
         errorMsg.classList.remove("hidden");
-        const newTier = localStorage.getItem("shepherd_tier") || "free";
+        const newTier = (localStorage.getItem("shepherd_tier") || "free").toLowerCase();
         select.value = newTier;
         updateServiceInfo();
         fetchUsage();
@@ -1355,7 +1319,7 @@
       }
 
       const tier = document.getElementById("serviceSelect").value;
-      const userTier = localStorage.getItem("shepherd_tier") || "free";
+      const userTier = (localStorage.getItem("shepherd_tier") || "free").toLowerCase();
       const config = PLAN_CONFIG[tier];
 
       if (tier !== "free" && userTier !== tier) {
