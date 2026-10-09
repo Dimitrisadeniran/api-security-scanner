@@ -1180,32 +1180,30 @@
     document.addEventListener("DOMContentLoaded", function () {
       const key = localStorage.getItem("shepherd_api_key");
       const email = localStorage.getItem("shepherd_email");
-      const tier = (localStorage.getItem("shepherd_tier") || "free").toLowerCase();
+      const userTier = (localStorage.getItem("shepherd_tier") || "starter").toLowerCase();
 
       if (key) document.getElementById("apiKeyInput").value = key;
       if (email) document.getElementById("userEmailDisplay").textContent = email;
 
+      // 1. Sync dropdown selection with the user's actual database tier
       const select = document.getElementById("serviceSelect");
-      if (tier && select.querySelector(`option[value="${tier}"]`)) {
-        select.value = tier;
+      if (select && select.querySelector(`option[value="${userTier}"]`)) {
+        select.value = userTier;
+      } else if (select) {
+        select.value = "business"; // Fallback to business if mapped key differs
       }
-      
+
+      // 2. Refresh UI cards, badges, and features to match the user's tier
       updateTierBadges();
-      updateServiceInfo();
+      syncTierSelection(select ? select.value : userTier);
       fetchUsage();
-      selectScanTier(tier);
 
       const urlParams = new URLSearchParams(window.location.search);
-      const paymentStatus = urlParams.get('payment');
-      if (paymentStatus === 'success') {
+      if (urlParams.get('payment') === 'success') {
         const errorMsg = document.getElementById("errorMsg");
         errorMsg.textContent = "✅ Payment successful! Your plan has been upgraded.";
         errorMsg.className = "mono text-emerald-400 text-xs mt-3";
         errorMsg.classList.remove("hidden");
-        const newTier = (localStorage.getItem("shepherd_tier") || "free").toLowerCase();
-        select.value = newTier;
-        updateServiceInfo();
-        fetchUsage();
       }
     });
 
