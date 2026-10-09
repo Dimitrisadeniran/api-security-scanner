@@ -567,8 +567,29 @@ async def run_tier_based_scan(
 
 async def run_smart_scan(target_input: str, user_tier: str = "starter", auth_header: Optional[str] = None) -> dict:
     """
-    Master entry point for Shepherd AI scan requests.
+    Master entry point for Shepherd AI scan requests (Supports URLs, OpenAPI Schemas, and Source Code Repos).
     """
+    # 1. Check if Target Input is a Local Source Code Repository
+    if os.path.isdir(target_input):
+        sast_findings = scan_source_directory(target_input)
+        
+        # Ingest Semgrep findings if available
+        external_sast = run_semgrep_sast_engine(target_input)
+        sast_findings.extend(external_sast)
+
+        return {
+            "mode_detected": "STATIC_SOURCE_REPO",
+            "language_stack": "MULTI_LANGUAGE",
+            "findings": sast_findings,
+            "security_score": max(0, 100 - (len(sast_findings) * 10)),
+            "summary": {
+                "total_issues_found": len(sast_findings),
+                "audit_status": "AUDIT_READY" if len(sast_findings) == 0 else "NEEDS_IMPROVEMENT"
+            },
+            "remediation_roadmap": build_remediation_roadmap(sast_findings)
+        }
+
+    # 2. Existing URL/Schema Handling
     target_type, parsed_schema = await auto_detect_target(target_input)
     
     if target_type in (TargetType.STATIC_SCHEMA, TargetType.LIVE_ROUTE):
@@ -580,7 +601,7 @@ async def run_smart_scan(target_input: str, user_tier: str = "starter", auth_hea
         results["mode_detected"] = target_type
         return results
 
-    raise ValueError("Unrecognized target format. Provide an OpenAPI schema JSON/YAML or a live API URL.")
+    raise ValueError("Unrecognized target format. Provide an OpenAPI schema JSON/YAML, live API URL, or valid repository folder path.")
 # ─────────────────────────────────────────────
 # 8. MULTI-LANGUAGE SAST & SOURCE CODE ANALYSIS
 # ─────────────────────────────────────────────
