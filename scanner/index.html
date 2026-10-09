@@ -870,125 +870,83 @@
 
     const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com/api";
 
-    const PLAN_CONFIG = {
-      free: {
-        name: "Starter (Free)",
-        price: "Free",
-        dot: "free",
-        tier: "free",
-        badgeClass: "plan-badge-free",
-        scanDepth: "Basic",
-        scanDepthPercent: 25,
-        features: [
-          { text: "10 scans/mo", included: true },
-          { text: "Basic PHI/PII", included: true },
-          { text: "Email alerts", included: false },
-          { text: "Slack alerts", included: false }
-        ],
-        scanCapabilities: {
-          detectPHI: true,
-          detectPII: true,
-          detectPCI: false,
-          detectHIPAA: false,
-          detectNDPA: false,
-          generateReport: true,
-          slackAlerts: false,
-          emailAlerts: false,
-          whiteLabel: false,
-          customKeywords: false,
-          remediationRoadmap: false,
-          executiveReports: false,
-          continuousMonitoring: false
-        }
-      },
-      starter: {
-        name: "Professional",
-        price: "NGN 450,000",
-        dot: "starter",
-        badgeClass: "plan-badge-starter",
-        scanDepth: "Standard",
-        scanDepthPercent: 50,
-        features: [
-          { text: "100 scans/mo", included: true },
-          { text: "Full PHI/PII/PCI", included: true },
-          { text: "Email alerts", included: true },
-          { text: "Slack alerts", included: false }
-        ],
-        scanCapabilities: {
-          detectPHI: true,
-          detectPII: true,
-          detectPCI: true,
-          detectHIPAA: false,
-          detectNDPA: false,
-          generateReport: true,
-          slackAlerts: false,
-          emailAlerts: true,
-          whiteLabel: false,
-          customKeywords: false,
-          remediationRoadmap: false,
-          executiveReports: false,
-          continuousMonitoring: false
-        }
-      },
-      pro: {
-        name: "Business",
-        price: "NGN 1,500,000",
-        dot: "pro",
-        badgeClass: "plan-badge-pro",
-        scanDepth: "Advanced",
-        scanDepthPercent: 75,
-        features: [
-          { text: "Unlimited scans", included: true },
-          { text: "Full HIPAA/NDPA", included: true },
-          { text: "Email alerts", included: true },
-          { text: "Slack alerts", included: true }
-        ],
-        scanCapabilities: {
-          detectPHI: true,
-          detectPII: true,
-          detectPCI: true,
-          detectHIPAA: true,
-          detectNDPA: true,
-          generateReport: true,
-          slackAlerts: true,
-          emailAlerts: true,
-          whiteLabel: false,
-          customKeywords: false,
-          remediationRoadmap: true,
-          executiveReports: true,
-          continuousMonitoring: false
-        }
-      },
-      enterprise: {
-        name: "Enterprise",
-        price: "NGN 3,500,000/mo",
-        dot: "enterprise",
-        badgeClass: "plan-badge-enterprise",
-        scanDepth: "Comprehensive",
-        scanDepthPercent: 100,
-        features: [
-          { text: "Unlimited scans", included: true },
-          { text: "White-label reports", included: true },
-          { text: "Custom PHI keywords", included: true },
-          { text: "Priority support", included: true }
-        ],
-        scanCapabilities: {
-          detectPHI: true,
-          detectPII: true,
-          detectPCI: true,
-          detectHIPAA: true,
-          detectNDPA: true,
-          generateReport: true,
-          slackAlerts: true,
-          emailAlerts: true,
-          whiteLabel: true,
-          customKeywords: true,
-          remediationRoadmap: true,
-          executiveReports: true,
-          continuousMonitoring: true
-        }
-      }
-    };
+   const PLAN_CONFIG = {
+     starter: {
+       name: "Starter (Free)",
+       price: "Free",
+       dot: "free",
+       tier: "starter",
+       badgeClass: "plan-badge-free",
+       scanDepth: "Basic",
+       scanDepthPercent: 25,
+       features: [
+         { text: "10 scans/mo", included: true },
+         { text: "Basic PHI/PII", included: true },
+         { text: "Email alerts", included: false },
+         { text: "Slack alerts", included: false }
+       ],
+       scanCapabilities: {
+         detectPHI: true, detectPII: true, detectPCI: false, detectHIPAA: false,
+         detectNDPA: false, generateReport: true, slackAlerts: false, emailAlerts: false
+       }
+     },
+     pro: {
+       name: "Professional",
+       price: "NGN 450,000",
+       dot: "starter",
+       badgeClass: "plan-badge-starter",
+       scanDepth: "Standard",
+       scanDepthPercent: 50,
+       features: [
+         { text: "100 scans/mo", included: true },
+         { text: "Full PHI/PII/PCI", included: true },
+         { text: "Email alerts", included: true },
+         { text: "Slack alerts", included: false }
+       ],
+       scanCapabilities: {
+         detectPHI: true, detectPII: true, detectPCI: true, detectHIPAA: false,
+         detectNDPA: false, generateReport: true, slackAlerts: false, emailAlerts: true
+       }
+     },
+     business: {
+       name: "Business",
+       price: "NGN 1,500,000",
+       dot: "pro",
+       badgeClass: "plan-badge-pro",
+       scanDepth: "Advanced",
+       scanDepthPercent: 75,
+       features: [
+         { text: "Unlimited scans", included: true },
+         { text: "Full HIPAA/NDPA", included: true },
+         { text: "Email alerts", included: true },
+         { text: "Slack alerts", included: true }
+       ],
+       scanCapabilities: {
+         detectPHI: true, detectPII: true, detectPCI: true, detectHIPAA: true,
+         detectNDPA: true, generateReport: true, slackAlerts: true, emailAlerts: true,
+         remediationRoadmap: true, executiveReports: true
+       }
+     },
+     enterprise: {
+       name: "Enterprise",
+       price: "NGN 3,500,000/mo",
+       dot: "enterprise",
+       badgeClass: "plan-badge-enterprise",
+       scanDepth: "Comprehensive",
+       scanDepthPercent: 100,
+       features: [
+         { text: "Unlimited scans", included: true },
+         { text: "White-label reports", included: true },
+         { text: "Custom PHI keywords", included: true },
+         { text: "Priority support", included: true }
+      ],
+       scanCapabilities: {
+         detectPHI: true, detectPII: true, detectPCI: true, detectHIPAA: true,
+         detectNDPA: true, generateReport: true, slackAlerts: true, emailAlerts: true,
+         whiteLabel: true, customKeywords: true, continuousMonitoring: true
+       }
+     }
+   };
 
     const TIER_COLORS = {
       free: "bg-gray-800 text-gray-300 border border-gray-700",
