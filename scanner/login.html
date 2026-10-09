@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Shepherd AI — Login</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
@@ -102,7 +101,10 @@
 </head>
 <body class="min-h-screen flex flex-col grid-bg">
 
-  <!-- MANDATORY 2FA SETUP MODAL -->
+  <!-- ───────────────────────────────────────────────
+       MANDATORY 2FA SETUP MODAL (shown right after registration,
+       BEFORE the user can reach the scanner)
+  ──────────────────────────────────────────────── -->
   <div id="setup2FAPopup" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center px-6">
     <div class="bg-gray-900 border border-emerald-800 rounded-2xl p-8 w-full max-w-md fade-in">
 
@@ -164,7 +166,7 @@
     </div>
   </div>
 
-  <!-- API Key Popup -->
+  <!-- API Key Popup (now shown AFTER 2FA is confirmed) -->
   <div id="apiKeyPopup" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center px-6">
     <div class="bg-gray-900 border border-emerald-800 rounded-2xl p-8 w-full max-w-md fade-in">
 
@@ -280,7 +282,7 @@
               </div>
             </div>
 
-            <!-- 2FA Section -->
+            <!-- 2FA Section - Hidden initially -->
             <div id="twoFactorSection" class="hidden slide-down">
               <div class="border-t border-gray-800 pt-4 mt-2">
                 <div class="flex items-center gap-2 mb-2">
@@ -395,15 +397,7 @@
 
   <script>
     "use strict";
-    const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com";
-
-    // Optional Supabase Client initialization (if present in environment)
-    const SUPABASE_URL = "YOUR_SUPABASE_URL";
-    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
-    let supabase = null;
-    if (typeof window.supabase !== 'undefined' && SUPABASE_URL !== "YOUR_SUPABASE_URL") {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    }
+    const API_BASE = "https://api-security-scanner-1-rxnh.onrender.com"; // 🔁 confirm this matches your live Render URL
 
     const TIER_COLORS = {
       free:       "bg-gray-800 text-gray-400",
@@ -426,6 +420,7 @@
       userId: null
     };
 
+    // Holds context between registration and mandatory 2FA setup
     let pendingSetup = {
       apiKey: null,
       tier: null,
@@ -471,42 +466,7 @@
       document.getElementById("loginBtn").disabled = false;
     }
 
-    // ── SESSION REFRESH & CACHE CLEARING HELPER ──
-    async function loginSuccessAndRedirect(apiKey, email, fallbackTier) {
-      // Clear stale profile caches
-      localStorage.removeItem("shepherd_profile");
-      localStorage.removeItem("user_profile");
-
-      let finalTier = fallbackTier || "free";
-
-      // Direct database query & session refresh if Supabase is active
-      if (supabase) {
-        try {
-          await supabase.auth.refreshSession();
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('tier')
-              .eq('user_id', user.id)
-              .single();
-            if (profile && profile.tier) {
-              finalTier = profile.tier.toLowerCase();
-            }
-          }
-        } catch (e) {
-          console.warn("Session refresh skipped:", e);
-        }
-      }
-
-      localStorage.setItem("shepherd_api_key", apiKey || "");
-      localStorage.setItem("shepherd_email",   email || "");
-      localStorage.setItem("shepherd_tier",    finalTier);
-
-      window.location.replace("index.html");
-    }
-
-    // ── LOGIN ──
+    // ── LOGIN (unchanged — already correctly requires 2FA code if enabled) ──
     async function handleLogin() {
       const email    = document.getElementById("loginEmail").value.trim();
       const password = document.getElementById("loginPassword").value;
@@ -573,14 +533,16 @@
 
         if (!res.ok) throw new Error(data.detail || "Login failed");
 
+        localStorage.setItem("shepherd_api_key", data.api_key || data.token || "");
+        localStorage.setItem("shepherd_email",   data.email || email);
+        localStorage.setItem("shepherd_tier",    data.tier || "free");
+
         if (!data.api_key && !data.token) {
           throw new Error("Login succeeded but server returned no API key.");
         }
 
         label.textContent = "Verified. Entering...";
-        setTimeout(() => {
-          loginSuccessAndRedirect(data.api_key || data.token, data.email || email, data.tier);
-        }, 600);
+        setTimeout(() => { window.location.replace("index.html"); }, 800);
 
       } catch (err) {
         errEl.textContent = loginState.requires2FA
@@ -599,6 +561,8 @@
     }
 
     // ── REGISTER ──
+    // No 2FA at this step — just creates the account, then immediately
+    // triggers mandatory 2FA setup (does NOT show the API key popup yet).
     async function handleRegister() {
       const email    = document.getElementById("registerEmail").value.trim();
       const password = document.getElementById("registerPassword").value;
@@ -628,6 +592,8 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "Registration failed");
 
+        // Store the API key now (needed as the X-API-Key header for setup-2fa),
+        // but DO NOT redirect to the scanner yet — 2FA setup is mandatory first.
         pendingSetup.apiKey = data.api_key;
         pendingSetup.tier   = tier;
         pendingSetup.email  = email;
@@ -643,7 +609,7 @@
       }
     }
 
-    // ── MANDATORY 2FA SETUP ──
+    // ── MANDATORY 2FA SETUP (new) ──
     async function beginMandatory2FASetup() {
       const errEl = document.getElementById("setup2FAError");
       errEl.classList.add("hidden");
@@ -669,6 +635,8 @@
         document.getElementById("setupOtpInput").focus();
 
       } catch (err) {
+        // If setup itself fails, fall back to letting them into the API key
+        // popup rather than locking them out entirely — but flag it clearly.
         alert("Could not start 2FA setup: " + err.message + "\nYou can set it up later in Settings.");
         showApiKeyPopup(pendingSetup.apiKey, pendingSetup.tier);
       }
@@ -707,6 +675,7 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "Invalid 2FA code. Please try again.");
 
+        // 2FA confirmed — now move to the API key popup (step 3 of 3)
         document.getElementById("setup2FAPopup").classList.add("hidden");
         showApiKeyPopup(pendingSetup.apiKey, pendingSetup.tier);
 
@@ -740,7 +709,10 @@
     }
 
     function closePopupAndLogin() {
-      loginSuccessAndRedirect(pendingSetup.apiKey, pendingSetup.email, pendingSetup.tier);
+      localStorage.setItem("shepherd_api_key", pendingSetup.apiKey);
+      localStorage.setItem("shepherd_email",   pendingSetup.email);
+      localStorage.setItem("shepherd_tier",    pendingSetup.tier);
+      window.location.replace("index.html");
     }
 
     document.addEventListener('keydown', function(e) {
@@ -753,6 +725,7 @@
       }
     });
 
+     // Show a message if the user was signed out for inactivity
     document.addEventListener("DOMContentLoaded", function () {
       if (localStorage.getItem("shepherd_idle_logout")) {
         localStorage.removeItem("shepherd_idle_logout");
@@ -761,7 +734,6 @@
         info.classList.remove("hidden");
       }
     });
-
     const observer = new MutationObserver(function(mutations) {
       mutations.forEach(function(mutation) {
         if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
