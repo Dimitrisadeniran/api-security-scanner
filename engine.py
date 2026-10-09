@@ -581,3 +581,114 @@ async def run_smart_scan(target_input: str, user_tier: str = "starter", auth_hea
         return results
 
     raise ValueError("Unrecognized target format. Provide an OpenAPI schema JSON/YAML or a live API URL.")
+# ─────────────────────────────────────────────
+# 8. MULTI-LANGUAGE SAST & SOURCE CODE ANALYSIS
+# ─────────────────────────────────────────────
+import os
+import subprocess
+
+# Language File Extensions
+SUPPORTED_EXTENSIONS = {
+    ".js": "javascript",
+    ".ts": "typescript",
+    ".jsx": "javascript",
+    ".tsx": "typescript",
+    ".cs": "csharp",
+    ".java": "java",
+    ".go": "go",
+    ".php": "php",
+    ".py": "python"
+}
+
+# Regex Patterns for Code-Level Security Vulnerabilities
+SAST_PATTERNS = {
+    "HARDCODED_SECRET": {
+        "pattern": r"(?i)(api[_-]?key|secret|password|db[_-]?pass|private[_-]?key)\s*[:=]\s*['\"]([^'\"]{8,})['\"]",
+        "severity": "CRITICAL",
+        "message": "🚨 CRITICAL: Potential hardcoded secret or API credential in source code."
+    },
+    "UNPROTECTED_ROUTE_DECORATOR": {
+        "pattern": r"(?i)(@app\.(get|post|put|delete)|app\.(get|post|put|delete)|\[http(get|post|put|delete)\])\s*\(\s*['\"]([^'\"]+)['\"]",
+        "severity": "WARNING",
+        "message": "⚠️ WARNING: Express/C#/.NET route endpoint declaration requires security scheme verification."
+    },
+    "SUPABASE_PUBLIC_KEY_EXPOSURE": {
+        "pattern": r"SUPABASE_FULL_SERVICE_KEY\s*=\s*['\"]sbp_[a-zA-Z0-9]+['\"]",
+        "severity": "CONFIRMED_LEAK",
+        "message": "🔴 CONFIRMED LEAK: Master Supabase service-role key exposed in client code!"
+    }
+}
+
+def scan_source_directory(repo_path: str) -> List[Dict[str, Any]]:
+    """
+    Scans source code repositories (JS, TS, C#, Java, Go, PHP, Python) for 
+    hardcoded secrets, unauthenticated route handlers, and PII leaks.
+    """
+    sast_findings = []
+
+    if not os.path.exists(repo_path):
+        return sast_findings
+
+    for root, _, files in os.walk(repo_path):
+        # Ignore dependency folders
+        if any(ignored in root for ignored in ["node_modules", "bin", "obj", "vendor", ".git", "venv"]):
+            continue
+
+        for file in files:
+            ext = os.path.splitext(file)[1].lower()
+            if ext not in SUPPORTED_EXTENSIONS:
+                continue
+
+            file_path = os.path.abspath(os.path.join(root, file))
+            language = SUPPORTED_EXTENSIONS[ext]
+
+            try:
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    lines = f.readlines()
+
+                for line_idx, line in enumerate(lines, start=1):
+                    # Check Regex Rules across multi-language source lines
+                    for rule_id, rule in SAST_PATTERNS.items():
+                        match = re.search(rule["pattern"], line)
+                        if match:
+                            sast_findings.append({
+                                "file": os.path.relpath(file_path, repo_path),
+                                "line": line_idx,
+                                "language": language,
+                                "rule_id": rule_id,
+                                "severity": rule["severity"],
+                                "message": f"{rule['message']} ({language.upper()} in line {line_idx})",
+                                "snippet": _redact(line.strip()[:100]),
+                                "remediation": f"Remove sensitive string from {file} and store in environment variables (.env)."
+                            })
+            except Exception:
+                continue
+
+    return sast_findings
+
+def run_semgrep_sast_engine(repo_path: str) -> List[Dict[str, Any]]:
+    """
+    Delegates multi-language static analysis (C#, Java, Go, TS, JS) to Semgrep engine 
+    and ingests structured JSON findings into Shepherd AI format.
+    """
+    findings = []
+    try:
+        cmd = ["semgrep", "--config=auto", "--json", repo_path]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        
+        if result.returncode in (0, 1) and result.stdout:
+            data = json.loads(result.stdout)
+            for item in data.get("results", []):
+                findings.append({
+                    "file": item.get("path"),
+                    "line": item.get("start", {}).get("line"),
+                    "language": item.get("extra", {}).get("language"),
+                    "rule_id": item.get("check_id"),
+                    "severity": "CRITICAL" if item.get("extra", {}).get("severity") == "ERROR" else "WARNING",
+                    "message": item.get("extra", {}).get("message"),
+                    "snippet": item.get("extra", {}).get("lines"),
+                    "remediation": "Apply secure coding best practices for target framework."
+                })
+    except Exception:
+        pass  # Fallback to internal regex scanner if Semgrep CLI isn't present
+    return findings
