@@ -1071,7 +1071,7 @@
       const scansUsed = parseInt(localStorage.getItem("scans_used") || "0", 10);
       const scansLimit = parseInt(localStorage.getItem("scans_limit") || "10", 10);
       
-      const TIER_RANK = { free: 0, starter: 1, pro: 2, enterprise: 3 };
+      const TIER_RANK = { free: 0, professional: 1, business: 2, enterprise: 3 };
 
       document.getElementById("serviceNameDisplay").textContent = config.name;
       document.getElementById("servicePriceDisplay").textContent = config.price;
