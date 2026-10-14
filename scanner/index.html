@@ -447,7 +447,7 @@
       <img src="shepherd-logo.png" alt="Shepherd AI logo" class="h-14 w-14">
       <div class="mono text-lg font-bold text-emerald-400">SHEPHERD AI</div>
       <span id="navTierBadge" class="mono text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider bg-gray-800 text-gray-400 border border-gray-700">
-        TIER: LOADING...
+        TIER: FREE
       </span>
     </div>
     <div class="flex gap-4 sm:gap-6 items-baseline flex-wrap">
@@ -1160,6 +1160,18 @@
       const email = localStorage.getItem("shepherd_email");
       const userTier = (localStorage.getItem("shepherd_tier") || "starter").toLowerCase();
 
+      // ── ADD THIS BLOCK RIGHT HERE ──
+      const navTierBadge = document.getElementById("navTierBadge");
+      if (navTierBadge) {
+        navTierBadge.textContent = `TIER: ${userTier.toUpperCase()}`;
+        const tierStyles = {
+          free:       "bg-gray-800 text-gray-400 border-gray-700",
+          starter:    "bg-blue-950 text-blue-400 border-blue-900",
+          pro:        "bg-purple-950 text-purple-400 border-purple-900",
+          enterprise: "bg-emerald-950 text-emerald-400 border-emerald-900",
+        };
+        navTierBadge.className = `mono text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border ${tierStyles[userTier] || tierStyles.free}`;
+      }
       if (key) document.getElementById("apiKeyInput").value = key;
       if (email) document.getElementById("userEmailDisplay").textContent = email;
 
