@@ -344,7 +344,7 @@
         document.body.style.display = "";
       }
 
-      function checkSession() {
+      async function checkSession() {
         const key = localStorage.getItem("shepherd_api_key");
 
         if (!key || key.trim() === "") {
@@ -352,8 +352,36 @@
           return;
         }
 
-        // Key exists — show the page
+        try {
+          const response = await fetch(
+            `${API_BASE.replace('/api', '')}/api/auth/me`,
+            {
+              method: "GET",
+              credentials: "include",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "x-api-key": key
+              }
+            }
+          );
+
+          if (response.ok) {
+            const user = await response.json();
+            if (user.email) localStorage.setItem("shepherd_email", user.email);
+            if (user.tier) localStorage.setItem("shepherd_tier", user.tier.toLowerCase());
+            if (user.api_key) localStorage.setItem("shepherd_api_key", user.api_key);
+          }
+        } catch (error) {
+          console.warn("Could not refresh session from server, using local cache:", error);
+        }
+
+        // Key exists — show page and update tier badges immediately
         showPage();
+        
+        if (typeof updateTierBadges === "function") {
+          updateTierBadges();
+        }
 
         if (document.readyState === "loading") {
           document.addEventListener("DOMContentLoaded", populateApiKeyInput, { once: true });
