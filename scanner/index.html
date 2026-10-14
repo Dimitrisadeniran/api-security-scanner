@@ -368,7 +368,7 @@
 
           if (response.ok) {
             const user = await response.json();
-            if (user.email) localStorage.setItem("shepherd_email", user.email);
+            if (user.email) localStorage.setItem("shepherd_email", "business");
             if (user.tier) localStorage.setItem("shepherd_tier", user.tier.toLowerCase());
             if (user.api_key) localStorage.setItem("shepherd_api_key", user.api_key);
           }
