@@ -369,7 +369,7 @@ async def run_scan(
 ):
     usage = database.check_scan_limit(user["id"], user["tier"])
     if not usage["allowed"]:
-        raise HTTPException(status_code=429, detail="Monthly scan limit reached. Upgrade to scan more.")
+        raise HTTPException(status_code=429, detail="Monthly scan limit reached.")
 
     try:
         custom_keywords = []
@@ -379,79 +379,61 @@ async def run_scan(
             if kw_string:
                 custom_keywords = [k.strip() for k in kw_string.split(",") if k.strip()]
 
-        scan_results = await engine.run_tier_based_scan(
-            target_url=body.target_url,
+        # ── Use the unified engine orchestrator ──
+        results = await engine.run_tier_based_scan(
+            target_input=body.target_url,
             user_tier=user["tier"],
-            custom_keywords=custom_keywords
+            custom_keywords=custom_keywords if custom_keywords else None,
         )
 
-        unsecured_routes = scan_results["findings"]
-        score = scan_results["security_score"]
-        compliance_summary = scan_results["summary"]
+        database.log_scan(user["id"], body.target_url, results["security_score"])
 
-        scan_id = database.log_scan(
-            user["id"], body.target_url, score,
-            findings=unsecured_routes,
-            compliance_score=compliance_summary["compliance_score"],
-            audit_status=compliance_summary["audit_status"],
-            audit_status_label=compliance_summary["audit_status_label"],
-            confirmed_leak_count=compliance_summary["confirmed_leak_count"],
-        )
-
+        # Email alert
         alert_settings = database.get_alert_settings(user["id"])
         if alert_settings and alert_settings["email_alerts"]:
+            critical_count = results["summary"].get("critical_count", 0)
             email_service.send_scan_alert(
                 to_email=alert_settings["alert_email"],
                 target_url=body.target_url,
-                score=score,
-                total_unsecured=len(unsecured_routes),
-                critical_count=compliance_summary["critical_count"],
-                findings=unsecured_routes,
+                score=results["security_score"],
+                total_unsecured=results["summary"].get("unsecured_routes", 0),
+                critical_count=critical_count,
+                findings=results["findings"],
             )
 
+        # Slack alert
         slack_settings = database.get_slack_settings(user["id"])
         if slack_settings and slack_settings["slack_alerts"] and slack_settings["slack_webhook"]:
             slack_service.send_slack_alert(
                 webhook_url=slack_settings["slack_webhook"],
                 target_url=body.target_url,
-                score=score,
-                total_unsecured=len(unsecured_routes),
-                critical_count=compliance_summary["critical_count"],
-                findings=unsecured_routes,
-                compliance_score=compliance_summary["compliance_score"],
-                audit_status_label=compliance_summary["audit_status_label"],
-                confirmed_leak_count=compliance_summary["confirmed_leak_count"],
+                score=results["security_score"],
+                total_unsecured=results["summary"].get("unsecured_routes", 0),
+                critical_count=results["summary"].get("critical_count", 0),
+                findings=results["findings"],
             )
 
         return {
-            "target": body.target_url,
-            "score": round(score, 1),
-            "findings": unsecured_routes,
-            "compliance_score": compliance_summary["compliance_score"],
-            "audit_status": compliance_summary["audit_status"],
-            "audit_status_label": compliance_summary["audit_status_label"],
-            "summary": {
-                "total_routes": compliance_summary["total_routes"],
-                "protected_routes": compliance_summary["protected_routes"],
-                "confirmed_leak_count": compliance_summary["confirmed_leak_count"],
-                "critical_count": compliance_summary["critical_count"],
-                "warning_count": compliance_summary["warning_count"],
-                "info_count": compliance_summary["info_count"],
-                "overlap_count": compliance_summary["overlap_count"],
-            },
+            "target":   body.target_url,
+            "score":    round(results["security_score"], 1),
+            "findings": results["findings"],
+            "summary":  results["summary"],
+            "routes":   results["findings"],   # ← frontend uses "routes" key
             "usage": {
-                "scans_used": usage["used"] + 1,
+                "scans_used":  usage["used"] + 1,
                 "scans_limit": usage["limit"],
-                "tier": user["tier"]
+                "tier":        user["tier"]
             }
         }
+
     except ValueError as e:
+        # Engine raises ValueError for bad URLs or unreachable targets
         raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Scan Error: {e}")
-        raise HTTPException(status_code=500, detail="Internal scan error.")
+        raise HTTPException(status_code=500, detail=f"Internal scan error: {str(e)}")
 
 
 # ─────────────────────────────────────────────
