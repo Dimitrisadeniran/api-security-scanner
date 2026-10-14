@@ -1315,7 +1315,7 @@
             "x-api-key": localStorage.getItem("shepherd_api_key") || "",
           },
           body: JSON.stringify({
-            url,
+            target_url: url,
             tier,
             capabilities: config.scanCapabilities
           }),
