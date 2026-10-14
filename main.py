@@ -415,15 +415,14 @@ async def run_scan(
 
         return {
             "target":   body.target_url,
-            "score":    round(results["security_score"], 1),
-            "findings": results["findings"],
-            "summary":  results["summary"],
-            "routes":   results["findings"],   # ← frontend uses "routes" key
+            "score":    round(score, 1),
+            "findings": unsecured_routes,
+            "summary":  scan_summary,        # ← add this
             "usage": {
                 "scans_used":  usage["used"] + 1,
                 "scans_limit": usage["limit"],
                 "tier":        user["tier"]
-            }
+             }
         }
 
     except ValueError as e:
