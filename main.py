@@ -380,6 +380,7 @@ async def run_scan(
                 custom_keywords = [k.strip() for k in kw_string.split(",") if k.strip()]
 
         # ── Use the unified engine orchestrator ──
+       # ── Use the unified engine orchestrator ──
         results = await engine.run_tier_based_scan(
             target_input=body.target_url,
             user_tier=user["tier"],
@@ -413,11 +414,16 @@ async def run_scan(
                 findings=results["findings"],
             )
 
+        # ✅ EXTRACT VARIABLES CORRECTLY FROM RESULTS
+        score = results.get("security_score", 0.0)
+        unsecured_routes = results.get("findings", [])
+        scan_summary = results.get("summary", {})
+
         return {
             "target":   body.target_url,
             "score":    round(score, 1),
             "findings": unsecured_routes,
-            "summary":  scan_summary,        # ← add this
+            "summary":  scan_summary,
             "usage": {
                 "scans_used":  usage["used"] + 1,
                 "scans_limit": usage["limit"],
