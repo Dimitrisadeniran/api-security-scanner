@@ -232,7 +232,8 @@ async def fetch_openapi_schema(url: str) -> dict:
     if not target.startswith(("http://", "https://")):
         target = "https://" + target
 
-    if not target.endswith("openapi.json"):
+    # Only append /openapi.json if it's a base URL and doesn't already point to a schema file (.json or .yaml)
+    if not target.endswith((".json", ".yaml", ".yml")) and not target.endswith("openapi.json"):
         target = target.rstrip("/") + "/openapi.json"
 
     headers = {
