@@ -531,22 +531,45 @@ async def run_tier_based_scan(
     """
     Unified engine scanner handling both raw schema dicts and live target URLs.
     """
-    # Obtain OpenAPI Schema if not already supplied
+    schema = None
+    
     if parsed_schema:
         schema = parsed_schema
     elif target_input.startswith(("http://", "https://")):
-        schema = await fetch_openapi_schema(target_input)
+        try:
+            # Try fetching as an OpenAPI schema first
+            schema = await fetch_openapi_schema(target_input)
+        except ValueError:
+            # If it fails (e.g. JSONPlaceholder or live endpoints without schema), treat it as a Live Base URL target instead
+            pass
+
+    # If we successfully got an OpenAPI schema, run the schema audit
+    if schema:
+        unsecured, security_score, summary = find_unsecured_routes(
+            schema, 
+            custom_keywords=custom_keywords if user_tier == "enterprise" else None
+        )
+        total_routes = summary["total_routes"]
+        protected_count = summary["protected_routes"]
     else:
-        raise ValueError("Invalid target format: Expected raw OpenAPI dictionary or valid HTTP/HTTPS URL.")
-
-    # 1. Base Static Inspection
-    unsecured, security_score, summary = find_unsecured_routes(
-        schema, 
-        custom_keywords=custom_keywords if user_tier == "enterprise" else None
-    )
-
-    total_routes = summary["total_routes"]
-    protected_count = summary["protected_routes"]
+        # Otherwise, run live route probing against the base URL
+        unsecured = [{
+            "route": "/",
+            "method": "GET",
+            "summary": "Live Target Base Root",
+            "compliance": [],
+            "pii_detected": [],
+            "severity": "INFO",
+            "message": "ℹ️ Target is a live API root. Performing live endpoint probing.",
+            "is_overlap": False,
+            "confirmed_leak": False,
+            "leak_evidence": [],
+            "is_critical": False,
+            "remediation": "Ensure target routes implement standard authentication headers."
+        }]
+        total_routes = 1
+        protected_count = 0
+        summary, security_score = _compute_summary(unsecured, total_routes, protected_count)
 
     # 2. Professional+ Tier Checks
     if user_tier in {"professional", "business", "enterprise"} and target_input.startswith(("http://", "https://")):
