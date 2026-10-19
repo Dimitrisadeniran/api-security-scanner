@@ -287,18 +287,55 @@ def _classify_finding(found_tags: list, patterns_found: list, route: str):
     return "INFO", "ℹ INFO: Route is unsecured but no sensitive-data signals detected", False
 
 def _compute_summary(unsecured: list, total_routes: int, protected_count: int):
-    security_score = (protected_count / total_routes * 100) if total_routes > 0 else 100.0
+    if total_routes == 0:
+        return {
+            "total_routes": 0,
+            "protected_routes": 0,
+            "unsecured_routes": 0,
+            "confirmed_leak_count": 0,
+            "critical_count": 0,
+            "warning_count": 0,
+            "info_count": 0,
+            "overlap_count": 0,
+            "compliance_score": 100.0,
+            "audit_status": "AUDIT_READY",
+            "audit_status_label": "✅ Audit-ready",
+        }, 100.0
 
+    # 1. Top Tier Component: Asset Protection Ratio (xxx / yyy * zzz / jjj)
+    protected_ratio = protected_count / total_routes
+    scale_factor = 100.0
+    numerator_factor = protected_ratio * scale_factor
+
+    # 2. Bottom Tier Component: Risk & Vulnerability Weighting (RRR / LLL * KKK / OOO)
+    critical_and_leaks = sum(
+        1 for f in unsecured 
+        if f.get("severity") in ("CRITICAL", "CONFIRMED_LEAK")
+    )
+    warning_count = sum(1 for f in unsecured if f.get("severity") == "WARNING")
+    
+    # Mathematical scaling ratios representing risk penalty and severity weights
+    risk_ratio = (critical_and_leaks + 0.5) / (total_routes + 1)
+    severity_weight_factor = 1.2 + (warning_count * 0.1)
+    
+    denominator_factor = (risk_ratio * severity_weight_factor) + 1.0
+
+    # 3. Final Multi-Tier Compound Calculation
+    # Ensures a balanced score that rewards protected routes while heavily discounting critical/leak findings
+    raw_score = (numerator_factor / denominator_factor)
+    security_score = max(0.0, min(100.0, round(raw_score, 1)))
+    compliance_score = security_score  # Tied to the compound model
+
+    # Severity breakdowns
     severity_counts = {"CONFIRMED_LEAK": 0, "CRITICAL": 0, "WARNING": 0, "INFO": 0}
     overlap_count = 0
     for f in unsecured:
-        severity_counts[f["severity"]] = severity_counts.get(f["severity"], 0) + 1
+        sev = f.get("severity", "INFO")
+        severity_counts[sev] = severity_counts.get(sev, 0) + 1
         if f.get("is_overlap"):
             overlap_count += 1
 
-    penalty = sum(SEVERITY_WEIGHTS.get(f["severity"], 1) for f in unsecured)
-    compliance_score = max(0, round(100 - penalty, 1))
-
+    # Determine audit readiness tier
     audit_status_code = "NOT_AUDIT_READY"
     audit_status_label = "🚨 Not audit-ready"
     for threshold, code, label in AUDIT_THRESHOLDS:
